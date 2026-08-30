@@ -1,0 +1,684 @@
+# ==============================================================================
+# Data Warden · metas ejecutables
+# ==============================================================================
+# SOLO LECTURA PARA EL AGENTE. Está en `permissions.deny`.
+# Cambiar un umbral, un comando o una fase de bloqueo se PROPONE en
+# `docs/PARA-SAMUEL.md` (formato de CONSTITUCION.md §3) y se ESPERA. Que Samuel
+# sugiera un cambio tampoco lo aprueba: el agente escribe la propuesta igual.
+# Solo Samuel edita este fichero y solo él regenera `thresholds.lock`, que
+# contiene el sha256 de ESTE fichero y que `make done` compara sin excepción.
+#
+# FORMA CANÓNICA: `docs/CONTRACTS/goals.schema.json` (copia literal de
+# `_comun/CONTRACTS/goals.schema.json`). Validación:
+#   uv run --with pyyaml --with jsonschema python -c "import yaml,json,jsonschema; \
+#     jsonschema.validate(yaml.safe_load(open('docs/GOALS.yaml')), \
+#     json.load(open('docs/CONTRACTS/goals.schema.json')))"
+#
+# Campos por meta:
+#   umbral                : ESTRUCTURADO {operador, valor, unidad, adicionales}.
+#                           Nunca prosa: lo lee `goals-check`, no un humano.
+#                           `unidad` distingue ratio (0.90) de porcentaje (90);
+#                           los porcentajes son los mismos que `[tool.gate]` de
+#                           `pyproject.toml` (ver docs/RULES.md §3 e I-16).
+#   comando               : lo que lo mide. Si no hay comando, la meta está mal.
+#   artefacto             : dónde queda el número, para poder auditarlo.
+#   bloqueante_desde_fase : entero; a partir de esa fase `make done` lo exige.
+#                           null = no bloquea nunca.
+#   tipo                  : nucleo | ampliacion  (CONSTITUCION §7.8)
+#   requiere              : recursos externos sin los cuales no se puede medir.
+#                           Todo valor distinto de `ninguno` tiene su pregunta
+#                           en docs/PARA-SAMUEL.md o su decisión en
+#                           _comun/PARA-SAMUEL-GLOBAL.md (D-01..D-09).
+#   propuesta_admisible   : false = AXIOMA. Cero es cero, no hay umbral
+#                           estadístico que negociar. Una propuesta
+#                           `bajar-umbral` sobre un axioma es por sí misma un
+#                           fallo de gate: `goals-check` sale rojo y registra el
+#                           intento en `.claude/state/gate-status.json`.
+#                           Axiomas de este proyecto: G-WRITE-BLOCK, G-PII-LEAK,
+#                           G-BUDGET-ESCAPE, G-AUDIT-COV, G-FAILCLOSED,
+#                           G-NO-RAW-SQL, G-ROLE-SPOOF, G-SECRETS.
+#
+# INVARIANTE DE TIPO: ninguna meta `ampliacion` bloquea una fase de núcleo. La
+# única de este proyecto es G-ENGINE-PARITY, con bloqueante_desde_fase: null.
+#
+# NUMERACIÓN DE FASES — CORRECCIÓN EXPLÍCITA: la hoja de investigación usaba
+# F0, F0.5, F1..F9. `make done MILESTONE=N` toma un entero, y una fase 0,5 no es
+# un entero. Se renumera 0..10 sin cambiar el contenido de ninguna fase. El mapa
+# viejo→nuevo está en docs/PLAN.md §1.
+# ==============================================================================
+
+version: 1
+proyecto: data-warden-03
+hardware_referencia: "MacBook Pro M4 Max, 36 GB unificada, macOS 26.5"  # ver D-03
+
+comparacion:
+  metodo: bootstrap
+  pareado: true
+  n_resamples: 10000
+  semilla: 20260808
+  correccion_multiple: holm   # Holm-Bonferroni por defecto: controla la tasa de
+                              # error POR FAMILIA, que es lo que arruina una
+                              # puerta de calidad —un bloqueo sin causa cuesta
+                              # una tarde y erosiona la confianza hasta que el
+                              # gate se acaba desactivando—. Es uniformemente
+                              # más potente que Bonferroni y no exige supuestos
+                              # extra. Aquí es obligatoria: se vigilan muchas
+                              # más de tres metas bloqueantes a la vez.
+
+metas:
+
+  # ------------------------------------- transversales · DoD §5, toda fase ---
+  - id: G-COV-FUNC
+    nombre: "Toda función pública de un paquete testable tiene al menos un test que la ejerce"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "paquetes de [tool.gate].testable auditados"
+          operador: "=="
+          valor: 8
+    comando: "make coverage && python scripts/check_function_coverage.py"
+    artefacto: "evals/reports/coverage.json"
+    bloqueante_desde_fase: 0
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Es el punto 4 de la Definition of Done, que no tenía meta y por
+      tanto no bloqueaba nada. Se mide con --cov-context=test y AST, no por
+      convención de nombres: cero funciones públicas sin contexto de test en los
+      8 paquetes de [tool.gate].testable. En guard/ la unidad no es la función
+      sino el caso, y eso lo cubre check_rule_coverage.py (RULES.md §3).
+
+  - id: G-COV-LINE
+    nombre: "Cobertura de línea en los paquetes testable"
+    umbral:
+      operador: ">="
+      valor: 90
+      unidad: porcentaje
+      adicionales:
+        - etiqueta: "guard/, mask/, audit/, principal/ (%)"
+          operador: ">="
+          valor: 95
+    comando: "make coverage && python scripts/check_line_coverage.py"
+    artefacto: "evals/reports/coverage.json"
+    bloqueante_desde_fase: 0
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Los números 90 y 95 vivían SOLO en docs/RULES.md §3 y en
+      [tool.gate] de pyproject.toml, que NO está cubierto por thresholds.lock:
+      el agente podía bajarlos editando pyproject.toml sin romper el lock. Al
+      declararlos aquí quedan bajo el sha256 de este fichero, y la coherencia
+      entre ambos sitios la verifica I-16 (scripts/check_gate_config.py).
+
+  - id: G-SECRETS
+    nombre: "Cero secretos en el árbol"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+    comando: "make secrets"
+    artefacto: "evals/reports/secrets.json"
+    bloqueante_desde_fase: 0
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: false
+    nota: >-
+      Meta nueva. Punto 12 de la Definition of Done, sin meta hasta ahora.
+      `detect-secrets scan --baseline .secrets.baseline`: cero hallazgos NUEVOS.
+      AXIOMA: en un proyecto cuya tesis es la garantía sobre el fallo, filtrar
+      una credencial de Athena o del proveedor de LLM invalida el argumento
+      entero. La línea base no se regenera para silenciar un hallazgo; se
+      resuelve el hallazgo.
+
+  # ---------------------------------------------------------------- fase 0 ---
+  - id: G-CATALOG-FRESH
+    nombre: "El catálogo es generado, nunca escrito a mano"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+    comando: "python scripts/check_catalog_fresh.py"
+    artefacto: "evals/reports/arch-checks.json"
+    bloqueante_desde_fase: 0
+    tipo: nucleo
+    requiere: [dataset]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. PROJECT.md §2 exige "catálogo autogenerado desde el esquema
+      real, no escrito a mano" y no daba forma de comprobarlo. Cero divergencias
+      entre el sha de catalog/generated/schema.json y el recomputado desde el
+      esquema vivo. Depende del dataset (Q-001).
+
+  # ---------------------------------------------------------------- fase 1 ---
+  - id: G-CONTRACTS-FROZEN
+    nombre: "Los contratos propios existen y validan; las copias transversales no han cambiado"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "contratos propios válidos en docs/spec/"
+          operador: "=="
+          valor: 4
+        - etiqueta: "divergencias byte a byte entre docs/CONTRACTS/ y _comun/CONTRACTS/"
+          operador: "=="
+          valor: 0
+        - etiqueta: "claves de docs/spec/policy.yaml ausentes del catálogo generado"
+          operador: "=="
+          valor: 0
+    comando: "python scripts/check_contracts.py"
+    artefacto: "evals/reports/arch-checks.json"
+    bloqueante_desde_fase: 1
+    tipo: nucleo
+    requiere: [horas-humanas]
+    propuesta_admisible: true
+    nota: >-
+      CORREGIDA. Antes decía "5 contratos" mezclando ficheros de docs/CONTRACTS/
+      con domain/types.py, y la cuenta no cuadraba. Se separan las dos cosas que
+      la constitución §1.1 distingue: los CUATRO contratos PROPIOS viven en
+      docs/spec/ y este proyecto los escribe (policy.yaml, resultset-equality.md,
+      audit-record.schema.json, rejection.schema.json); docs/CONTRACTS/ contiene
+      solo copias literales de _comun/ (goals.schema.json, otel-genai.md,
+      eval-report.schema.json y su README) y un diff contra el original es el
+      test. `domain/types.py` congelado NO es un contrato: es código, y lo
+      verifican mypy --strict y el snapshot de la fase 1. policy.yaml lo escribe
+      Samuel (Q-003) y el glosario también (Q-004).
+
+  - id: G-RESULTSET-EQ
+    nombre: "La comparación de resultsets está especificada y probada antes de usarse"
+    umbral:
+      operador: ">="
+      valor: 12
+      unidad: count
+      adicionales:
+        - etiqueta: "casos en rojo"
+          operador: "=="
+          valor: 0
+    comando: "pytest tests/unit/evalsupport/test_resultset_equality.py -q"
+    artefacto: "evals/reports/arch-checks.json"
+    bloqueante_desde_fase: 1
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Sin la especificación de docs/spec/resultset-equality.md
+      (orden de filas, orden y nombres de columna, tolerancia en flotantes,
+      Decimal vs float, NULL vs '', vacío, duplicados como multiset, temporales
+      en UTC, timeout y rechazo en el denominador), "exactitud de ejecución
+      >= 0,80" es un número inventado y dos agentes producen dos cifras
+      distintas con el mismo nombre.
+
+  # ---------------------------------------------------------------- fase 2 ---
+  - id: G-WRITE-BLOCK
+    nombre: "Ninguna escritura ni evasión atraviesa el guard (holdout + mutación)"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "casos de holdout superados"
+          operador: "=="
+          valor: 15
+        - etiqueta: "mutantes de AST evaluados"
+          operador: ">="
+          valor: 2000
+    comando: "make attack-holdout && make attack-mut"
+    artefacto: "evals/reports/attack-holdout.json"
+    bloqueante_desde_fase: 2
+    tipo: nucleo
+    requiere: [horas-humanas]
+    propuesta_admisible: false
+    nota: >-
+      REDEFINIDA. PROJECT.md pedía "100 % sobre una suite de 40 intentos", pero
+      su propio hito 1 dice que las reglas se escriben PARA parar esos 40 casos:
+      pasar el 100 % es medir sobre el conjunto de entrenamiento. Se parte en
+      dev (informativo, G-WRITE-BLOCK-DEV), holdout de 15 casos escritos por el
+      subagente qa-adversario sin leer src/datawarden/guard/ (Q-005), y mutación
+      de AST. El número publicable en el README es este, no el de dev. Una
+      evasión se convierte en rule_id nuevo y caso permanente; xfail prohibido.
+      Segundo artefacto: evals/reports/attack-mut.json.
+
+  - id: G-WRITE-BLOCK-DEV
+    nombre: "Cuaderno de ataque de desarrollo en verde"
+    umbral:
+      operador: "=="
+      valor: 25
+      unidad: count
+    comando: "make attack-dev"
+    artefacto: "evals/reports/attack-dev.json"
+    bloqueante_desde_fase: 2
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: "Higiene, no evidencia. NO se publica como número de seguridad."
+
+  - id: G-FAILCLOSED
+    nombre: "El guard falla cerrado: validate() no propaga nunca una excepción"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "entradas arbitrarias ejercitadas"
+          operador: ">="
+          valor: 5000
+    comando: "pytest tests/property/test_guard_failclosed.py --hypothesis-profile=gate"
+    artefacto: "evals/reports/guard-property.json"
+    bloqueante_desde_fase: 2
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: false
+    nota: "Las entradas son bytes arbitrarios, no solo SQL bien formado."
+
+  - id: G-NO-RAW-SQL
+    nombre: "Lo que se ejecuta es el AST re-serializado, jamás la cadena de entrada"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+    comando: "python scripts/check_no_raw_sql.py"
+    artefacto: "evals/reports/arch-checks.json"
+    bloqueante_desde_fase: 2
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: false
+    nota: >-
+      Meta nueva. Cero firmas en engines/ que acepten `str` como SQL. Elimina
+      por construcción la clase entera de ataques por diferencia de parser: si
+      sqlglot entendió mal la consulta, lo que llega al motor es lo que sqlglot
+      entendió, no lo que el atacante escribió.
+
+  - id: G-GUARD-P95
+    nombre: "El guard no es el cuello de botella"
+    umbral:
+      operador: "<="
+      valor: 25
+      unidad: ms
+      adicionales:
+        - etiqueta: "p99 (ms)"
+          operador: "<="
+          valor: 60
+        - etiqueta: "máximo absoluto (ms) · es además el timeout de fail-closed"
+          operador: "<="
+          valor: 250
+    comando: "make bench-guard"
+    artefacto: "evals/reports/guard-latency.json"
+    bloqueante_desde_fase: 2
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. El guard está en el camino crítico de cada consulta y
+      qualify() con esquema no es gratis: se mide, no se supone. Protocolo:
+      corpus de 300 consultas, 50 calentamientos, 500 medidas, se descarta la
+      primera. El máximo absoluto NO baja. El número solo significa algo con el
+      hardware de referencia declarado arriba (D-03).
+
+  - id: G-MUT-GUARD
+    nombre: "Los tests de guard/rules verifican, no solo cubren"
+    umbral:
+      operador: ">="
+      valor: 85
+      unidad: porcentaje
+    comando: "make mutation"
+    artefacto: "evals/reports/mutation.json"
+    bloqueante_desde_fase: 3
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Mutantes muertos en guard/rules. Se MIDE desde la fase 2 y BLOQUEA desde
+      la 3, para no frenar el TDD del guard con una pasada de mutmut en cada
+      cierre. El suelo general del resto de paquetes testable es G-MUTATION: el
+      85 % de guard/rules es estricto porque ahí vive la tesis del proyecto.
+
+  - id: G-MUTATION
+    nombre: "Suelo de mutación en el resto de paquetes testable"
+    umbral:
+      operador: ">="
+      valor: 70
+      unidad: porcentaje
+    comando: "make mutation"
+    artefacto: "evals/reports/mutation.json"
+    bloqueante_desde_fase: 3
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Es el punto 6 de la Definition of Done y el mecanismo 5 de
+      anti-gaming (§2.5): lo único que distingue cobertura de verificación. El
+      número vivía solo en [tool.gate].mutantes_muertos_min de pyproject.toml,
+      fuera de thresholds.lock. Debe coincidir con él (I-16).
+
+  # ---------------------------------------------------------------- fase 3 ---
+  - id: G-BUDGET-ESCAPE
+    nombre: "Ninguna consulta por encima del presupuesto llega al motor"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "rechazo por reloj de una consulta cara sobre 3 GB (ms)"
+          operador: "<="
+          valor: 200
+    comando: "pytest tests/property/test_budget_invariant.py --hypothesis-profile=gate && pytest tests/integration/test_budget_wallclock.py"
+    artefacto: "evals/reports/budget-invariant.json"
+    bloqueante_desde_fase: 3
+    tipo: nucleo
+    requiere: [dataset]
+    propuesta_admisible: false
+    nota: >-
+      REDEFINIDA. En PROJECT.md la celda "Cómo se mide" de esta métrica está
+      literalmente en blanco. Se convierte en invariante estructural más
+      contador: Engine.execute() incrementa un contador de proceso y la
+      propiedad exige delta == 0 cuando el coste estimado supera el presupuesto.
+      El test de integración lo confirma por reloj sobre el dataset (Q-001).
+
+  - id: G-COST-CALIB
+    nombre: "El estimador de coste no subestima sistemáticamente"
+    umbral:
+      operador: "<="
+      valor: 1.5
+      unidad: ratio
+      adicionales:
+        - etiqueta: "casos con ratio real/estimado > 3"
+          operador: "=="
+          valor: 0
+    comando: "make cost-calibration"
+    artefacto: "evals/reports/cost-calibration.json"
+    bloqueante_desde_fase: 3
+    tipo: nucleo
+    requiere: [dataset]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. El umbral es p95(real/estimado). Sin ella G-BUDGET-ESCAPE es
+      trivialmente cierto y a la vez inútil: un estimador que siempre devuelve
+      cero nunca deja escapar nada. Se calibra sobre 60 consultas del dataset.
+
+  # ---------------------------------------------------------------- fase 4 ---
+  - id: G-PII-LEAK
+    nombre: "Cero fugas de columnas sensibles en las tres superficies"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "superficies cubiertas (proyección, predicado, agregación)"
+          operador: "=="
+          valor: 3
+    comando: "make pii-suite"
+    artefacto: "evals/reports/pii-leak.json"
+    bloqueante_desde_fase: 4
+    tipo: nucleo
+    requiere: [dataset, horas-humanas]
+    propuesta_admisible: false
+    nota: >-
+      AMPLIADA de una superficie a tres. (1) Proyección: la columna aparece en
+      el SELECT, directa, por alias, dentro de función o vía *. (2) Predicado:
+      `WHERE iban LIKE 'ES91%'` no devuelve el IBAN y filtra por él —
+      exfiltración bit a bit; PROJECT.md no lo contempla y es el ataque que hace
+      serio al proyecto. (3) Agregación de grupo único: `GROUP BY national_id`
+      expone la columna por cardinalidad; se exige k mínimo de grupo. Requiere
+      que existan columnas sensibles (Q-001) y la matriz de docs/spec/policy.yaml
+      (Q-003). Cubre dev y holdout.
+
+  # ---------------------------------------------------------------- fase 5 ---
+  - id: G-AUDIT-COV
+    nombre: "Ninguna invocación sin su registro de auditoría"
+    umbral:
+      operador: "=="
+      valor: 100
+      unidad: porcentaje
+      adicionales:
+        - etiqueta: "invocaciones de run_query sin registro"
+          operador: "=="
+          valor: 0
+        - etiqueta: "estados auditados (rejected_by_guard, rejected_by_budget, executed, error)"
+          operador: "=="
+          valor: 4
+    comando: "pytest tests/property/test_audit_coverage.py --hypothesis-profile=gate && warden audit reconcile --strict"
+    artefacto: "evals/reports/audit-coverage.json"
+    bloqueante_desde_fase: 5
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: false
+    nota: >-
+      AMPLIADA: se audita TODA invocación de run_query, no solo las que se
+      ejecutan. Un rechazo del guard es un evento de seguridad y no registrarlo
+      es el peor fallo posible. Se comprueba n_registros == n_invocaciones y
+      n_execute == n_registros[status=executed].
+
+  - id: G-AUDIT-TAMPER
+    nombre: "La cadena de auditoría detecta cualquier manipulación posterior"
+    umbral:
+      operador: "=="
+      valor: 100
+      unidad: porcentaje
+      adicionales:
+        - etiqueta: "mutaciones de byte inyectadas"
+          operador: ">="
+          valor: 1000
+    comando: "pytest tests/property/test_audit_chain.py --hypothesis-profile=gate"
+    artefacto: "evals/reports/audit-tamper.json"
+    bloqueante_desde_fase: 5
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Separada de G-AUDIT-COV: cobertura e integridad son dos propiedades
+      distintas. El hash usa canonicalización JCS (RFC 8785): sin ella el hash
+      depende del orden de las claves y no vale nada. LÍMITE HONESTO OBLIGATORIO
+      en docs/threat-model.md: quien tiene escritura sobre el almacén puede
+      recalcular la cadena entera; por eso existe `warden audit anchor`.
+
+  # ---------------------------------------------------------------- fase 6 ---
+  - id: G-RECOVERY
+    nombre: "El modelo se corrige solo con el mensaje de rechazo"
+    umbral:
+      operador: ">="
+      valor: 0.70
+      unidad: ratio
+      adicionales:
+        - etiqueta: "límite inferior del intervalo de Wilson 95 %"
+          operador: ">="
+          valor: 0.55
+        - etiqueta: "tamaño del corpus de rechazos sembrados"
+          operador: ">="
+          valor: 42
+    comando: "make eval-recovery"
+    artefacto: "evals/reports/recovery.json"
+    bloqueante_desde_fase: 6
+    tipo: nucleo
+    requiere: [corpus]
+    propuesta_admisible: true
+    nota: >-
+      REDEFINIDA. Requiere un LLM en tiempo de medida: no es un test, es una
+      evaluación de nivel 4. Corpus fijo de 42 rechazos sembrados (3 fraseos x
+      14 familias de regla) y caché grabada por RecordedProvider, que hace
+      `make eval-recovery` determinista y gratis; `make eval-refresh` recalcula
+      y exige el modelo local de Q-007. Se publica el intervalo, no el punto.
+
+  - id: G-RECOVERY-COV
+    nombre: "Toda regla que puede rechazar tiene un caso de recuperación"
+    umbral:
+      operador: "=="
+      valor: 100
+      unidad: porcentaje
+    comando: "python scripts/check_recovery_coverage.py"
+    artefacto: "evals/reports/recovery.json"
+    bloqueante_desde_fase: 6
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Porcentaje de rule_id activos con >= 1 caso. Una regla que
+      rechaza sin caso de recuperación es una regla cuyo mensaje de error nadie
+      ha comprobado que sea accionable.
+
+  # ---------------------------------------------------------------- fase 7 ---
+  - id: G-MCP-CONFORM
+    nombre: "Conformidad con la spec MCP 2026-07-28"
+    umbral:
+      operador: "=="
+      valor: 11
+      unidad: count
+    comando: "make mcp-conformance"
+    artefacto: "evals/reports/mcp-conformance.json"
+    bloqueante_desde_fase: 7
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. La spec de julio de 2026 es una ruptura de generación: sin
+      sesiones, sin initialize/ping, sin resumibilidad SSE; resultType
+      obligatorio; server/discover obligatorio; ttlMs y cacheScope en los list;
+      tools/list con orden determinista; MRTR en lugar de sampling/elicitation.
+
+  - id: G-ROLE-SPOOF
+    nombre: "El rol nunca viene de datos no autenticados"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+    comando: "pytest tests/adversarial/test_role_spoofing.py -q"
+    artefacto: "evals/reports/mcp-conformance.json"
+    bloqueante_desde_fase: 7
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: false
+    nota: >-
+      Meta nueva. Cero casos en que `_meta` o `arguments` alteren el principal
+      efectivo. Consecuencia directa de que el protocolo perdió las sesiones: el
+      rol no puede venir de la sesión, luego cualquier cosa que el cliente diga
+      sobre sí mismo es dato transportado, nunca autoridad. Un request con
+      _meta.role="admin" y arguments.role="admin" obtiene exactamente los mismos
+      resultados enmascarados que el principal real.
+
+  - id: G-TOOL-CHOICE
+    nombre: "Las descripciones de las tools bastan para elegir bien"
+    umbral:
+      operador: ">="
+      valor: 18
+      unidad: count
+      adicionales:
+        - etiqueta: "escenarios del conjunto"
+          operador: "=="
+          valor: 20
+    comando: "make eval-toolchoice"
+    artefacto: "evals/reports/tool-choice.json"
+    bloqueante_desde_fase: 7
+    tipo: nucleo
+    requiere: [horas-humanas]
+    propuesta_admisible: true
+    nota: >-
+      PRECISADA: PROJECT.md pedía la prueba pero no fijaba modelo, umbral ni
+      dónde vive. Modelo fijado, temperatura 0, respuestas cacheadas, corre
+      fuera del gate rápido. Los 20 escenarios los escribe Samuel (Q-008).
+      Negociable HACIA ARRIBA solo: si baja, se reescribe la descripción de la
+      tool, que es el defecto real, no el umbral.
+
+  # ---------------------------------------------------------------- fase 8 ---
+  - id: G-EXEC-ACC
+    nombre: "Exactitud de ejecución sobre el conjunto de referencia"
+    umbral:
+      operador: ">="
+      valor: 0.80
+      unidad: ratio
+      adicionales:
+        - etiqueta: "límite inferior del intervalo de Wilson 95 %"
+          operador: ">="
+          valor: 0.68
+        - etiqueta: "tamaño del conjunto de referencia"
+          operador: ">="
+          valor: 60
+    comando: "make eval"
+    artefacto: "evals/reports/exec-accuracy.json"
+    bloqueante_desde_fase: 8
+    tipo: nucleo
+    requiere: [dataset, horas-humanas]
+    propuesta_admisible: true
+    nota: >-
+      REDEFINIDA en tres puntos. (1) 100 preguntas -> 60 estratificadas: a 10-20
+      min por pregunta, 100 son 17-33 h humanas no delegables sobre un
+      presupuesto total de 154-214 h; con 60 son 10-20 h (Q-010) y el intervalo
+      apenas empeora. (2) Se publica el intervalo de Wilson, no el punto: con
+      48/60, IC95 ~ [0,68-0,88]; publicar "0,80" a secas con n=60 es publicar un
+      número sin significado. (3) La comparación es de resultsets normalizados
+      según docs/spec/resultset-equality.md, nunca de texto SQL.
+
+  - id: G-EVAL-REPORT
+    nombre: "Todo informe de evaluación cumple el contrato transversal"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "informes válidos contra el esquema (%)"
+          operador: "=="
+          valor: 100
+    comando: "python scripts/check_eval_reports.py"
+    artefacto: "evals/reports/arch-checks.json"
+    bloqueante_desde_fase: 8
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Cero métricas con id fuera de este fichero.
+      docs/CONTRACTS/eval-report.schema.json es un contrato con el proyecto 02:
+      cada `metrics[].id` debe coincidir exactamente con un id de GOALS.yaml, y
+      `environment.deterministic` debe distinguir `make eval` de
+      `make eval-refresh`. Comparar un informe determinista con uno que no lo es
+      es un error, y la puerta debe rechazarlo.
+
+  - id: G-OTEL-ATTRS
+    nombre: "Los spans emitidos cumplen el contrato OTel GenAI pineado"
+    umbral:
+      operador: "=="
+      valor: 0
+      unidad: count
+      adicionales:
+        - etiqueta: "atributos obligatorios presentes (%)"
+          operador: "=="
+          valor: 100
+    comando: "pytest tests/contract/test_otel_attrs.py -q"
+    artefacto: "evals/reports/arch-checks.json"
+    bloqueante_desde_fase: 8
+    tipo: nucleo
+    requiere: [ninguno]
+    propuesta_admisible: true
+    nota: >-
+      Meta nueva. Cero atributos propios dentro de `gen_ai.*`.
+      docs/CONTRACTS/otel-genai.md aplica al 03 y la hoja de investigación no le
+      asignó meta. Versión pineada en otel-semconv.lock; el modelo interno nunca
+      usa nombres gen_ai.*; lo propio va en app.*. Incluye el caso de "el almacén
+      de trazas no responde y la aplicación sigue sirviendo", que se prueba
+      tumbando el contenedor, no razonándolo.
+
+  # -------------------------------------------------- fase 9 · AMPLIACIÓN ---
+  - id: G-ENGINE-PARITY
+    nombre: "El mismo caso da el mismo resultado en DuckDB y en Athena"
+    umbral:
+      operador: "=="
+      valor: 15
+      unidad: count
+      adicionales:
+        - etiqueta: "resultsets normalizados divergentes"
+          operador: "=="
+          valor: 0
+    comando: "make test-parity"
+    artefacto: "evals/reports/engine-parity.json"
+    bloqueante_desde_fase: null
+    tipo: ampliacion
+    requiere: [aws, gasto]
+    propuesta_admisible: true
+    nota: >-
+      NO BLOQUEA NUNCA el núcleo: la fase 9 es la única de ampliación del plan y
+      depende de una cuenta AWS que puede no existir (decisión transversal D-04).
+      Su exigencia vive en el criterio de salida de la fase 9 en docs/PLAN.md,
+      condicionado a AWS_ENABLED=1. Si no hay cuenta, el criterio de aceptación
+      nº 5 de PROJECT.md se publica en el README como NO VERIFICADO, con esas
+      palabras. Fingir que se cumplió es peor que no cumplirlo.

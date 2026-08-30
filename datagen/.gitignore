@@ -1,0 +1,6 @@
+# Generated data is never committed: the artefact under version control is the
+# GENERATOR and its seed, which reproduce it byte for byte. Committing 3 GB of
+# Parquet would also make the repository unusable for the people it is meant to
+# convince -- and it is the decision D-07 already anticipated.
+out/
+docker/catalog.sql

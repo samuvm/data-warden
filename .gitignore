@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# Lo generado NO se versiona: se versiona lo que lo genera.
+#
+# El dataset CIERZO son 7,1 GB reproducibles byte a byte desde el generador y su
+# semilla. Meterlos aquí haría el repositorio inservible para quien tiene que
+# descargarlo, que es exactamente el público al que va dirigido — y D-07 ya lo
+# anticipaba al decir que se publica el generador, no los datos.
+# ---------------------------------------------------------------------------
+datagen/out/
+datagen/docker/catalog.sql
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+mutants/
+
+# Punto de retorno anterior a git; sigue siendo el que crea `make done`
+.snapshots/
+
+# Estado que escribe el gate, no una persona
+.claude/state/*.json
+
+# Sistema
+.DS_Store
+*.duckdb
+*.duckdb.wal
