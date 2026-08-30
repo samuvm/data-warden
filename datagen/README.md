@@ -34,6 +34,34 @@ PROFILE=demo docker compose -f datagen/docker/compose.yaml run --rm sql
 cierzo> .read sql/01-explora.sql
 ```
 
+### Iceberg
+
+El mismo dataset está además materializado como **tablas Apache Iceberg, spec v2**:
+
+```bash
+duckdb -c ".read datagen/out/full/iceberg/duckdb-views.sql" \
+       -c "SELECT count(*) FROM fact_payment_attempt;"
+```
+
+**Qué añade sobre el Parquet suelto.** Hasta aquí una tabla era «lo que devuelva
+este `glob`», y cualquiera que dejase un fichero de más la cambiaba sin querer.
+Iceberg pone encima un **manifiesto**: la lista exacta de ficheros que forman la
+tabla en cada instante. De ahí salen la evolución de esquema, el viaje en el
+tiempo, las instantáneas atómicas y una poda de particiones fiable — y ninguna de
+las cuatro es posible sobre un `glob`.
+
+**No copia un solo byte:** `add_files` registra el Parquet que ya existe. El
+catálogo del perfil completo pesa **1,4 MB para 7,46 GB de datos**, y contar los
+66,6 M de filas tarda 0,02 s porque lee el manifiesto en vez de escanear.
+
+**Spec v2, no v3, y no es un detalle.** `docs/STACK.md` lo dice: Athena no soporta
+v3, y el criterio de aceptación nº 5 del proyecto es que el mismo caso funcione en
+DuckDB **y** en Athena. Escribirlo en v3 haría fallar ese criterio por el formato
+en vez de por la abstracción de motor, que es justo lo que se quería demostrar. El
+script lo comprueba y aborta si no sale v2.
+
+### El contenedor
+
 El contenedor es **solo lectura y sin base de datos en disco**: reconstruye el
 catálogo en memoria desde el Parquet montado cada vez que arranca, así que nunca
 puede estar describiendo una versión anterior de los datos.

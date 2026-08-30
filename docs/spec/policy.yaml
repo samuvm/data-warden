@@ -1,0 +1,677 @@
+# =============================================================================
+# Política de acceso a columnas · rol × columna × nivel
+#
+# BORRADOR PARA FIRMA. Lo generó el agente el 2026-08-31 desde el catálogo REAL
+# del dataset CIERZO (`datagen/out/full`), no de memoria: las 28 columnas de
+# `dim_customer`, las 13 de `dim_card` y las 36 de `fact_payment_attempt` están
+# inventariadas una a una.
+#
+# CÓMO SE REVISA. Todo lo dudoso está en el nivel más restrictivo posible. Tu
+# trabajo es RELAJAR lo que quieras que se vea, no endurecer. Cambia el nivel,
+# escribe el porqué en `justificacion` y ya está. Hasta que firmes, este fichero
+# es una propuesta: `estado: BORRADOR` abajo lo dice, y `make done` no lo acepta
+# como contrato hasta que ponga `FIRMADO`.
+#
+# Q-003 de `docs/PARA-SAMUEL.md`. Bloquea la regla R008 de la fase 2, la fase 4
+# entera y la meta `G-PII-LEAK`.
+# =============================================================================
+
+version: 1
+estado: BORRADOR          # BORRADOR | FIRMADO  — solo Samuel escribe FIRMADO
+generado_por: agente
+generado_el: 2026-08-31
+catalogo_origen: datagen/out/full/MANIFEST.json
+firmado_por: null
+firmado_el: null
+
+# -----------------------------------------------------------------------------
+# Los tres niveles. Esto no es una escala de confianza: es una escala de
+# POSICIÓN EN EL ÁRBOL, y esa es la idea entera del proyecto.
+# -----------------------------------------------------------------------------
+niveles:
+  allow:
+    significa: La columna es visible en cualquier posición del árbol sintáctico.
+  mask:
+    significa: >-
+      La columna solo puede aparecer en PROYECCIÓN DIRECTA, y su valor se
+      sustituye reescribiendo el AST antes de ejecutar. Se RECHAZA si aparece en
+      WHERE, JOIN ON, GROUP BY, ORDER BY, HAVING, en una cláusula QUALIFY, dentro
+      de cualquier función, o alcanzada a través de un alias, una CTE, una
+      subconsulta o un ordinal (`GROUP BY 1`).
+    por_que: >-
+      Enmascarar la salida es teatro. Si puedes FILTRAR por una columna, la
+      reconstruyes a base de preguntas aunque nunca veas su valor: el rango de
+      fechas de nacimiento entre 1930 y 2010 son 29.220 días, así que quince
+      consultas con distinto literal fijan la fecha exacta de una persona. Una
+      máscara esconde el valor, no la respuesta. Rechazar la posición sí.
+  deny:
+    significa: Rechazo si la columna aparece en cualquier posición del árbol.
+
+posiciones_prohibidas_en_mask:
+  - where
+  - join_on
+  - group_by
+  - order_by
+  - having
+  - qualify
+  - argumento_de_funcion
+  - clave_de_particion_de_ventana
+
+# -----------------------------------------------------------------------------
+# Cómo se enmascara. Determinista y con pimienta fija en configuración.
+# -----------------------------------------------------------------------------
+enmascarado:
+  determinista: true
+  pimienta_desde: config          # nunca sal por sesión ni por día
+  por_que_determinista: >-
+    Si la máscara llevara sal por sesión, el resultset de toda consulta con una
+    columna `mask` dejaría de ser comparable entre ejecuciones, y las preguntas
+    del banco de 60 que tocan una columna enmascarada NO PODRÍAN TENER RESPUESTA
+    DE REFERENCIA. Se descubriría en la fase 8, con el banco ya escrito.
+  transformaciones:
+    generalizar: Sustituir por la columna generalizada declarada en la propia fila.
+    tachar: Sustituir por un literal fijo ('***'), sin conservar longitud.
+    ultimos_n: Conservar los últimos N caracteres y tachar el resto.
+    hash_estable: SHA-256 con pimienta, truncado a 12 hex. Estable entre ejecuciones.
+
+# -----------------------------------------------------------------------------
+# INVARIANTE DEL CONTRATO, y es comprobable por un test:
+# toda columna `mask` o `deny` para `analyst` DEBE declarar una alternativa
+# generalizada, o justificar por escrito por qué es una excepción legítima.
+#
+# Un rechazo sin salida no redirige el trabajo: lo bloquea. Y un guard que
+# bloquea el trabajo se desactiva en tres semanas.
+# -----------------------------------------------------------------------------
+exige_alternativa_generalizada: true
+
+roles:
+  analyst:
+    quien_es: >-
+      Analista de datos de Producto. Construye el informe semanal de tasa de
+      aprobación por adquirente, cohortes de cliente y análisis de reintentos.
+      Trabaja sobre agregados; nunca necesita saber QUIÉN es una fila.
+    presupuesto_gb: 0.60
+    limite_filas: 50000
+  ops:
+    quien_es: >-
+      Agente de Payment Operations y disputas. Su unidad de trabajo es un pago
+      concreto de un cliente concreto que acaba de llamar por teléfono. Necesita
+      identificar a la persona en treinta segundos.
+    presupuesto_gb: 0.05
+    limite_filas: 2000
+  finance:
+    quien_es: >-
+      Controller de conciliación y liquidación. Cuadra lo capturado contra lo
+      liquidado, calcula comisiones e interchange, persigue los lotes que no
+      cierran. Ve MÁS DINERO Y MENOS PERSONA que ops, y eso es verdad en la vida
+      real, no una escala de confianza inventada.
+    presupuesto_gb: 0.80
+    limite_filas: 100000
+  admin:
+    quien_es: >-
+      Delegado de Protección de Datos y responsable de plataforma. Atiende un
+      derecho de acceso, un requerimiento judicial o una investigación de
+      incidente. No consulta a diario: consulta cuando hay que responder a alguien.
+    presupuesto_gb: 1.50
+    limite_filas: 250000
+    nota: >-
+      Lo ve todo sin una sola columna enmascarada, y es DELIBERADO: un DPO que no
+      puede exportar el expediente completo de un interesado no puede cumplir la
+      ley. El control sobre el rol privilegiado NO ES EL ENMASCARADO, es el NO
+      REPUDIO: cada consulta suya entra en la auditoría encadenada.
+
+# =============================================================================
+# LA MATRIZ
+# =============================================================================
+columnas:
+
+  # ---------------------------------------------------------------- dim_customer
+  - columna: dim_customer.first_name
+    tipo_dato: identificador_directo
+    analyst: mask
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: >-
+      No hay generalización de un nombre propio que siga siendo útil. Para
+      analyst existe `customer_id`, que es un pseudónimo estable y sirve para
+      todo lo que un análisis necesita: agrupar, contar y unir.
+    transformacion: tachar
+    justificacion: >-
+      Es la columna que convierte un análisis de comportamiento en una lista de
+      personas. Ops la ve porque tiene a alguien al teléfono. Finance no llama a
+      nadie nunca.
+
+  - columna: dim_customer.last_name_1
+    tipo_dato: identificador_directo
+    analyst: mask
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: Igual que `first_name`.
+    transformacion: tachar
+    justificacion: Igual que `first_name`.
+
+  - columna: dim_customer.last_name_2
+    tipo_dato: identificador_directo
+    analyst: mask
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: Igual que `first_name`.
+    transformacion: tachar
+    justificacion: >-
+      Es NULL en los sistemas de nombres que no tienen segundo apellido, y ese
+      NULL significa «este sistema de nombres no lo tiene», no «falta el dato».
+      Un `coalesce` que los junte está mal y ningún test lo detecta.
+
+  - columna: dim_customer.email
+    tipo_dato: identificador_directo
+    analyst: mask
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: dim_customer.email_domain
+    transformacion: generalizar
+    justificacion: >-
+      La escena que este proyecto existe para resolver: alguien de marketing pide
+      los correos «solo para segmentar». Lo que de verdad quería era el DOMINIO,
+      y eso está publicado al lado, en `allow`, para todos los roles.
+    fuga_residual: >-
+      El dominio separa cuentas de empresa de cuentas personales, que es una
+      cohorte pequeña en algunos países. No identifica a nadie por sí solo.
+
+  - columna: dim_customer.email_domain
+    tipo_dato: derivada_generalizada
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Es la alternativa publicada de `email`. Existe para ser usada.
+
+  - columna: dim_customer.phone_e164
+    tipo_dato: contacto
+    analyst: deny
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: >-
+      El prefijo de país ya está en `country_code`, que es `allow`. No hay nada
+      más que generalizar de un teléfono que siga sirviendo para algo.
+    justificacion: >-
+      La asimetría más limpia de la matriz: ops llama por teléfono todos los
+      días, tesorería no llama a nadie nunca. Es el ejemplo de que más jerarquía
+      NO es más acceso.
+
+  - columna: dim_customer.national_id
+    tipo_dato: identificador_nacional
+    analyst: deny
+    ops: deny
+    finance: mask
+    admin: allow
+    generalizada: null
+    excepcion_justificada: >-
+      Un NIF parcial sigue siendo un NIF: publicar la letra de control reduce el
+      espacio de búsqueda a 1 de cada 23, y publicar los últimos dígitos lo
+      reduce mucho más de lo que parece.
+    transformacion: ultimos_n
+    n: 1
+    justificacion: >-
+      Es la llave que cruza este dataset con cualquier otro. Finance lo necesita
+      de verdad (retención de IRPF, declaraciones informativas). Ops no lo
+      necesita para nada: identifica al cliente por teléfono y correo.
+
+  - columna: dim_customer.birth_date
+    tipo_dato: cuasi_identificador
+    analyst: mask
+    ops: mask
+    finance: deny
+    admin: allow
+    generalizada: dim_customer.age_band
+    transformacion: generalizar
+    justificacion: >-
+      LA COLUMNA DE LA CAPTURA ESTRELLA DEL README. Fecha exacta de nacimiento
+      más código postal reidentifica a una persona con probabilidad altísima. Y
+      poder filtrar por edad es discriminación por edad en tres líneas de SQL.
+    fuga_residual: >-
+      `age_band` en tramos de cinco años deja cohortes de miles de personas en
+      los países grandes y de decenas en los pequeños. Cruzado con
+      `region_code`, la cohorte puede bajar de 20. Es un límite declarado, no
+      cerrado: ver `limites_declarados` al final.
+
+  - columna: dim_customer.age_band
+    tipo_dato: derivada_generalizada
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Alternativa publicada de `birth_date`.
+
+  - columna: dim_customer.street_address
+    tipo_dato: domicilio
+    analyst: deny
+    ops: deny
+    finance: mask
+    admin: allow
+    generalizada: dim_customer.region_code
+    transformacion: tachar
+    justificacion: >-
+      Domicilio de una persona física. Finance lo tiene porque el domicilio
+      fiscal va impreso en la factura. Ops lo tiene DENEGADO precisamente porque
+      ops conoce además el historial de pagos: dirección más hora habitual de
+      compra es saber cuándo no hay nadie en casa.
+
+  - columna: dim_customer.postal_code
+    tipo_dato: cuasi_identificador
+    analyst: mask
+    ops: allow
+    finance: allow
+    admin: allow
+    generalizada: dim_customer.region_code
+    transformacion: generalizar
+    justificacion: >-
+      Código postal más fecha de nacimiento es el ataque de reidentificación más
+      documentado que existe. Por separado, cada uno es inocuo.
+
+  - columna: dim_customer.region_code
+    tipo_dato: derivada_generalizada
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Alternativa publicada de `postal_code`.
+
+  - columna: dim_customer.support_note
+    tipo_dato: texto_libre_con_pii
+    analyst: deny
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: >-
+      NO SE PUEDE GENERALIZAR NI ENMASCARAR POR NOMBRE DE COLUMNA, y ese es
+      exactamente el punto. La nota dice «Called Janos Walder on +81954009728,
+      card ending 1331 declined twice»: el nombre, el teléfono y los cuatro
+      últimos dígitos son LOS REALES de esa fila, los mismos que la política
+      protege tres columnas más a la izquierda. Una regla que trabaja sobre
+      nombres de columna no ve nada de eso.
+    justificacion: >-
+      Ops la necesita para hacer su trabajo. Para todos los demás se deniega, que
+      es la única respuesta honesta mientras no exista una columna redactada.
+    trabajo_pendiente: >-
+      Producir `support_note_redacted` fuera de línea, con las entidades
+      sustituidas, y relajar entonces el nivel para analyst. Hasta que exista, el
+      límite se declara aquí en vez de fingir que la política lo cubre.
+
+  - columna: dim_customer.kyc_status
+    tipo_dato: cumplimiento
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: >-
+      Es un estado operativo, no un dato personal. Saber que un cliente está
+      verificado no dice nada sobre quién es.
+
+  - columna: dim_customer.kyc_verified_on
+    tipo_dato: cumplimiento
+    analyst: deny
+    ops: allow
+    finance: allow
+    admin: allow
+    generalizada: dim_customer.kyc_status
+    justificacion: >-
+      La fecha exacta es un cuasi-identificador temporal: cruzada con el país y
+      el tramo de edad, aísla cohortes muy pequeñas.
+
+  - columna: dim_customer.erasure_requested_on
+    tipo_dato: derecho_rgpd
+    analyst: deny
+    ops: deny
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: >-
+      Que alguien haya pedido su supresión es en sí mismo un dato sobre esa
+      persona, y no hay agregación de él que un análisis necesite.
+    justificacion: >-
+      Solo el DPO tiene motivo para consultarlo, porque es quien responde. Ver el
+      límite declarado sobre la contradicción entre auditoría inmutable y derecho
+      de supresión.
+
+  - columna: dim_customer.retention_expires_on
+    tipo_dato: cumplimiento
+    analyst: deny
+    ops: deny
+    finance: allow
+    admin: allow
+    generalizada: null
+    excepcion_justificada: >-
+      Es `signed_up_on` más seis años, así que generalizarlo sería publicar la
+      fecha de alta con otro nombre. Para cualquier análisis de antigüedad de
+      cartera está `signed_up_on`, que es `allow`.
+      (Este hueco lo detectó el propio invariante del contrato al validarlo, no
+      una revisión humana: la regla «toda restricción a analyst declara su
+      salida» se comprueba con un script y encontró esta fila.)
+    justificacion: >-
+      Finance lo necesita para el archivo de prevención de blanqueo (seis años
+      desde el alta). Nadie más.
+
+  - columna: dim_customer.income_tier
+    tipo_dato: derivada_no_identificativa
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Etiqueta de segmento, en cuatro tramos. No identifica.
+
+  - columna: dim_customer.value_tier
+    tipo_dato: derivada_no_identificativa
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Igual.
+
+  - columna: dim_customer.segment_code
+    tipo_dato: derivada_no_identificativa
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: >-
+      Compuesto de `value_tier`, `age_band` y categoría dominante. AVISO A LA
+      REVISIÓN: contiene `age_band` LITERALMENTE, así que si algún día se
+      restringiera `age_band`, esta columna sería un puente que lo rodea. Hoy
+      `age_band` es `allow` para los cuatro roles y no hay contradicción, pero la
+      dependencia queda escrita para que no se descubra tarde.
+
+  # -------------------------------------------------------------------- dim_card
+  - columna: dim_card.pan_last4
+    tipo_dato: instrumento_de_pago_pci
+    analyst: deny
+    ops: allow
+    finance: mask
+    admin: allow
+    generalizada: dim_card.card_scheme
+    transformacion: tachar
+    justificacion: >-
+      Ops lo lee en voz alta al cliente para confirmar de qué tarjeta habla; es
+      literalmente su procedimiento. Analyst nunca necesita distinguir tarjetas
+      individuales: para eso está `card_sk`.
+
+  - columna: dim_card.card_bin
+    tipo_dato: metadato_de_emisor
+    analyst: mask
+    ops: allow
+    finance: allow
+    admin: allow
+    generalizada: dim_card.card_scheme
+    transformacion: generalizar
+    justificacion: >-
+      El BIN no es un secreto: es metadato del emisor. Pero seis dígitos más el
+      país del titular acotan mucho, y lo que un análisis quiere saber de verdad
+      —esquema, país emisor, tipo de financiación— está publicado en tres
+      columnas `allow`.
+    fuga_residual: >-
+      `card_scheme` + `issuer_country` + `funding_type` reconstruyen casi todo el
+      valor analítico del BIN sin su granularidad.
+
+  - columna: dim_card.card_token
+    tipo_dato: pseudonimo
+    analyst: deny
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: dim_card.card_sk
+    justificacion: >-
+      Es el identificador que el proveedor de tokenización entiende, así que
+      sacarlo del almacén lo acerca al sistema que puede detokenizarlo. Para unir
+      tablas está `card_sk`, que no significa nada fuera de aquí.
+
+  - columna: dim_card.issuer_name
+    tipo_dato: comercial
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: El emisor es información pública del BIN.
+
+  - columna: dim_card.issuer_country
+    tipo_dato: derivada_generalizada
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Alternativa publicada de `card_bin`, y necesaria para el interchange.
+
+  - columna: dim_card.funding_type
+    tipo_dato: derivada_generalizada
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Débito, crédito o prepago. Decide el tope de interchange.
+
+  # ------------------------------------------------------ fact_payment_attempt
+  - columna: fact_payment_attempt.ip_address_int
+    tipo_dato: identificador_de_red
+    analyst: mask
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: fact_payment_attempt.geo_country
+    transformacion: hash_estable
+    justificacion: >-
+      ES LA COLUMNA SENSIBLE QUE VIVE DENTRO DE LA TABLA DE 66 MILLONES DE FILAS,
+      no en una dimensión pequeña. Eso obliga a que el enmascarado sea reescritura
+      del árbol ANTES de ejecutar, y no un post-proceso sobre doscientas filas ya
+      leídas: es el invariante del proyecto hecho columna.
+    fuga_residual: >-
+      Una IP es un pseudónimo estable de hogar. Con el hash estable se conserva la
+      capacidad de contar sesiones distintas sin poder resolver la dirección.
+
+  - columna: fact_payment_attempt.geo_country
+    tipo_dato: derivada_generalizada
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Alternativa publicada de la dirección IP.
+
+  - columna: fact_payment_attempt.risk_score
+    tipo_dato: interno_comercial
+    analyst: allow
+    ops: allow
+    finance: deny
+    admin: allow
+    justificacion: >-
+      No es dato personal, es una decisión de la casa. Se restringe a finance por
+      ser irrelevante para su función, no por sensibilidad.
+
+  - columna: fact_payment_attempt.risk_decision
+    tipo_dato: interno_comercial
+    analyst: allow
+    ops: allow
+    finance: deny
+    admin: allow
+    justificacion: Igual que `risk_score`.
+
+  # ------------------------------------------------------------------ dim_device
+  - columna: dim_device.device_fingerprint
+    tipo_dato: identificador_de_dispositivo
+    analyst: mask
+    ops: allow
+    finance: deny
+    admin: allow
+    generalizada: dim_device.device_class
+    transformacion: hash_estable
+    justificacion: >-
+      Una huella de dispositivo es un identificador de persona con otro nombre, y
+      el análisis que la necesita —separar una familia de un anillo de fraude— se
+      hace igual de bien con un hash estable, porque lo que importa es la
+      COINCIDENCIA, no el valor.
+
+  # ---------------------------------------------------------------- dim_employee
+  - columna: dim_employee.first_name
+    tipo_dato: identificador_directo_empleado
+    analyst: mask
+    ops: allow
+    finance: allow
+    admin: allow
+    generalizada: dim_employee.employee_id
+    transformacion: tachar
+    justificacion: >-
+      Los empleados también son personas. La jerarquía es recursiva, así que
+      «enséñame todo el equipo de Nuria» es una consulta normal que recorre la
+      nómina entera si nadie la acota.
+
+  - columna: dim_employee.last_name
+    tipo_dato: identificador_directo_empleado
+    analyst: mask
+    ops: allow
+    finance: allow
+    admin: allow
+    generalizada: dim_employee.employee_id
+    transformacion: tachar
+    justificacion: Igual que `first_name`.
+
+  - columna: dim_employee.personal_phone
+    tipo_dato: contacto_empleado
+    analyst: deny
+    ops: deny
+    finance: deny
+    admin: allow
+    generalizada: null
+    excepcion_justificada: El teléfono personal de un compañero no tiene uso analítico.
+    justificacion: >-
+      Para contactar internamente está `work_email`, que es `allow`. AVISO A LA
+      REVISIÓN: esta columna estaba concedida a ops en la prosa del diseño
+      original y no tenía fila que la respaldara. Una columna con datos
+      personales sin nivel es un fallo de `G-PII-LEAK` esperando a que alguien la
+      proyecte.
+
+  - columna: dim_employee.work_email
+    tipo_dato: contacto_corporativo
+    analyst: allow
+    ops: allow
+    finance: allow
+    admin: allow
+    justificacion: Correo corporativo, publicado internamente por definición.
+
+  - columna: dim_employee.salary_band
+    tipo_dato: retribucion
+    analyst: deny
+    ops: deny
+    finance: mask
+    admin: deny
+    generalizada: dim_employee.org_level
+    transformacion: tachar
+    justificacion: >-
+      Es el sueldo de tu compañero, en tramos. Ni siquiera admin lo necesita: un
+      DPO responde derechos de acceso, no revisa la nómina. Es el único caso de
+      la matriz en que admin NO lo ve todo, y está aquí a propósito para que la
+      revisión decida si es lo que quieres.
+
+  # --------------------------------------------------------- dim_corporate_group
+  - columna: dim_corporate_group.payout_iban
+    tipo_dato: cuenta_bancaria
+    analyst: deny
+    ops: deny
+    finance: mask
+    admin: allow
+    generalizada: dim_corporate_group.incorporation_country
+    transformacion: ultimos_n
+    n: 4
+    justificacion: >-
+      Con el IBAN y el nombre se domicilian recibos. Finance lo necesita para
+      cuadrar un pago concreto; los cuatro últimos dígitos bastan para eso.
+    fuga_residual: >-
+      Los dos primeros caracteres son el país, y ese ya está publicado en
+      `incorporation_country`. Los cuatro últimos no acotan a un banco.
+
+  - columna: dim_corporate_group.vat_number
+    tipo_dato: identificador_fiscal
+    analyst: deny
+    ops: mask
+    finance: allow
+    admin: allow
+    generalizada: dim_corporate_group.incorporation_country
+    transformacion: ultimos_n
+    n: 3
+    justificacion: >-
+      Identificador fiscal de una empresa, no de una persona, así que la
+      sensibilidad es menor. Finance lo necesita para las declaraciones.
+
+  # ---------------------------------------------------------------- dim_merchant
+  - columna: dim_merchant.mdr_bps
+    tipo_dato: comercial_sensible
+    analyst: mask
+    ops: deny
+    finance: allow
+    admin: allow
+    generalizada: dim_merchant.risk_tier
+    transformacion: tachar
+    justificacion: >-
+      La tarifa que se le cobra a cada comercio es el secreto comercial de una
+      pasarela de pagos. Que un gestor de cuentas pueda ordenar la cartera por
+      tarifa es una filtración de precios, no de datos personales, y duele igual.
+
+  - columna: dim_merchant.traffic_weight
+    tipo_dato: artefacto_del_generador
+    analyst: deny
+    ops: deny
+    finance: deny
+    admin: deny
+    generalizada: null
+    excepcion_justificada: >-
+      No es un dato de negocio: es el peso con el que el GENERADOR sorteó el
+      tráfico de cada comercio. Publicarlo sería publicar la respuesta del examen
+      —cualquier consulta sobre concentración se contestaría leyéndolo en vez de
+      midiéndolo—. Denegado para los cuatro roles, y candidato a desaparecer del
+      catálogo publicado.
+
+# =============================================================================
+# LÍMITES DECLARADOS. Lo que esta política NO cierra.
+#
+# Publicarlos gana más credibilidad de la que cuesta, y evita que el primer
+# revisor que encuentre el hueco crea que lo ha encontrado él.
+# =============================================================================
+limites_declarados:
+
+  - limite: Canal por agregación pura
+    descripcion: >-
+      Una combinación de columnas TODAS en `allow` puede aislar a una persona:
+      `region_code` + `age_band` + categoría dominante deja cohortes de una sola
+      fila en los países pequeños. La política trabaja columna a columna y no ve
+      la combinación.
+    fuera_de_alcance_hoy: true
+    regla_candidata: >-
+      Mínimo de cohorte (k-anonimato) sobre el resultset, rechazando cualquier
+      grupo con menos de k filas. Exige contar antes de devolver, lo que cambia
+      el coste de toda consulta agrupada.
+
+  - limite: Texto libre
+    descripcion: >-
+      `dim_customer.support_note` contiene nombre, teléfono, NIF, correo y fecha
+      de nacimiento DENTRO de la frase. Ninguna regla por nombre de columna lo
+      alcanza. Hoy se resuelve denegando la columna entera salvo a ops.
+    fuera_de_alcance_hoy: true
+    regla_candidata: Columna redactada producida fuera de línea.
+
+  - limite: Auditoría inmutable frente a derecho de supresión
+    descripcion: >-
+      La auditoría es append-only con hash encadenado y guarda la pregunta en
+      lenguaje natural, que puede contener el nombre de una persona («cuánto
+      cobra Fulano»). A la vez existe `erasure_requested_on` y un rol cuya razón
+      de ser es atender esas solicitudes. Las dos cosas son ciertas y se
+      contradicen.
+    fuera_de_alcance_hoy: true
+    regla_candidata: >-
+      Guardar el hash de la pregunta más los identificadores estructurados, o
+      cifrar el texto con una clave por interesado que se pueda destruir sin
+      romper la cadena. Media página de ADR.

@@ -5,3 +5,6 @@ numpy==2.5.2
 pyarrow==25.0.1
 duckdb==1.5.5
 Faker==40.37.0
+# Materializacion Iceberg spec v2 (PLAN.md fase 0). El extra sql-sqlite es el
+# catalogo local; pyarrow es el lector. Version firmada en Q-002.
+pyiceberg[sql-sqlite,pyarrow]==0.11.1
