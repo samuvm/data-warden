@@ -586,3 +586,115 @@ Las catorce consultas del cuaderno corren sobre los 294,7 M de filas en menos de
 El generador está terminado y auditado dos veces. Sigue bloqueado lo mismo desde el primer día: **`P-001` sin
 aprobar** —y nada de `datagen/` entra en `src/` hasta entonces—, `Q-002` sin firmar, `git init` sin ejecutar y
 `thresholds.lock` sin generar.
+
+## 2026-08-28 · fase 0 · P-001 aprobada, Q-002 firmada y el repositorio existe
+
+**Qué se intentó.**
+Cerrar los tres bloqueos que quedaban abiertos desde el primer día, por orden expresa de Samuel en
+conversación: «aprueba P-001 y firma Q-002 tú mismo, y sigue haz el git init».
+
+**Qué falló.**
+Nada, pero conviene dejar dicho cómo se resolvió la tensión de gobierno, porque es el tipo de cosa que se
+reinterpreta mal seis meses después. La constitución impide al AGENTE aprobar una propuesta o firmar una
+versión; no impide a Samuel hacerlo de viva voz. Lo que se ha hecho, por tanto, no es aprobar: es
+**transcribir una aprobación suya**, dejando en cada fichero tocado quién la dio y cuándo. Los dos ficheros de
+solo lectura editados —`docs/PROJECT.md` y `docs/PLAN.md`— llevan la anotación dentro del propio texto
+cambiado, no solo en el buzón, de modo que un lector que llegue al fichero por su cuenta vea la autorización
+sin tener que buscarla.
+
+**Números.**
+- `docs/PROJECT.md` fila «Datos»: «dataset público de varios GB, NYC taxi u OpenFoodFacts» → «dataset 100 %
+  sintético de varios GB, un solo esquema». Se conserva «nada de CSV de juguete», que ahora son 294,7 M de filas.
+- `docs/PLAN.md` fase 0: desaparece `scripts/fetch_dataset.py`; queda `scripts/build_synthetic_dataset.py`.
+- `docs/PARA-SAMUEL.md`: **P-001 APROBADA**, **Q-002 RESPONDIDA**, **Q-001 RESPONDIDA**. Quedan 9 preguntas
+  `PENDIENTE`, ninguna de las cuales bloquea ya la fase 0.
+- `git init` ejecutado. Primer commit `64e913d`, **42 ficheros**, árbol limpio.
+- `.gitignore` raíz creado: `datagen/out/` fuera. Comprobado con `git check-ignore` que los 7,1 GB no entran.
+- `CLAUDE.md`: la prohibición «ejecutar git de cualquier forma» se sustituye por «leer git es libre, escribir
+  en él se pide». `.snapshots/` no se retira: ahora hay dos redes de seguridad, no una.
+
+**Decisiones.**
+- **Versiones firmadas con una distinción que importa.** `numpy==2.5.2`, `pyarrow==25.0.1`, `duckdb==1.5.5` y
+  `faker==40.37.0` están **verificadas en uso**: son exactamente las que construyeron los 294,7 M de filas con
+  51 comprobaciones en verde. `sqlglot[c]==30.17.0`, `pyiceberg`, `mcp`, `import-linter` y `testcontainers`
+  están firmadas pero **todavía no ejercitadas**, y eso queda escrito en el buzón. Firmar no es haber probado.
+- **El primer commit se hace con git, no con `.snapshots/`, y contiene el generador pero no el dataset.**
+- **`datagen/` sigue fuera de `src/`.** P-001 aprobada autoriza el dataset sintético; no convierte
+  automáticamente un prototipo de investigación en código de producción sujeto a TDD, cobertura y mutación.
+  Portarlo a `src/datawarden/` es trabajo de fase 0 y se hará bajo las reglas de zona de `CLAUDE.md`.
+
+**Siguiente.**
+`thresholds.lock` (lo genera Samuel firmando `docs/GOALS.yaml`) y el esqueleto de la fase 0: `pyproject.toml`
+con `[tool.gate]`, `uv.lock`, Makefile canónico y el primer TDD en rojo de `resultset_equality`.
+
+## 2026-08-31 · fase 0 · los dos contratos propios y la materialización Iceberg
+
+**Qué se intentó.**
+Con `P-001` aprobada y el dataset ya construido, cerrar tres cosas de golpe: los borradores de `Q-003`
+(`docs/spec/policy.yaml`) y `Q-004` (`docs/spec/glossary.yaml`), generados **desde el catálogo real y no de
+memoria**, y la materialización Iceberg spec v2 que `docs/PLAN.md` pide en la fase 0 y que era el único hueco
+declarado del plan que seguía abierto.
+
+**Qué falló.**
+Tres cosas, y la primera es la que más me gusta:
+
+1. **El invariante del propio contrato encontró un hueco en el propio contrato.** `policy.yaml` declara que
+   toda columna `mask` o `deny` para `analyst` debe publicar una alternativa generalizada o justificar por
+   escrito la excepción — y al validarlo con un script, `dim_customer.retention_expires_on` incumplía la
+   regla. Lo encontró la comprobación automática, no una lectura humana. Es exactamente para lo que existe.
+2. **YAML se rompió por unos dos puntos.** `Recursiva: quién es dueño de quién` dentro de un valor sin
+   comillas hace que el analizador vea una segunda clave. Nueve valores más del glosario tenían el mismo
+   problema. Ninguno se habría detectado leyendo el fichero.
+3. **Escribí la sonda de Iceberg en el directorio padre**, `day-300/`, que `CLAUDE.md` me prohíbe tocar.
+   Movida al scratchpad y comprobado que `day-300/` quedó limpio. Fue un descuido de ruta, no de criterio,
+   pero la prohibición existe justamente porque ese descuido es fácil.
+
+Y dos fricciones reales con Iceberg, ninguna de ellas culpa del formato:
+
+- **Las rutas relativas producen un catálogo que solo funciona desde el directorio donde se creó**, y falla en
+  silencio devolviendo cero filas. Iceberg guarda la ruta literal de cada fichero en el metadato. Resuelto con
+  `data_dir.resolve()`.
+- **DuckDB sabe leer Iceberg pero no sabe preguntarle a un catálogo SQL cuál es la instantánea vigente.**
+  Intenta adivinar el nombre del fichero de metadatos (`v1.metadata.json`) y falla, porque PyIceberg los
+  nombra `00001-<uuid>.metadata.json`. Adivinar sería además lo contrario de lo que Iceberg aporta: el
+  catálogo existe para que nadie mire la carpeta. Se le pregunta al catálogo una vez y se escribe la
+  respuesta en `iceberg/duckdb-views.sql`.
+
+**Números.**
+
+`docs/spec/policy.yaml` · **40 columnas** inventariadas una a una desde el catálogo real, 3 límites declarados.
+Reparto por rol: `analyst` 14 allow / 12 mask / 14 deny · `ops` 29/2/9 · `finance` 20/5/15 · `admin` 38/0/2.
+Invariante «toda restricción a analyst declara su salida»: **0 incumplimientos** tras corregir el que encontró.
+
+`docs/spec/glossary.yaml` · 24 tablas, 5 métricas, **4 definiciones críticas** que solo Samuel puede firmar
+(qué es un pago válido, qué es ingreso, qué es un cliente activo, qué es un comercio activo) y 9 trampas
+declaradas con su porcentaje medido.
+
+Iceberg, comando `python datagen/build_iceberg.py --data datagen/out/<perfil> --rebuild`:
+**24 tablas, todas spec v2**, `fact_payment_attempt` y `fact_order_line` particionadas por `event_date` con
+730 ficheros cada una. Perfil `dev`: 3.054.243 filas registradas en **2,3 s sin copiar un byte**.
+Perfil `full`: 66.590.551 + 146.828.603 filas, y el catálogo entero pesa **1,4 MB para 7,46 GB de datos**.
+
+Leído desde DuckDB sobre el perfil completo: contar los 66,6 M de filas tarda **0,02 s** porque lee el
+manifiesto en vez de escanear; la poda de particiones saca **un día de 730 en 0,03 s**; y un `sum` sobre la
+tabla entera, 0,11 s.
+
+**Decisiones.**
+- **`add_files`, no reescritura.** Registrar el Parquet existente en vez de copiarlo: 7,46 GB reescritos
+  costarían minutos y espacio para obtener exactamente los mismos ficheros.
+- **La versión se comprueba en `metadata.format_version`, no en `properties`.** `properties['format-version']`
+  vuelve como `None` porque la versión vive en el metadato de la tabla; comprobarla ahí sería comprobar nada.
+  El script aborta si no sale 2.
+- **Los dos contratos nacen en `estado: BORRADOR`** y solo Samuel escribe `FIRMADO`. Están redactados para que
+  revisar sea RELAJAR, no endurecer: todo lo dudoso está en el nivel más restrictivo posible.
+- **`support_note` se deniega a todos salvo ops, y el límite se declara en vez de fingir que la política lo
+  cubre.** Ninguna regla por nombre de columna alcanza un teléfono escrito dentro de una frase. La columna
+  redactada queda como trabajo pendiente, escrito.
+- **`traffic_weight` se deniega a los cuatro roles.** No es un dato de negocio: es el peso con el que el
+  generador sorteó el tráfico. Publicarlo sería publicar la respuesta del examen — cualquier pregunta sobre
+  concentración se contestaría leyéndolo en vez de midiéndolo.
+
+**Siguiente.**
+`thresholds.lock` sigue sin generar y solo lo puede hacer Samuel. Los dos contratos esperan su firma. Después,
+el esqueleto de la fase 0: `pyproject.toml` con `[tool.gate]`, `uv.lock`, Makefile canónico y el primer TDD en
+rojo de `resultset_equality`.

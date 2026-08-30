@@ -1,0 +1,215 @@
+# =============================================================================
+# Glosario de negocio de CIERZO
+#
+# BORRADOR PARA REVISIÓN. Lo generó el agente el 2026-08-31 desde el catálogo
+# real. Q-004 de `docs/PARA-SAMUEL.md`.
+#
+# QUÉ ES ESTO Y POR QUÉ EXISTE. Se expone como recurso MCP de solo lectura, y es
+# lo único que evita que el modelo ADIVINE la semántica. Sin él, «ingresos del
+# mes» se traduce a `sum(amount_minor)` sobre la tabla de intentos, que es la
+# respuesta equivocada por un 24 %, y la exactitud de la fase 8 baja por razones
+# que no son culpa del sistema.
+#
+# CÓMO SE REVISA. Lo importante no son las descripciones: es la sección
+# `definiciones_criticas`. Ahí están las cuatro preguntas que solo tú puedes
+# contestar porque son criterio de negocio, no cálculo. Si alguna no coincide
+# con lo que tú entiendes, córrígela y el resto se recalcula solo.
+# =============================================================================
+
+version: 1
+estado: BORRADOR
+generado_por: agente
+generado_el: 2026-08-31
+revisado_por: null
+
+dominio: >-
+  CIERZO es una pasarela de pagos europea. Un comercio le envía un intento de
+  cobro con tarjeta, CIERZO lo enruta a un adquirente, el banco emisor lo
+  autoriza o lo rechaza, y días después el dinero se liquida en lotes y se paga a
+  la sociedad propietaria del comercio. Todo lo que hay en el almacén es una
+  consecuencia de esa frase.
+
+# =============================================================================
+# LOS TRES GRANOS. Confundirlos es el error más caro que se comete contra este
+# almacén, y el motivo de que las tres primeras entradas del glosario sean estas.
+# =============================================================================
+granos:
+
+  intento_de_autorizacion:
+    tabla: fact_payment_attempt
+    una_fila_es: Un intento de cobrar una tarjeta.
+    ojo: >-
+      Un pago que falla y se reintenta dos veces son TRES filas con el mismo
+      `payment_intent_id`. `count(*)` sobre esta tabla NO es el número de ventas,
+      y `sum(amount_minor)` NO son los ingresos: sobrestima un 24 %.
+    usar_para: Tasas de aprobación, análisis de reintentos, latencia, motivos de rechazo.
+    no_usar_para: Contar ventas ni sumar dinero.
+
+  linea_de_cesta:
+    tabla: fact_order_line
+    una_fila_es: Un producto dentro de la cesta de un pago.
+    ojo: >-
+      Unir esta tabla con la de intentos multiplica cada cesta por su número de
+      intentos. Únela con `v_payment_intent`, no con `fact_payment_attempt`.
+    usar_para: Qué se compró, mezcla de producto, descuentos, cesta media.
+
+  lote_de_liquidacion:
+    tabla: fact_settlement_batch
+    una_fila_es: El dinero de un comercio en un día, agrupado para transferirlo.
+    ojo: >-
+      Es el ÚNICO grano donde «cuánto nos han pagado» tiene una sola respuesta.
+      Está en euros, ya deduplicado y sin tráfico de pruebas.
+    usar_para: Ingresos reales, comisiones, conciliación.
+
+# =============================================================================
+# LAS DEFINICIONES QUE SOLO SAMUEL PUEDE FIRMAR
+# Son criterio de negocio, no cálculo. Todo lo demás se deriva de estas cuatro.
+# =============================================================================
+definiciones_criticas:
+
+  pago_valido:
+    pregunta: ¿Qué cuenta como «un pago»?
+    definicion_propuesta: >-
+      Un `payment_intent_id` que terminó en `auth_status = 'approved'` en alguno
+      de sus intentos, con `is_test = false`, y tomado UNA sola vez.
+    se_calcula: SELECT * FROM v_payment_intent WHERE eventually_approved
+    descartado_y_por_que:
+      - Contar filas de `fact_payment_attempt`: cuenta los reintentos como ventas.
+      - Contar solo el primer intento: pierde los pagos que salieron a la segunda.
+
+  ingreso:
+    pregunta: ¿Qué es «ingreso» — lo que cobra el comercio o lo que gana CIERZO?
+    definicion_propuesta: >-
+      DOS cosas distintas y hay que decir siempre cuál. **Volumen procesado** es
+      `gross_eur_minor`, el dinero que pasó por la pasarela y que NO es de CIERZO.
+      **Ingreso de CIERZO** es `fee_eur_minor`, la comisión de descuento, que sí
+      lo es. De cada 100 € procesados, unos 2,14 € son ingreso.
+    se_calcula: >-
+      volumen  = SELECT sum(gross_eur_minor) FROM fact_settlement_batch
+      ingreso  = SELECT sum(fee_eur_minor)   FROM fact_settlement_batch
+    ojo: >-
+      `interchange_eur_minor` va al banco emisor y `scheme_fee_eur_minor` a la
+      red de tarjetas: NO son ingreso de CIERZO, son coste que se paga con la
+      comisión cobrada. Restarlos o no cambia el resultado a la mitad.
+
+  cliente_activo:
+    pregunta: ¿Cuándo un cliente está «activo»?
+    definicion_propuesta: >-
+      Un cliente con al menos un pago válido en los últimos 90 días naturales.
+    ojo: >-
+      El 4,3 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están
+      dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y
+      cualquier tasa calculada así sale inflada.
+    alternativas_si_no_te_convence:
+      - 30 días, si el negocio se mide mensualmente.
+      - 12 meses, si el patrón de compra es estacional.
+
+  comercio_activo:
+    pregunta: ¿Cuándo un comercio está «activo»?
+    definicion_propuesta: >-
+      La VERSIÓN VIGENTE (`is_current = true`) con `is_active = true` y al menos
+      un pago válido en los últimos 30 días.
+    ojo: >-
+      `dim_merchant` es una dimensión de cambio lento tipo 2: un comercio tiene
+      varias filas, una por versión. Unir por `merchant_id` en vez de por
+      `merchant_sk` multiplica las filas un 53 % y reescribe la historia.
+
+# =============================================================================
+# MÉTRICAS ESTÁNDAR. Cómo se calcula cada una, y con qué NO confundirla.
+# =============================================================================
+metricas:
+
+  tasa_de_aprobacion:
+    definicion: Pagos aprobados sobre pagos intentados, contados por INTENTO.
+    se_calcula: >-
+      SELECT 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*)
+      FROM v_attempt_dedup WHERE NOT is_test
+    valor_tipico: 86-87 %
+    ojo: >-
+      Se puede medir por intento o por pago, y los dos números son legítimos y
+      distintos. Por PAGO sale más alta, porque incluye los que salieron a la
+      segunda. Di siempre cuál estás usando.
+
+  tasa_de_reintento:
+    definicion: Intentos por pago.
+    se_calcula: >-
+      SELECT count(*)::DOUBLE / count(DISTINCT payment_intent_id)
+      FROM v_attempt_dedup
+    valor_tipico: 1,063
+    ojo: >-
+      Un rechazo DURO (tarjeta robada, número inválido) no se reintenta nunca:
+      reintentarlo es una infracción de las reglas de la red que cuesta dinero.
+      Solo los blandos se reintentan.
+
+  tasa_de_contracargo:
+    definicion: Disputas abiertas sobre pagos aprobados.
+    se_calcula: >-
+      SELECT 100.0 * count(DISTINCT d.payment_intent_id)
+                   / count(DISTINCT f.payment_intent_id)
+      FROM v_attempt_dedup f
+      LEFT JOIN fact_dispute d ON d.payment_intent_id = f.payment_intent_id
+                              AND d.stage_no = 1
+      WHERE f.auth_status = 'approved'
+    ojo: >-
+      Una disputa tiene VARIAS FILAS, una por etapa, y el importe se repite en
+      todas. `sum(disputed_eur_minor)` infla el contracargo un 60 %: filtra por
+      `is_final_stage` o cuenta `dispute_case_id` distintos.
+
+  mdr_efectivo:
+    definicion: Comisión cobrada sobre volumen procesado.
+    se_calcula: >-
+      SELECT 100.0 * sum(fee_eur_minor) / sum(gross_eur_minor)
+      FROM fact_settlement_batch
+    valor_tipico: 2,1-2,4 %
+    ojo: Un comercio de alto riesgo paga más y espera más días a cobrar.
+
+  ticket_medio:
+    definicion: Importe medio de un pago válido, en euros.
+    ojo: >-
+      La mediana (≈43 €) y la media (≈173 €) se separan por un factor de cuatro,
+      porque la cola es larga. Publicar solo la media engaña.
+
+# =============================================================================
+# LAS TABLAS, EN UNA FRASE CADA UNA
+# =============================================================================
+tablas:
+  fact_payment_attempt: Un intento de cobrar una tarjeta. La tabla grande.
+  fact_order_line: Un producto dentro de la cesta de un pago.
+  fact_settlement_batch: El dinero de un comercio en un día, listo para transferir.
+  fact_payout: La transferencia real a la sociedad propietaria del comercio.
+  fact_refund: Una devolución, total o parcial, de un pago ya cobrado.
+  fact_dispute: Una etapa de una disputa. Varias filas por disputa.
+  dim_customer: El titular de la tarjeta. Donde vive casi toda la PII.
+  dim_card: El instrumento de pago. Nunca guarda el número completo (PCI DSS).
+  dim_merchant: El comercio, con historia (cambio lento tipo 2).
+  dim_merchant_site: Dónde se aceptó el pago. Un comercio grande tiene sedes en varios países.
+  dim_corporate_group: "La sociedad propietaria. Recursiva: quién es dueño de quién."
+  dim_employee: Personal de CIERZO. Jerarquía recursiva.
+  dim_product: El catálogo de productos que venden los comercios.
+  dim_device: El dispositivo desde el que se pagó.
+  dim_ip_block: Rangos de IP geolocalizados. Se une POR RANGO, no por igualdad.
+  dim_date: Calendario, con festivos y días hábiles.
+  bridge_customer_device: Qué persona usó qué dispositivo. Muchos a muchos en ambos sentidos.
+  bridge_merchant_account_manager: Qué gestor lleva qué comercio, con peso y vigencia.
+  ref_mcc: Código de categoría de comercio. Decide riesgo, comisión y plazo.
+  ref_decline_reason: Motivos de rechazo, mapeados a códigos ISO 8583.
+  ref_fx_rate_daily: Tipo de cambio diario a euro. NO cotiza fines de semana ni festivos.
+  ref_country: Países, con región y divisa.
+  ref_city: Ciudades, con coordenadas.
+  ref_currency: Divisas, con sus decimales. El forinto húngaro tiene CERO.
+
+# =============================================================================
+# TRAMPAS DECLARADAS. Están puestas a propósito: son errores reales de negocio
+# con una respuesta correcta, no ruido. Quien pregunte al sistema se va a topar
+# con ellas, así que el glosario las nombra.
+# =============================================================================
+trampas:
+  - "Contar ingresos contando filas de `fact_payment_attempt`: **+24 %**."
+  - "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+53 % de filas**."
+  - "Unir con `ref_fx_rate_daily` por igualdad de fecha: pierde el **24 %** de los pagos no euro, porque los fines de semana no hay cotización. Se usa el último tipo publicado."
+  - "Sumar `disputed_eur_minor` sin filtrar por `is_final_stage`: **+60 %**."
+  - "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **4,3 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila)."
+  - "No filtrar `is_test`: mete un **1,2 %** de tráfico de pruebas en los números de negocio."
+  - "Sumar `amount_minor` entre divisas: está en moneda LOCAL. Para sumar, `amount_eur_minor`."
+  - "Usar `amount_cents`: es una columna OBSOLETA que discrepa de `amount_minor` en el 0,4 % de las filas."
+  - "Contar `fact_payment_attempt` sin deduplicar: el **0,35 %** son duplicados de ingesta. Usa `v_attempt_dedup`."
