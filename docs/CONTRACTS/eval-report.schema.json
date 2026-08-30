@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://day-300.local/contracts/eval-report/v1",
+  "title": "Informe de evaluación · contrato transversal v1",
+  "description": "Formato del informe que producen 01, 02 y 03. Es el sexto contrato del ecosistema y el mapa de conjunto no lo declara, pero existe: el 02 pretende ser la puerta de calidad de los otros dos, y no puede comparar informes que no comparten esquema. Se copia a los tres proyectos, no se importa. Cambiarlo sube contract_version y se anota en el CHANGELOG de cada repo afectado.",
+  "type": "object",
+  "required": [
+    "contract_version",
+    "run_id",
+    "project",
+    "suite",
+    "created_at",
+    "environment",
+    "dataset",
+    "metrics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": 1,
+      "description": "Versión de ESTE contrato, no del proyecto."
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Identificador único de la ejecución. Determinista si la ejecución lo es."
+    },
+    "project": {
+      "enum": ["citebound", "evalgate", "datawarden", "indexkeeper"]
+    },
+    "suite": {
+      "type": "string",
+      "description": "Nombre de la suite ejecutada, tal y como aparece en evals/suites/."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "environment": {
+      "type": "object",
+      "required": ["hardware", "python", "deterministic"],
+      "additionalProperties": true,
+      "properties": {
+        "hardware": {
+          "type": "string",
+          "description": "Máquina de referencia. Un p95 sin hardware declarado no es comparable con nada.",
+          "examples": ["MacBook Pro M4 Max, 36 GB unificada, macOS 26.5"]
+        },
+        "python": { "type": "string", "examples": ["3.12.11"] },
+        "deterministic": {
+          "type": "boolean",
+          "description": "true si la ejecución se resolvió íntegramente desde caché grabada (make eval). false si recalculó contra un modelo (make eval-refresh). Comparar un informe determinista con uno no determinista es un error, y la puerta debe rechazarlo."
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Modelos usados por rol. El juez NUNCA puede ser el mismo que el generador.",
+          "examples": [
+            {
+              "generator": "qwen3.5:9b-mlx",
+              "judge": "gemma4:12b-mlx",
+              "embeddings": "Qwen3-Embedding-0.6B",
+              "reranker": "Qwen3-Reranker-0.6B"
+            }
+          ]
+        },
+        "index_version": {
+          "type": "string",
+          "description": "Sólo 01 y 04. Índice activo durante la evaluación."
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Semilla del bootstrap y de todo muestreo. Sin ella el informe no es reproducible."
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["name", "version", "n_cases", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "integer" },
+        "n_cases": { "type": "integer", "minimum": 1 },
+        "n_negative_cases": {
+          "type": "integer",
+          "description": "Casos sin respuesta en el corpus. Sin ellos no se puede calcular abstención incorrecta."
+        },
+        "sha256": {
+          "type": "string",
+          "description": "Hash del fichero del golden set. Comparar dos informes sobre datasets distintos no significa nada, y la puerta debe negarse a hacerlo."
+        }
+      }
+    },
+    "prompts": {
+      "type": "array",
+      "description": "Todo prompt que participó, con su versión y hash. Es lo que permite correlacionar un cambio de métrica con un cambio de prompt concreto, que es medio argumento del proyecto 02.",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "version": { "type": "integer" },
+          "sha256": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["generator", "judge", "rewriter", "other"]
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "value", "n"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Debe coincidir exactamente con un id de docs/GOALS.yaml.",
+            "examples": ["G-CITA-PRECISION", "G-ALUCINACION-ART"]
+          },
+          "value": { "type": "number" },
+          "n": {
+            "type": "integer",
+            "description": "Casos que entraron en el denominador de ESTA métrica. Puede diferir del total: las abstenciones salen del denominador de precisión de cita, y los casos negativos del de recall."
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["ratio", "count", "ms", "s", "eur", "tokens", "kappa"],
+            "default": "ratio"
+          },
+          "ci95": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Intervalo de confianza al 95 %. Para proporciones sobre n pequeño, intervalo de Wilson, no normal."
+          },
+          "per_stratum": {
+            "type": "object",
+            "additionalProperties": { "type": "number" },
+            "description": "Desglose por materia o dificultad. Una media global puede esconder que una materia entera se rompió."
+          },
+          "raw_path": {
+            "type": "string",
+            "description": "Ruta relativa al detalle caso a caso, para poder auditar el número."
+          }
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "description": "Presente sólo en informes de comparación (eval compare). Es lo que consume la puerta de calidad.",
+      "required": ["base_run_id", "method", "deltas", "decision"],
+      "additionalProperties": false,
+      "properties": {
+        "base_run_id": { "type": "string" },
+        "method": {
+          "type": "object",
+          "required": ["kind", "paired", "replicates"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "bootstrap" },
+            "paired": {
+              "const": true,
+              "description": "SIEMPRE pareado, sobre los mismos casos. El no pareado tiene mucha más varianza y hace la puerta insensible o ruidosa. La decisión está cerrada en retrieval-metrics.md §4."
+            },
+            "replicates": { "type": "integer", "minimum": 1000 },
+            "multiple_comparison_correction": {
+              "type": ["string", "null"],
+              "enum": ["holm", "benjamini-hochberg", "bonferroni", null],
+              "description": "Obligatorio si se vigilan más de 3 métricas bloqueantes. Por defecto 'holm': controla la tasa de error por familia, que es lo que importa en una puerta de calidad (un falso bloqueo es caro y erosiona la confianza en el gate), y es uniformemente más potente que Bonferroni sin supuestos adicionales. 'benjamini-hochberg' controla FDR y es preferible cuando se exploran muchas métricas informativas y un falso positivo aislado no bloquea nada. Ver retrieval-metrics.md §4."
+            }
+          }
+        },
+        "deltas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "delta", "ci95", "blocking"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "delta": { "type": "number" },
+              "ci95": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "below_absolute_threshold": { "type": "boolean" },
+              "blocking": {
+                "type": "boolean",
+                "description": "true si esta métrica por sí sola bloquea: cae bajo su umbral absoluto, O su IC95 pareado queda enteramente por debajo de cero."
+              }
+            }
+          }
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["pass", "block"],
+          "description": "Lo que devuelve el comando como código de salida: pass=0, block=1."
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "description": "Contabilidad de la caché de jueces. El ahorro se declara, no se estima.",
+      "additionalProperties": false,
+      "properties": {
+        "judge_hits": { "type": "integer" },
+        "judge_misses": { "type": "integer" },
+        "savings_ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

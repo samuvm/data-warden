@@ -1,0 +1,7 @@
+# Generador sintetico CIERZO · entorno AISLADO del proyecto.
+# No toca pyproject.toml: Q-002 (firma de versiones) sigue PENDIENTE.
+# Se ejecuta con:  uv run --with-requirements datagen/requirements.txt python ...
+numpy==2.5.2
+pyarrow==25.0.1
+duckdb==1.5.5
+Faker==40.37.0
