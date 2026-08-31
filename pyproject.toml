@@ -1,0 +1,244 @@
+[project]
+name = "datawarden"
+version = "0.1.0"
+description = "Acceso conversacional a un lakehouse con cinco anillos de control. Servidor MCP."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = "==3.12.*"        # ADR-002 de citebound-01: MWAA no ofrece más
+authors = [{ name = "Samuel Viciana", email = "sviciana@blueoption.io" }]
+
+# -----------------------------------------------------------------------------
+# TODAS LAS VERSIONES SON EXACTAS, Y NO ES PEDANTERÍA.
+#
+# `docs/STACK.md` da RANGOS: son la investigación, de qué línea coger. El `==`
+# vive aquí y en `uv.lock`, y cada número está firmado en `Q-002` de
+# `docs/PARA-SAMUEL.md` (Samuel, 2026-08-28). Que STACK diga `mcp>=2,<3` y esto
+# diga `mcp==2.1.1` NO es una contradicción: es la constitución §7.2 funcionando.
+#
+# `sqlglot` es la excepción que exigió firma explícita: su API de AST cambia
+# entre minors sin semver estricto, así que una subida silenciosa cambia cómo se
+# parsea una consulta — es decir, cambia QUÉ ES SEGURO. Subirla vuelve al buzón.
+# -----------------------------------------------------------------------------
+dependencies = [
+  # El corazón. `[c]` es el compilado con mypyc, y es lo que hace alcanzable el
+  # p95 de 25 ms del guard.
+  "sqlglot[c]==30.17.0",
+  # Motor local del lakehouse.
+  "duckdb==1.5.5",
+  "pyiceberg[sql-sqlite,pyarrow]==0.11.1",
+  "pyarrow==25.0.1",
+  "numpy==2.5.2",
+  # El protocolo. La interfaz, no el sistema.
+  "mcp==2.1.1",
+  # Tipos del dominio.
+  "pydantic==2.13.4",
+  # Ciclo generar → validar → corregir.
+  "langgraph==1.2.10",
+  "langgraph-prebuilt==1.1.0",
+  "langgraph-checkpoint==4.2.0",
+]
+
+[project.optional-dependencies]
+# La capa HTTP equivalente, para demostrar que el dominio no depende del
+# transporte. Heredadas de citebound-01, no ejercitadas aquí todavía.
+http = [
+  "fastapi==0.141.1",
+  "uvicorn[standard]==0.52.1",
+]
+
+[project.scripts]
+warden = "datawarden.cli:main"      # D-02: el CLI se llama `warden`
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "pytest-xdist==3.8.0",
+  "hypothesis==6.165.2",
+  "ruff==0.16.2",
+  "mypy==2.3.0",
+  "mutmut==3.7.0",
+  "import-linter==2.14",
+  "testcontainers==4.15.0",
+  "detect-secrets==1.5.0",
+  # El generador del dataset sintético. Vive hoy en `datagen/` y se porta a
+  # `scripts/` como trabajo de la fase 0 (P-001, aprobada).
+  "Faker==40.37.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/datawarden"]
+
+# =============================================================================
+# [tool.gate]
+#
+# ESTOS NÚMEROS SON LOS MISMOS QUE `docs/GOALS.yaml`, Y HAY UN SCRIPT QUE LO
+# COMPRUEBA: `scripts/check_gate_config.py`.
+#
+# Por qué importa tanto: `GOALS.yaml` está sellado por `thresholds.lock`, así que
+# bajar un umbral allí pone el gate en rojo. Este fichero NO lo está. Sería, por
+# tanto, el atajo más barato del repositorio: bajar el 90 a un 70 aquí y que la
+# suite pase. `GOALS.yaml` manda; esto es una copia que se verifica.
+# =============================================================================
+[tool.gate]
+# G-COV-FUNC exige 8 paquetes auditados. Son estos ocho, ni uno más.
+testable = [
+  "domain", "guard", "mask", "audit", "principal", "cost", "catalog", "evalsupport",
+]
+# Adaptadores: contrato y snapshot, NO cobertura de línea. Medirles cobertura
+# premia envolver el adaptador en tests que no prueban nada.
+adapters = ["engines", "mcp", "http"]
+# Se MIDEN, no se testean. TDD PROHIBIDO: un test unitario sobre la salida de un
+# modelo mide el modelo, no el código.
+measured_only = ["nl2sql", "agent", "prompts"]
+
+cobertura_linea_min = 90            # G-COV-LINE
+cobertura_linea_min_critica = 95    # G-COV-LINE adicional: guard, mask, audit, principal
+paquetes_criticos = ["guard", "mask", "audit", "principal"]
+funciones_sin_cubrir_max = 0        # G-COV-FUNC
+mutantes_muertos_min = 70           # G-MUTATION, bloqueante desde la fase 3
+mutantes_muertos_min_guard = 85     # G-MUT-GUARD, bloqueante desde la fase 3
+secretos_nuevos_max = 0             # G-SECRETS
+deuda_max = 10                      # TODO/FIXME/XXX/NotImplementedError en src/
+
+# =============================================================================
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+# `--strict-markers` para que un marcador con una errata falle en vez de
+# ignorarse en silencio, que es como se pierde una suite entera sin enterarse.
+addopts = "-q --strict-markers --strict-config"
+markers = [
+  "slow: tarda más de un segundo; fuera del gate rápido",
+  "integration: necesita DuckDB real o contenedores",
+  "adversarial: cuaderno de ataque de desarrollo",
+  "holdout: SOLO se ejecuta en `make done`. El agente no lo lee",
+]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/datawarden"]
+# Los adaptadores y lo que se mide no cuentan para la cobertura de línea.
+omit = [
+  "src/datawarden/engines/*",
+  "src/datawarden/mcp/*",
+  "src/datawarden/http/*",
+  "src/datawarden/nl2sql/generator.py",
+  "src/datawarden/agent/*",
+]
+
+[tool.coverage.report]
+# `fail_under` NO se pone aquí: lo comprueba el gate contra `[tool.gate]`, que a
+# su vez se verifica contra `GOALS.yaml`. Dos sitios donde bajar un número es un
+# sitio de más.
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "\\.\\.\\.",
+]
+
+[tool.ruff]
+line-length = 96
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",    # pycodestyle
+  "F",         # pyflakes
+  "I",         # isort
+  "N",         # pep8-naming
+  "UP",        # pyupgrade
+  "B",         # bugbear
+  "A",         # builtins sombreados
+  "C4",        # comprensiones
+  "SIM",       # simplificaciones
+  "PTH",       # pathlib en vez de os.path
+  "RUF",
+  "S",         # bandit: seguridad
+]
+ignore = [
+  "S101",      # assert: los tests viven de ellos
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Un test puede hacer cosas que el código de producción no.
+"tests/**" = ["S105", "S106", "S311"]
+# El generador sortea números pseudoaleatorios a propósito y con semilla fija, y
+# construye SQL por concatenación porque su trabajo ES construir SQL. Nada de eso
+# entra en `src/`, donde S608 sigue activo y donde una consulta se arma sobre un
+# AST validado y jamás por concatenación.
+# E501 y RUF001 solo aquí: `datagen/` construye cadenas que un humano LEE —
+# filas de tabla markdown en MEASURED-*.md y sentencias SQL—, y partirlas a 96
+# columnas las hace menos legibles, no más. El signo menos tipográfico de
+# `report.py` es deliberado. En `src/` ambas siguen activas.
+"datagen/**" = ["S311", "S324", "S608", "E741", "E501", "RUF001"]
+"scripts/**" = ["S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+# Los tipos del dominio son congelados y puros; ahí no se admite `Any`.
+disallow_any_explicit = false
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# Dependencias sin tipos publicados.
+module = ["duckdb.*", "pyiceberg.*", "faker.*", "mutmut.*"]
+ignore_missing_imports = true
+
+[tool.mutmut]
+paths_to_mutate = "src/datawarden/"
+# El guard se mide aparte y con un umbral más alto: es donde vive la seguridad.
+tests_dir = "tests/unit/"
+
+# =============================================================================
+# import-linter: los límites entre capas del mapa de CLAUDE.md, ejecutables.
+#
+# Sin esto, "el dominio no depende del transporte" es una frase del README. Con
+# esto, es un test que se rompe el día que alguien importe `mcp` desde `domain`.
+# =============================================================================
+[tool.importlinter]
+root_package = "datawarden"
+# Necesario porque hay contratos que prohíben módulos EXTERNOS: que `domain` no
+# importe `duckdb` es justamente el contrato que hace verdad la frase «el dominio
+# es puro».
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "El dominio es puro: no conoce ni motor, ni transporte, ni modelo"
+type = "forbidden"
+source_modules = ["datawarden.domain"]
+forbidden_modules = [
+  "datawarden.engines", "datawarden.mcp", "datawarden.http",
+  "datawarden.nl2sql", "datawarden.agent", "duckdb", "pyiceberg", "mcp",
+]
+
+[[tool.importlinter.contracts]]
+name = "El guard no toca el motor: valida un árbol, no ejecuta nada"
+type = "forbidden"
+source_modules = ["datawarden.guard"]
+forbidden_modules = ["datawarden.engines", "duckdb", "pyiceberg"]
+
+[[tool.importlinter.contracts]]
+name = "Las capas van en un solo sentido"
+type = "layers"
+layers = [
+  "datawarden.mcp | datawarden.http",
+  "datawarden.agent",
+  "datawarden.nl2sql",
+  "datawarden.audit",
+  "datawarden.mask",
+  "datawarden.cost",
+  "datawarden.guard",
+  "datawarden.catalog",
+  "datawarden.principal",
+  "datawarden.domain",
+]

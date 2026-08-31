@@ -33,12 +33,19 @@ def zipf_mandelbrot_weights(n: int, exponent: float, q: float) -> np.ndarray:
 def top_share(n: int, exponent: float, fraction: float, q: float = 0.0) -> float:
     """Share of total weight held by the top `fraction` of ranks."""
     w = zipf_mandelbrot_weights(n, exponent, q)
-    k = max(1, int(round(n * fraction)))
+    k = max(1, round(n * fraction))
     return float(w[:k].sum())
 
 
-def solve_exponent(n: int, fraction: float, target_share: float, q: float = 0.0,
-                   lo: float = 0.001, hi: float = 6.0, tol: float = 1e-9) -> float:
+def solve_exponent(
+    n: int,
+    fraction: float,
+    target_share: float,
+    q: float = 0.0,
+    lo: float = 0.001,
+    hi: float = 6.0,
+    tol: float = 1e-9,
+) -> float:
     """Bisect for the exponent that makes the top `fraction` hold `target_share`.
 
     Monotonic in the exponent for fixed q, so bisection is exact and cheap. Raises
@@ -82,8 +89,9 @@ def _max_feasible_q(n: int, fraction: float, target_share: float) -> float:
     return last_ok
 
 
-def solve_two_targets(n: int, f1: float, s1: float, f2: float, s2: float
-                      ) -> tuple[float, float]:
+def solve_two_targets(
+    n: int, f1: float, s1: float, f2: float, s2: float
+) -> tuple[float, float]:
     """Solve (exponent, q) so BOTH concentration targets hold simultaneously.
 
     Nested bisection: for each candidate q the exponent is pinned by target 1, and
@@ -96,6 +104,7 @@ def solve_two_targets(n: int, f1: float, s1: float, f2: float, s2: float
     reachable window. That is the honest outcome: it means no single law of this
     family produces both numbers, and the config has to give one of them up.
     """
+
     def outer(q: float) -> float:
         return top_share(n, solve_exponent(n, f1, s1, q=q), f2, q=q)
 
@@ -131,10 +140,11 @@ def merchant_weights(n: int) -> tuple[np.ndarray, dict[str, float]]:
     re-measured off the weights that will actually be used. Nothing here is
     asserted from a parameter.
     """
-    a, q = solve_two_targets(n, 0.01, config.MERCHANT_WEIGHT_TOP1PCT,
-                             0.10, config.MERCHANT_WEIGHT_TOP10PCT)
+    a, q = solve_two_targets(
+        n, 0.01, config.MERCHANT_WEIGHT_TOP1PCT, 0.10, config.MERCHANT_WEIGHT_TOP10PCT
+    )
     w = zipf_mandelbrot_weights(n, a, q)
-    k1, k10 = max(1, int(round(n * 0.01))), max(1, int(round(n * 0.10)))
+    k1, k10 = max(1, round(n * 0.01)), max(1, round(n * 0.10))
     measured = {
         "law": "zipf-mandelbrot",
         "exponent": a,
@@ -154,14 +164,18 @@ def product_weights(n: int) -> tuple[np.ndarray, dict[str, float]]:
     merchant portfolio: most SKUs sell something. One target, one parameter."""
     a = solve_exponent(n, 0.01, config.PRODUCT_TOP1PCT_SHARE)
     w = zipf_mandelbrot_weights(n, a, 0.0)
-    k1 = max(1, int(round(n * 0.01)))
-    return w, {"law": "zipf", "exponent": a,
-               "top_1pct_share": float(w[:k1].sum()),
-               "top_1pct_target": config.PRODUCT_TOP1PCT_SHARE}
+    k1 = max(1, round(n * 0.01))
+    return w, {
+        "law": "zipf",
+        "exponent": a,
+        "top_1pct_share": float(w[:k1].sum()),
+        "top_1pct_target": config.PRODUCT_TOP1PCT_SHARE,
+    }
 
 
-def customer_payment_counts(rng: np.random.Generator, n_customers: int,
-                            total_intents: int) -> tuple[np.ndarray, dict]:
+def customer_payment_counts(
+    rng: np.random.Generator, n_customers: int, total_intents: int
+) -> tuple[np.ndarray, dict]:
     """Exact per-customer payment counts summing to `total_intents`.
 
     Two facts drive this, and getting either wrong is invisible until a query
@@ -257,17 +271,17 @@ def day_weights(dates: np.ndarray) -> np.ndarray:
     # a query over Black Friday scans far more than the daily average predicts.
     for i, d in enumerate(dates):
         md = (d.month, d.day)
-        if d.month == 11 and 24 <= d.day <= 30:      # Black Friday week
+        if d.month == 11 and 24 <= d.day <= 30:  # Black Friday week
             w[i] *= 2.35
-        elif d.month == 12 and 1 <= d.day <= 3:      # Cyber Monday tail
+        elif d.month == 12 and 1 <= d.day <= 3:  # Cyber Monday tail
             w[i] *= 1.75
-        elif d.month == 12 and 15 <= d.day <= 23:    # Christmas run-up
+        elif d.month == 12 and 15 <= d.day <= 23:  # Christmas run-up
             w[i] *= 1.55
-        elif md in ((1, 7), (7, 1)):                 # sales seasons open
+        elif md in ((1, 7), (7, 1)):  # sales seasons open
             w[i] *= 1.40
-        elif md == (12, 25) or md == (1, 1):         # nobody shops
+        elif md == (12, 25) or md == (1, 1):  # nobody shops
             w[i] *= 0.42
-        elif md == (1, 6):                           # Reyes
+        elif md == (1, 6):  # Reyes
             w[i] *= 0.55
 
     return w / w.sum()

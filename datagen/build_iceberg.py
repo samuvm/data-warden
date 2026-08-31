@@ -65,14 +65,20 @@ def build(data_dir: pathlib.Path, rebuild: bool) -> int:
         shutil.rmtree(ice_root)
     (ice_root / "warehouse").mkdir(parents=True)
 
-    catalog = SqlCatalog("cierzo", **{
-        "uri": f"sqlite:///{ice_root}/catalog.db",
-        "warehouse": f"file://{ice_root}/warehouse",
-    })
+    catalog = SqlCatalog(
+        "cierzo",
+        **{
+            "uri": f"sqlite:///{ice_root}/catalog.db",
+            "warehouse": f"file://{ice_root}/warehouse",
+        },
+    )
     catalog.create_namespace(NAMESPACE)
 
-    tables = sorted(d.name for d in data_dir.iterdir()
-                    if d.is_dir() and d.name != "iceberg" and parquet_files(d))
+    tables = sorted(
+        d.name
+        for d in data_dir.iterdir()
+        if d.is_dir() and d.name != "iceberg" and parquet_files(d)
+    )
     print(f"{len(tables)} tablas · catálogo en {ice_root}/catalog.db\n")
 
     total_rows = 0
@@ -88,8 +94,8 @@ def build(data_dir: pathlib.Path, rebuild: bool) -> int:
             warnings.simplefilter("ignore")
             try:
                 tbl = catalog.create_table(
-                    f"{NAMESPACE}.{name}", schema=schema,
-                    properties={"format-version": "2"})
+                    f"{NAMESPACE}.{name}", schema=schema, properties={"format-version": "2"}
+                )
 
                 part_col = PARTITIONED.get(name)
                 if part_col:
@@ -98,7 +104,7 @@ def build(data_dir: pathlib.Path, rebuild: bool) -> int:
                     tbl = catalog.load_table(f"{NAMESPACE}.{name}")
 
                 tbl.add_files([f"file://{f.resolve()}" for f in files])
-            except Exception as exc:                                # noqa: BLE001
+            except Exception as exc:
                 print(f"  FALLO  {name:32s} {type(exc).__name__}: {exc}")
                 failures += 1
                 continue
@@ -108,17 +114,22 @@ def build(data_dir: pathlib.Path, rebuild: bool) -> int:
         # en el metadato de la tabla, y comprobarla ahí sería comprobar nada.
         version = tbl.metadata.format_version
         if version != 2:
-            print(f"  FALLO  {name}: format-version = {version}, se exige 2 "
-                  "(Athena no soporta v3 y el criterio de paridad de motor "
-                  "fallaría por el formato, no por la abstracción)")
+            print(
+                f"  FALLO  {name}: format-version = {version}, se exige 2 "
+                "(Athena no soporta v3 y el criterio de paridad de motor "
+                "fallaría por el formato, no por la abstracción)"
+            )
             failures += 1
             continue
 
         expected = sum(pq.read_metadata(f).num_rows for f in files)
-        got = tbl.scan().count() if hasattr(tbl.scan(), "count") else None
+        tbl.scan().count() if hasattr(tbl.scan(), "count") else None
         total_rows += expected
-        part = f"· {len(files):4d} ficheros, particionada por {PARTITIONED[name]}" \
-            if name in PARTITIONED else f"· {len(files)} fichero"
+        part = (
+            f"· {len(files):4d} ficheros, particionada por {PARTITIONED[name]}"
+            if name in PARTITIONED
+            else f"· {len(files)} fichero"
+        )
         print(f"  ok     {name:32s} {expected:>12,d} filas  v{version}  {part}")
 
     # Un script de vistas para DuckDB, con la ruta EXACTA del metadato vigente de
@@ -130,23 +141,46 @@ def build(data_dir: pathlib.Path, rebuild: bool) -> int:
     # además sería lo contrario de lo que Iceberg aporta -- el catálogo existe
     # justamente para que nadie tenga que mirar la carpeta. Así que se le pregunta
     # al catálogo aquí, una vez, y se escribe la respuesta.
-    lines = ["-- generado por datagen/build_iceberg.py; no editar a mano",
-             "INSTALL iceberg; LOAD iceberg;"]
-    for name in tables:
+    def current_metadata(table_name: str) -> str | None:
+        """Ruta del metadato vigente, o None diciendo por qué no la hay.
+
+        Devolver `None` en vez de saltar con un `continue` no es cuestión de
+        estilo: una tabla ausente del script de vistas sin explicación es justo el
+        hueco silencioso que este proyecto existe para no tener.
+        """
         try:
-            loc = catalog.load_table(f"{NAMESPACE}.{name}").metadata_location
-        except Exception:                                           # noqa: BLE001
-            continue
-        lines.append(f"CREATE OR REPLACE VIEW {name} AS "
-                     f"SELECT * FROM iceberg_scan('{loc.removeprefix('file://')}');")
+            return catalog.load_table(f"{NAMESPACE}.{table_name}").metadata_location
+        except Exception as exc:
+            print(
+                f"  aviso  {table_name}: fuera de duckdb-views.sql "
+                f"({type(exc).__name__}: {exc})"
+            )
+            return None
+
+    lines = [
+        "-- generado por datagen/build_iceberg.py; no editar a mano",
+        "INSTALL iceberg; LOAD iceberg;",
+    ]
+    for name in tables:
+        loc = current_metadata(name)
+        if loc is not None:
+            lines.append(
+                f"CREATE OR REPLACE VIEW {name} AS "
+                f"SELECT * FROM iceberg_scan('{loc.removeprefix('file://')}');"
+            )
+
     (ice_root / "duckdb-views.sql").write_text("\n".join(lines) + "\n")
 
-    print(f"\n{total_rows:,} filas registradas en {time.time() - t0:.1f}s, "
-          f"sin copiar un byte · {failures} fallos")
+    print(
+        f"\n{total_rows:,} filas registradas en {time.time() - t0:.1f}s, "
+        f"sin copiar un byte · {failures} fallos"
+    )
     if failures == 0:
-        print(f"\nAbrir con DuckDB:\n"
-              f"  duckdb -c \".read {ice_root}/duckdb-views.sql\" "
-              f"-c \"SELECT count(*) FROM fact_payment_attempt;\"")
+        print(
+            f"\nAbrir con DuckDB:\n"
+            f'  duckdb -c ".read {ice_root}/duckdb-views.sql" '
+            f'-c "SELECT count(*) FROM fact_payment_attempt;"'
+        )
     return failures
 
 

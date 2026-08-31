@@ -107,9 +107,13 @@ def build(data_dir: pathlib.Path, db_path: pathlib.Path) -> str:
     # Counted from the CATALOGUE, not from the manifest: the manifest only knows the
     # tables `generate.py` wrote, and the four money tables are derived afterwards.
     con2 = duckdb.connect(str(db_path), read_only=True)
-    tables = [r[0] for r in con2.execute(
-        "SELECT view_name FROM duckdb_views() WHERE NOT internal "
-        "AND view_name NOT LIKE 'v!_%' ESCAPE '!'").fetchall()]
+    tables = [
+        r[0]
+        for r in con2.execute(
+            "SELECT view_name FROM duckdb_views() WHERE NOT internal "
+            "AND view_name NOT LIKE 'v!_%' ESCAPE '!'"
+        ).fetchall()
+    ]
     rows = sum(con2.execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in tables)
     n_tables = len(tables)
     con2.close()
@@ -117,10 +121,11 @@ def build(data_dir: pathlib.Path, db_path: pathlib.Path) -> str:
     out = [
         f"<!-- generado por datagen/report.py desde el perfil `{m['profile']}`; no editar a mano -->",
         "",
-        "| | |", "|---|---:|",
+        "| | |",
+        "|---|---:|",
         f"| Filas totales · {n_tables} tablas | **{rows:,}** |",
         f"| Intentos de autorización · líneas de cesta | {s[0]:,} · {s[3]:,} |",
-        f"| Parquet en disco | **{m['totals']['bytes']/1e9:.2f} GB** |",
+        f"| Parquet en disco | **{m['totals']['bytes'] / 1e9:.2f} GB** |",
         f"| Aprobación · ticket mediano · ticket medio | {s[4]} % · {s[5]} € · {s[6]} € |",
         f"| Transfronterizo | {s[7]} % |",
         f"| Liquidado · comisión · lotes sin cerrar | {s[8]} M€ · {s[9]} k€ · {s[11]:,} pagos, {s[10]} % |",
@@ -140,7 +145,8 @@ def build(data_dir: pathlib.Path, db_path: pathlib.Path) -> str:
         "",
         "**Las trampas, medidas sobre estos datos:**",
         "",
-        "| Trampa | Cuánto engaña |", "|---|---:|",
+        "| Trampa | Cuánto engaña |",
+        "|---|---:|",
         f"| Contar ingresos contando filas | **+{t[0]} %** |",
         f"| Unir por la clave natural del comercio en vez de la subrogada | **+{t[1]} %** |",
         f"| `JOIN` de divisa por igualdad de fecha | **−{t[2]} %** de los pagos no-euro |",
@@ -149,14 +155,16 @@ def build(data_dir: pathlib.Path, db_path: pathlib.Path) -> str:
         "",
         "**Y lo que tiene que dar cero:**",
         "",
-        "| Invariante | Filas que lo violan |", "|---|---:|",
+        "| Invariante | Filas que lo violan |",
+        "|---|---:|",
         f"| Dinero movido en día no hábil | {g[0]} |",
         f"| Interchange sobre el tope del Reglamento (UE) 2015/751 | {g[1]} |",
         f"| Notas de soporte con un teléfono que no es el del cliente | {g[2]} |",
         "",
         "**Contracargo por tramo de riesgo** (el score tiene que predecirlo):",
         "",
-        "| Tramo | % de contracargo |", "|---|---:|",
+        "| Tramo | % de contracargo |",
+        "|---|---:|",
     ]
     out += [f"| {b} | {p} % |" for b, p in risk]
     return "\n".join(out) + "\n"
