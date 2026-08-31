@@ -101,8 +101,8 @@ SELECT
     -- One batch in six hundred fails to close on time. Those are exactly the rows a
     -- controller spends their week on, so they have to exist. One draw, three
     -- outcomes, cumulative thresholds -- not three independent coin flips.
-    CASE WHEN {_u('c.settlement_batch_id', 17)} < 0.0017 THEN 'exception'
-         WHEN {_u('c.settlement_batch_id', 17)} < 0.0127 THEN 'pending'
+    CASE WHEN {_u("c.settlement_batch_id", 17)} < 0.0017 THEN 'exception'
+         WHEN {_u("c.settlement_batch_id", 17)} < 0.0127 THEN 'pending'
          ELSE 'settled' END                                 AS batch_status
 FROM cut c
 JOIN _next_business_day b ON b.raw_date = c.scheduled_date
@@ -164,13 +164,13 @@ WITH approved AS (
            -- Most refunds happen in the first fortnight and the tail runs long. A
            -- flat draw over 45 days gave 23,000 refunds in every five-day bucket
            -- and a hard wall at day 45, which is not how returns behave.
-           CAST(1 + floor(pow({_u('a.payment_intent_id', 41)}, 2.1) * 88) AS INTEGER)
+           CAST(1 + floor(pow({_u("a.payment_intent_id", 41)}, 2.1) * 88) AS INTEGER)
                                                               AS delay_days,
-           {_u('a.payment_intent_id', 53)}                     AS u_partial,
-           {_u('a.payment_intent_id', 61)}                     AS u_frac,
-           {_u('a.payment_intent_id', 67)}                     AS u_reason
+           {_u("a.payment_intent_id", 53)}                     AS u_partial,
+           {_u("a.payment_intent_id", 61)}                     AS u_frac,
+           {_u("a.payment_intent_id", 67)}                     AS u_reason
     FROM approved a
-    WHERE {_u('a.payment_intent_id', 13)} <
+    WHERE {_u("a.payment_intent_id", 13)} <
           CASE a.category WHEN 'FASHION' THEN 0.128 WHEN 'ELECTRONICS' THEN 0.061
                           WHEN 'HOME' THEN 0.054   WHEN 'TRAVEL' THEN 0.038
                           WHEN 'BEAUTY' THEN 0.046 WHEN 'FOOD' THEN 0.011
@@ -220,20 +220,20 @@ WITH base AS (
       -- with no predictive power over disputes at all, and inside MCC 7995 the
       -- relationship even inverted. A risk score that does not predict the outcome it
       -- exists to predict is the first thing a fraud analyst checks.
-      AND {_u('f.payment_intent_id', 97)} <
+      AND {_u("f.payment_intent_id", 97)} <
           (r.dispute_rate_pct / 100.0) * (0.35 + 2.6 * pow(f.risk_score / 999.0, 1.7))
 ), staged AS (
     SELECT b.*,
            -- How far it escalates. Most stop at the first chargeback; arbitration is
            -- rare and expensive, which is why the stage is worth having as a column
            -- instead of a boolean. One draw, four outcomes, cumulative thresholds.
-           CASE WHEN {_u('b.payment_intent_id', 101)} < 0.58 THEN 1
-                WHEN {_u('b.payment_intent_id', 101)} < 0.86 THEN 2
-                WHEN {_u('b.payment_intent_id', 101)} < 0.96 THEN 3
+           CASE WHEN {_u("b.payment_intent_id", 101)} < 0.58 THEN 1
+                WHEN {_u("b.payment_intent_id", 101)} < 0.86 THEN 2
+                WHEN {_u("b.payment_intent_id", 101)} < 0.96 THEN 3
                 ELSE 4 END                                      AS max_stage,
-           {_u('b.payment_intent_id', 113)}                     AS u_outcome,
-           {_u('b.payment_intent_id', 131)}                     AS u_reason,
-           CAST(3 + floor({_u('b.payment_intent_id', 109)} * 90) AS INTEGER) AS first_delay
+           {_u("b.payment_intent_id", 113)}                     AS u_outcome,
+           {_u("b.payment_intent_id", 131)}                     AS u_reason,
+           CAST(3 + floor({_u("b.payment_intent_id", 109)} * 90) AS INTEGER) AS first_delay
     FROM base b
 )
 SELECT
@@ -252,7 +252,7 @@ SELECT
     -- days apart -- min = max = 21, a single distinct value across 14,613 pairs --
     -- which is the kind of detail that identifies a dataset as generated on sight.
     s.event_date + s.first_delay
-        + CAST((st.stage - 1) * (11 + floor({_u('s.payment_intent_id', 149)} * 34))
+        + CAST((st.stage - 1) * (11 + floor({_u("s.payment_intent_id", 149)} * 34))
                AS INTEGER)                                              AS opened_on,
     -- The disputed amount belongs to the CASE, not to each of its stages: it is
     -- repeated here for convenience and `is_final_stage` is how you avoid summing it
@@ -276,7 +276,7 @@ WHERE st.stage <= s.max_stage
   -- Right-censored with the ACTUAL gap, not a lower bound on it. Using the minimum
   -- 11-day step let 73 late stages past the edge of the warehouse.
   AND s.event_date + s.first_delay
-      + CAST((st.stage - 1) * (11 + floor({_u('s.payment_intent_id', 149)} * 34))
+      + CAST((st.stage - 1) * (11 + floor({_u("s.payment_intent_id", 149)} * 34))
              AS INTEGER) <= DATE '{{end_date}}'
 """
 
@@ -284,14 +284,19 @@ WHERE st.stage <= s.max_stage
 def build(data_dir: pathlib.Path, db_path: pathlib.Path, end_date: str) -> None:
     con = duckdb.connect(str(db_path))
     con.execute(NEXT_BUSINESS_DAY)
-    for label, sql in [("fact_settlement_batch", SETTLEMENT), ("fact_payout", PAYOUT),
-                       ("fact_refund", REFUND), ("fact_dispute", DISPUTE)]:
+    for label, sql in [
+        ("fact_settlement_batch", SETTLEMENT),
+        ("fact_payout", PAYOUT),
+        ("fact_refund", REFUND),
+        ("fact_dispute", DISPUTE),
+    ]:
         con.execute(sql.replace("{end_date}", end_date))
         n = con.execute(f"SELECT count(*) FROM {label}").fetchone()[0]
         out = data_dir / label
         out.mkdir(parents=True, exist_ok=True)
-        con.execute(f"COPY {label} TO '{out}/part-0000.parquet' "
-                    "(FORMAT parquet, COMPRESSION zstd)")
+        con.execute(
+            f"COPY {label} TO '{out}/part-0000.parquet' (FORMAT parquet, COMPRESSION zstd)"
+        )
         print(f"  {label:26s} {n:12,d} rows")
     con.execute("DROP TABLE _next_business_day")
     con.close()

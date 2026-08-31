@@ -24,8 +24,17 @@ import pyarrow.parquet as pq
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from cierzo import (build_facts, config, dims_digital, dims_org, dims_people,
-                    facts, pools, refs, shape)
+from cierzo import (
+    build_facts,
+    config,
+    dims_digital,
+    dims_org,
+    dims_people,
+    facts,
+    pools,
+    refs,
+    shape,
+)
 
 _EPOCH = dt.date(1970, 1, 1)
 
@@ -41,14 +50,14 @@ def index_of(haystack: np.ndarray, needles: np.ndarray) -> np.ndarray:
     order = np.argsort(haystack)
     pos = order[np.searchsorted(haystack, needles, sorter=order)]
     if not np.array_equal(haystack[pos], needles):
-        missing = sorted(set(np.asarray(needles).tolist())
-                         - set(np.asarray(haystack).tolist()))
+        missing = sorted(set(np.asarray(needles).tolist()) - set(np.asarray(haystack).tolist()))
         raise KeyError(f"values absent from lookup: {missing[:8]}")
     return pos
 
 
-def first_day_per_customer(cust_pool: np.ndarray, counts: np.ndarray,
-                           per_day: np.ndarray, n_customers: int) -> np.ndarray:
+def first_day_per_customer(
+    cust_pool: np.ndarray, counts: np.ndarray, per_day: np.ndarray, n_customers: int
+) -> np.ndarray:
     """Day index of each customer's earliest payment; -1 for those who never pay.
 
     Positions in `cust_pool` are consumed in day order, so a position's day index is
@@ -86,8 +95,7 @@ def unknown_customer_row(customers: pa.Table) -> pa.Table:
     return pa.table(row, schema=customers.schema)
 
 
-def home_block_for_customers(rng, bmeta, ccodes, country_idx, n_blocks,
-                             ring_id=None):
+def home_block_for_customers(rng, bmeta, ccodes, country_idx, n_blocks, ring_id=None):
     """Give every customer a home network IN THEIR OWN COUNTRY.
 
     Drawing the home block uniformly at random -- the first version -- put most
@@ -122,14 +130,18 @@ def home_block_for_customers(rng, bmeta, ccodes, country_idx, n_blocks,
     return out
 
 
-def patch_note_last4(customers: pa.Table, pan_last4: np.ndarray,
-                     card_start: np.ndarray) -> pa.Table:
+def patch_note_last4(
+    customers: pa.Table, pan_last4: np.ndarray, card_start: np.ndarray
+) -> pa.Table:
     """Replace the `0000` placeholder in support notes with the owner's real PAN suffix."""
     notes = customers.column("support_note").to_pylist()
     primary = pan_last4[card_start]
-    out = [n if n is None or "card ending 0000" not in n
-           else n.replace("card ending 0000", f"card ending {primary[i]}")
-           for i, n in enumerate(notes)]
+    out = [
+        n
+        if n is None or "card ending 0000" not in n
+        else n.replace("card ending 0000", f"card ending {primary[i]}")
+        for i, n in enumerate(notes)
+    ]
     idx = customers.schema.get_field_index("support_note")
     return customers.set_column(idx, "support_note", pa.array(out, pa.string()))
 
@@ -140,9 +152,16 @@ def log(msg: str, t0: float) -> None:
 
 def write_table(tbl: pa.Table, path: pathlib.Path, row_group: int) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
-    pq.write_table(tbl, path, compression="zstd", compression_level=7,
-                   row_group_size=row_group, use_dictionary=True,
-                   write_statistics=True, version="2.6")
+    pq.write_table(
+        tbl,
+        path,
+        compression="zstd",
+        compression_level=7,
+        row_group_size=row_group,
+        use_dictionary=True,
+        write_statistics=True,
+        version="2.6",
+    )
     return path.stat().st_size
 
 
@@ -155,25 +174,35 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     out.mkdir(parents=True)
 
     rng = np.random.default_rng(seed)
-    manifest: dict = {"profile": profile_name, "seed": seed,
-                      "start_date": str(config.START_DATE),
-                      "end_date": str(config.END_DATE), "tables": {}, "shape": {}}
+    manifest: dict = {
+        "profile": profile_name,
+        "seed": seed,
+        "start_date": str(config.START_DATE),
+        "end_date": str(config.END_DATE),
+        "tables": {},
+        "shape": {},
+    }
 
     def emit(name: str, tbl: pa.Table, sub: str | None = None) -> None:
         rel = f"{name}/{sub}" if sub else f"{name}/part-0000.parquet"
         n = write_table(tbl, out / rel, p.row_group_size)
         e = manifest["tables"].setdefault(
-            name, {"rows": 0, "bytes": 0, "columns": tbl.num_columns})
+            name, {"rows": 0, "bytes": 0, "columns": tbl.num_columns}
+        )
         e["rows"] += tbl.num_rows
         e["bytes"] += n
 
     # ---------------- reference ------------------------------------------------
     log("reference tables", t0)
     city = refs.ref_city()
-    for name, tbl in [("dim_date", refs.dim_date()), ("ref_country", refs.ref_country()),
-                      ("ref_city", city), ("ref_mcc", refs.ref_mcc()),
-                      ("ref_decline_reason", refs.ref_decline_reason()),
-                      ("ref_currency", refs.ref_currency())]:
+    for name, tbl in [
+        ("dim_date", refs.dim_date()),
+        ("ref_country", refs.ref_country()),
+        ("ref_city", city),
+        ("ref_mcc", refs.ref_mcc()),
+        ("ref_decline_reason", refs.ref_decline_reason()),
+        ("ref_currency", refs.ref_currency()),
+    ]:
         emit(name, tbl)
     # ONE fx table, emitted and then reused to convert the facts. Building a second
     # one from a different seed -- which the first version did -- left the published
@@ -197,16 +226,18 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     }
     emit("dim_merchant", merchants)
 
-    sites, site_owner, site_country, site_counts, site_first = \
-        dims_org.dim_merchant_site(rng, p.merchants, mmeta["country_by_natural"],
-                                   m_weights)
+    sites, _site_owner, site_country, site_counts, site_first = dims_org.dim_merchant_site(
+        rng, p.merchants, mmeta["country_by_natural"], m_weights
+    )
     emit("dim_merchant_site", sites)
 
     name_pools = pools.name_pools(seed)
     employees = dims_org.dim_employee(rng, p.employees, name_pools)
     emit("dim_employee", employees)
-    emit("bridge_merchant_account_manager",
-         dims_org.bridge_merchant_account_manager(rng, p.merchants, employees))
+    emit(
+        "bridge_merchant_account_manager",
+        dims_org.bridge_merchant_account_manager(rng, p.merchants, employees),
+    )
 
     # ---------------- payment assignment, BEFORE the customers ------------------
     #
@@ -220,8 +251,7 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     dweights = shape.day_weights(np.array(dates, dtype=object))
     per_day = rng.multinomial(p.intents, dweights)
 
-    counts, cust_stats = shape.customer_payment_counts(rng, p.customers,
-                                                       int(per_day.sum()))
+    counts, cust_stats = shape.customer_payment_counts(rng, p.customers, int(per_day.sum()))
     manifest["shape"]["customer_payments"] = cust_stats
     cust_pool = np.repeat(np.arange(1, p.customers + 1, dtype=np.int32), counts)
     rng.shuffle(cust_pool)
@@ -231,8 +261,9 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
 
     # ---------------- people ----------------------------------------------------
     log(f"customers ({p.customers:,})", t0)
-    customers, traits = dims_people.dim_customer(rng, p.customers, name_pools, city,
-                                                 first_payment_day)
+    customers, traits = dims_people.dim_customer(
+        rng, p.customers, name_pools, city, first_payment_day
+    )
     cards, cmeta = dims_people.dim_card(rng, p.customers, traits, first_payment_day)
     emit("dim_card", cards)
     # The support note quotes the customer's own card suffix, which only exists once
@@ -250,7 +281,8 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     devices, _ = dims_digital.dim_device(rng, n_dev)
     emit("dim_device", devices)
     bridge_dev, dmeta = dims_digital.bridge_customer_device(
-        rng, p.customers, n_dev, p.devices_per_customer)
+        rng, p.customers, n_dev, p.devices_per_customer
+    )
     emit("bridge_customer_device", bridge_dev)
 
     n_blocks = max(96, p.customers // 220)
@@ -274,13 +306,17 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     # depends on the device bridge, which is built later.
     ring_members = np.flatnonzero(dmeta["ring_id"][1:] > 0)
     if ring_members.size:
-        hot = [dims_people.CAT_INDEX[c] for c in ("GAMBLING", "CRYPTO", "FINANCIAL",
-                                                  "ELECTRONICS", "GAMING")]
+        hot = [
+            dims_people.CAT_INDEX[c]
+            for c in ("GAMBLING", "CRYPTO", "FINANCIAL", "ELECTRONICS", "GAMING")
+        ]
         traits["affinity_cat"][ring_members] = rng.choice(
-            hot, ring_members.size, p=[0.30, 0.22, 0.16, 0.20, 0.12])
+            hot, ring_members.size, p=[0.30, 0.22, 0.16, 0.20, 0.12]
+        )
         traits["affinity_strength"][ring_members] = 0.93
         traits["risk_propensity"][ring_members] = np.clip(
-            traits["risk_propensity"][ring_members] + 0.35, 0, 1)
+            traits["risk_propensity"][ring_members] + 0.35, 0, 1
+        )
     manifest["shape"]["fraud_rings"] = {
         "rings": int(dmeta["ring_id"].max()),
         "members": int(ring_members.size),
@@ -290,16 +326,21 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     # Categories in which every SKU carries an age limit: a minor cannot be routed
     # to a merchant there at all.
     gated_names = {"ALCOHOL", "TOBACCO", "GAMBLING"}
-    age_gated = np.array([dims_people.CAT_INDEX[c] for c in gated_names
-                          if c in dims_people.CAT_INDEX])
+    age_gated = np.array(
+        [dims_people.CAT_INDEX[c] for c in gated_names if c in dims_people.CAT_INDEX]
+    )
 
     regions = sorted({c[2] for c in pools.COUNTRIES})
     region_of_country = np.array([regions.index(c[2]) for c in pools.COUNTRIES])
-    mi = facts.MerchantIndex(mmeta["mcc_by_natural"], m_weights,
-                             mmeta["country_by_natural"],
-                             region_of_country[mmeta["country_by_natural"]])
-    mi_cat_index = np.array([dims_people.CAT_INDEX[c] for c in mi.cats_of_merchant],
-                            dtype=np.int8)
+    mi = facts.MerchantIndex(
+        mmeta["mcc_by_natural"],
+        m_weights,
+        mmeta["country_by_natural"],
+        region_of_country[mmeta["country_by_natural"]],
+    )
+    mi_cat_index = np.array(
+        [dims_people.CAT_INDEX[c] for c in mi.cats_of_merchant], dtype=np.int8
+    )
     open_mask = ~np.isin(mi.present, age_gated)
     open_cats = mi.present[open_mask]
     open_p = mi.cat_p[open_mask] / mi.cat_p[open_mask].sum()
@@ -308,25 +349,31 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     scd2 = facts.scd2_lookup(
         np.array(merchants.column("valid_from").to_pylist(), dtype="datetime64[D]"),
         np.array(merchants.column("valid_to").to_pylist(), dtype="datetime64[D]"),
-        mmeta["natural_index"], p.merchants, dates)
+        mmeta["natural_index"],
+        p.merchants,
+        dates,
+    )
     mdr_by_sk = np.concatenate([[0], merchants.column("mdr_bps").to_numpy()])
     merchant_mdr = mdr_by_sk[scd2]
 
     # Sorted (merchant, country) -> site lookup, so the fact loop can find "this
     # merchant's site in the customer's country" with one searchsorted instead of a
     # per-row scan.
-    site_keys = (np.repeat(np.arange(p.merchants), site_counts).astype(np.int64) * 100
-                 + site_country.astype(np.int64))
+    site_keys = np.repeat(np.arange(p.merchants), site_counts).astype(
+        np.int64
+    ) * 100 + site_country.astype(np.int64)
     key_order = np.argsort(site_keys, kind="stable")
     site_keys_sorted = site_keys[key_order]
     site_idx_sorted = key_order.astype(np.int32)
 
     mcc_high = {m[0]: m[5] for m in pools.MCC}
-    mcc_delay = dict(zip([m[0] for m in pools.MCC],
-                         [7 if m[5] else 2 for m in pools.MCC]))
+    mcc_delay = dict(
+        zip([m[0] for m in pools.MCC], [7 if m[5] else 2 for m in pools.MCC], strict=False)
+    )
     ccodes = np.array([c[0] for c in pools.COUNTRIES])
-    cur_of_country = np.array([config.CURRENCIES.index(c[3]) for c in pools.COUNTRIES],
-                              dtype=np.int8)
+    cur_of_country = np.array(
+        [config.CURRENCIES.index(c[3]) for c in pools.COUNTRIES], dtype=np.int8
+    )
 
     fx_tbl = fx_table.to_pydict()
     fx_by_day = np.ones((config.N_DAYS, len(config.CURRENCIES)), dtype=np.float64)
@@ -341,7 +388,9 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     # priced a Danish basket as if a krone were a euro.
     last = np.array([refs.OPENING_EUR_RATE[c] for c in config.CURRENCIES])
     quotes: dict[tuple[int, int], float] = {}
-    for c, d, r in zip(fx_tbl["currency_code"], fx_tbl["rate_date"], fx_tbl["eur_rate"]):
+    for c, d, r in zip(
+        fx_tbl["currency_code"], fx_tbl["rate_date"], fx_tbl["eur_rate"], strict=False
+    ):
         quotes[((d - config.START_DATE).days, ci_of_cur[c])] = r
     for di in range(config.N_DAYS):
         for cidx in range(len(config.CURRENCIES)):
@@ -350,8 +399,9 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
         fx_by_day[di] = last
 
     issuers = sorted({b[2] for b in pools.CARD_BINS})
-    issuer_base = (np.random.default_rng(seed + 2).normal(0, 0.28, len(issuers))
-                   ).astype(np.float32)
+    issuer_base = (np.random.default_rng(seed + 2).normal(0, 0.28, len(issuers))).astype(
+        np.float32
+    )
     issuer_of_bin = np.array([issuers.index(b[2]) for b in pools.CARD_BINS])
 
     reason_soft = np.array([r[4] for r in pools.DECLINE_REASONS])
@@ -359,9 +409,28 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
     reason_code = np.array([r[0] for r in pools.DECLINE_REASONS])
     idx_expired = reason_code.tolist().index("expired_card")
     idx_blocked = reason_code.tolist().index("blocked_by_risk_engine")
-    base_reason_p = np.array([0.29, 0.17, 0.05, 0.03, 0.08, 0.06, 0.04, 0.03,
-                              0.01, 0.01, 0.02, 0.02, 0.06, 0.04, 0.01, 0.01,
-                              0.03, 0.04])
+    base_reason_p = np.array(
+        [
+            0.29,
+            0.17,
+            0.05,
+            0.03,
+            0.08,
+            0.06,
+            0.04,
+            0.03,
+            0.01,
+            0.01,
+            0.02,
+            0.02,
+            0.06,
+            0.04,
+            0.01,
+            0.01,
+            0.03,
+            0.04,
+        ]
+    )
     base_reason_p = base_reason_p / base_reason_p.sum()
 
     # `blocked_by_risk_engine` is reserved: it is the reason the engine gives when it
@@ -384,26 +453,40 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
         return np.where(g, -1, cust_arr).astype(np.int32)
 
     ctx = {
-        "traits": traits, "cust_pool": cust_pool, "cust_off": cust_off,
-        "intent_off": intent_off, "intent_base": 10_000_000_000,
+        "traits": traits,
+        "cust_pool": cust_pool,
+        "cust_off": cust_off,
+        "intent_off": intent_off,
+        "intent_base": 10_000_000_000,
         "ingest_cursor": 900_000_000_000,
-        "mi": mi, "mi_cat_index": mi_cat_index, "pref_merchant": pref_merchant,
-        "scd2": scd2, "merchant_mdr": merchant_mdr,
-        "site_start": site_first, "site_count": site_counts,
-        "site_keys_sorted": site_keys_sorted, "site_idx_sorted": site_idx_sorted,
+        "mi": mi,
+        "mi_cat_index": mi_cat_index,
+        "pref_merchant": pref_merchant,
+        "scd2": scd2,
+        "merchant_mdr": merchant_mdr,
+        "site_start": site_first,
+        "site_count": site_counts,
+        "site_keys_sorted": site_keys_sorted,
+        "site_idx_sorted": site_idx_sorted,
         "site_country": site_country,
         "site_is_cp": sites.column("is_card_present").to_numpy(zero_copy_only=False),
         "site_supports_3ds": sites.column("supports_3ds").to_numpy(zero_copy_only=False),
-        "card_start": cmeta["card_start"], "card_count": cmeta["card_count"],
+        "card_start": cmeta["card_start"],
+        "card_count": cmeta["card_count"],
         "card_funding": cmeta["funding"],
         "card_issuer_cc_idx": index_of(ccodes, cmeta["issuer_country"]),
         "card_issuer_idx": issuer_of_bin[cmeta["card_bin_idx"]],
-        "card_exp_year": cmeta["exp_year"], "card_exp_month": cmeta["exp_month"],
-        "dev_flat": dmeta["dev_flat"], "dev_start": dmeta["dev_start"],
-        "dev_count": dmeta["dev_count"], "ring_id": dmeta["ring_id"],
+        "card_exp_year": cmeta["exp_year"],
+        "card_exp_month": cmeta["exp_month"],
+        "dev_flat": dmeta["dev_flat"],
+        "dev_start": dmeta["dev_start"],
+        "dev_count": dmeta["dev_count"],
+        "ring_id": dmeta["ring_id"],
         "home_block": home_block_for_customers(
-            rng, bmeta, ccodes, traits["country_idx"], n_blocks, dmeta["ring_id"]),
-        "block_start": bmeta["start"], "n_blocks": n_blocks,
+            rng, bmeta, ccodes, traits["country_idx"], n_blocks, dmeta["ring_id"]
+        ),
+        "block_start": bmeta["start"],
+        "n_blocks": n_blocks,
         "block_risk": ipb.column("risk_weight").to_numpy(zero_copy_only=False),
         "block_country_idx": index_of(ccodes, bmeta["country"]),
         "vpn_blocks": np.flatnonzero(np.isin(bmeta["kind"], ["vpn", "datacenter"])),
@@ -414,18 +497,23 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
         "mcc_high_risk": np.array([mcc_high[c] for c in mmeta["mcc_by_natural"]]),
         "mcc_settle_delay": np.array([mcc_delay[c] for c in mmeta["mcc_by_natural"]]),
         "merchant_natural_to_batchbase": np.arange(p.merchants) + 1,
-        "fx_by_day": fx_by_day, "issuer_base": issuer_base,
+        "fx_by_day": fx_by_day,
+        "issuer_base": issuer_base,
         "minor_scale": 10.0 ** (minor_units - 2),
         "domestic_share": config.DOMESTIC_MERCHANT_SHARE,
         "risk_block_threshold": config.RISK_BLOCK_THRESHOLD,
         "risk_review_threshold": config.RISK_REVIEW_THRESHOLD,
         "issuer_is_non_eea": np.array([c in config.NON_EEA for c in ccodes]),
         "region_of_country": region_of_country,
-        "reason_sampler": reason_sampler, "reason_soft": reason_soft,
-        "reason_lift": reason_lift, "reason_code": reason_code,
-        "country_codes": ccodes, "prod_price": pmeta["price_minor"],
-        "pi": facts.ProductIndex(pmeta["cat"], prod_weight_used, pmeta["price_minor"],
-                                 prod_restricted),
+        "reason_sampler": reason_sampler,
+        "reason_soft": reason_soft,
+        "reason_lift": reason_lift,
+        "reason_code": reason_code,
+        "country_codes": ccodes,
+        "prod_price": pmeta["price_minor"],
+        "pi": facts.ProductIndex(
+            pmeta["cat"], prod_weight_used, pmeta["price_minor"], prod_restricted
+        ),
         "prod_restricted": prod_restricted,
         "age_gated_categories": age_gated,
         "open_categories": open_cats,
@@ -447,8 +535,11 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
         total_lines += lines.num_rows
         hits += np.bincount(ctx.pop("day_merchant_hits"), minlength=p.merchants + 1)
         if di % 90 == 0:
-            log(f"  day {di + 1}/{config.N_DAYS} ({day}) "
-                f"attempts={total_attempts:,} lines={total_lines:,}", t0)
+            log(
+                f"  day {di + 1}/{config.N_DAYS} ({day}) "
+                f"attempts={total_attempts:,} lines={total_lines:,}",
+                t0,
+            )
 
     # MEASURED concentration, from the traffic actually generated -- not the solver's
     # target. Publishing the target as if it were an outcome is the exact failure
@@ -466,16 +557,21 @@ def build(profile_name: str, out_dir: pathlib.Path, seed: int) -> dict:
         raise AssertionError(
             f"realised merchant concentration {mc['top_1pct_measured_on_traffic']:.1%} "
             f"is below the declared floor {config.MERCHANT_TRAFFIC_TOP1PCT_FLOOR:.0%}; "
-            "without real skew the cost estimator has nothing to be right or wrong about")
+            "without real skew the cost estimator has nothing to be right or wrong about"
+        )
 
     manifest["shape"]["retry_expansion_factor"] = total_attempts / max(1, int(per_day.sum()))
     manifest["totals"] = {
-        "attempts": total_attempts, "order_lines": total_lines,
+        "attempts": total_attempts,
+        "order_lines": total_lines,
         "intents": int(per_day.sum()),
         "bytes": sum(t["bytes"] for t in manifest["tables"].values()),
     }
-    log(f"done: {total_attempts:,} attempts, {total_lines:,} lines, "
-        f"{manifest['totals']['bytes'] / 1e9:.2f} GB", t0)
+    log(
+        f"done: {total_attempts:,} attempts, {total_lines:,} lines, "
+        f"{manifest['totals']['bytes'] / 1e9:.2f} GB",
+        t0,
+    )
 
     (out / "MANIFEST.json").write_text(json.dumps(manifest, indent=2, default=str))
     return manifest

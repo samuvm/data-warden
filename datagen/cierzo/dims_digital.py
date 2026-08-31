@@ -19,13 +19,21 @@ from . import config, pools
 SCREEN_SIZES = {
     "mobile": ["390x844", "393x852", "412x915", "360x800", "430x932", "375x667"],
     "tablet": ["820x1180", "1024x1366", "768x1024"],
-    "desktop": ["1920x1080", "2560x1440", "1440x900", "1536x864", "3440x1440",
-                "1280x720", "3840x2160"],
+    "desktop": [
+        "1920x1080",
+        "2560x1440",
+        "1440x900",
+        "1536x864",
+        "3440x1440",
+        "1280x720",
+        "3840x2160",
+    ],
 }
 
 
-def dim_ip_block(rng: np.random.Generator, n_blocks: int,
-                 city_table: pa.Table) -> tuple[pa.Table, dict]:
+def dim_ip_block(
+    rng: np.random.Generator, n_blocks: int, city_table: pa.Table
+) -> tuple[pa.Table, dict]:
     """Geolocated /24 ranges, stored as UNSIGNED INTEGERS.
 
     Two decisions worth defending. First, the address is an integer, not a string:
@@ -61,12 +69,14 @@ def dim_ip_block(rng: np.random.Generator, n_blocks: int,
     for c in pools.COUNTRIES:
         forced.extend([c[0], c[0]])
     if len(forced) <= n_blocks:
-        block_country[:len(forced)] = np.array(forced)
+        block_country[: len(forced)] = np.array(forced)
 
     kinds = np.array([a[2] for a in pools.ASN_POOL])
-    kind_w = np.where(kinds == "residential", 0.62,
-             np.where(kinds == "mobile", 0.22,
-             np.where(kinds == "datacenter", 0.11, 0.05)))
+    kind_w = np.where(
+        kinds == "residential",
+        0.62,
+        np.where(kinds == "mobile", 0.22, np.where(kinds == "datacenter", 0.11, 0.05)),
+    )
     kind_w = kind_w / kind_w.sum()
     asn_idx = rng.choice(len(pools.ASN_POOL), n_blocks, p=kind_w)
     # The first block of each forced pair is pinned residential, so every country
@@ -83,26 +93,38 @@ def dim_ip_block(rng: np.random.Generator, n_blocks: int,
     start = (10 << 24) + np.arange(n_blocks, dtype=np.int64) * 256
     jitter = rng.normal(0, 0.35, n_blocks)
 
-    return pa.table({
-        "ip_block_sk": pa.array(np.arange(1, n_blocks + 1), pa.int32()),
-        "ip_start": pa.array(start.astype(np.uint32), pa.uint32()),
-        "ip_end": pa.array((start + 255).astype(np.uint32), pa.uint32()),
-        "cidr": pa.array([f"10.{(s >> 16) & 255}.{(s >> 8) & 255}.0/24" for s in start]),
-        "country_code": pa.array(block_country).dictionary_encode(),
-        "city_id": pa.array(city_ids[city_choice].astype(np.int16), pa.int16()),
-        "latitude": pa.array((city_lat[city_choice] + jitter * 0.18).astype(np.float32),
-                             pa.float32()),
-        "longitude": pa.array((city_lon[city_choice] + jitter * 0.24).astype(np.float32),
-                              pa.float32()),
-        "asn": pa.array([pools.ASN_POOL[i][0] for i in asn_idx], pa.int32()),
-        "isp_name": pa.array([pools.ASN_POOL[i][1] for i in asn_idx]).dictionary_encode(),
-        "connection_kind": pa.array(block_kind).dictionary_encode(),
-        "is_anonymizer": pa.array(np.isin(block_kind, ["vpn", "datacenter"]), pa.bool_()),
-        "risk_weight": pa.array(
-            np.where(block_kind == "vpn", 0.72,
-            np.where(block_kind == "datacenter", 0.61,
-            np.where(block_kind == "mobile", 0.14, 0.06))).astype(np.float32), pa.float32()),
-    }), {"start": start, "country": block_country, "kind": block_kind}
+    return pa.table(
+        {
+            "ip_block_sk": pa.array(np.arange(1, n_blocks + 1), pa.int32()),
+            "ip_start": pa.array(start.astype(np.uint32), pa.uint32()),
+            "ip_end": pa.array((start + 255).astype(np.uint32), pa.uint32()),
+            "cidr": pa.array([f"10.{(s >> 16) & 255}.{(s >> 8) & 255}.0/24" for s in start]),
+            "country_code": pa.array(block_country).dictionary_encode(),
+            "city_id": pa.array(city_ids[city_choice].astype(np.int16), pa.int16()),
+            "latitude": pa.array(
+                (city_lat[city_choice] + jitter * 0.18).astype(np.float32), pa.float32()
+            ),
+            "longitude": pa.array(
+                (city_lon[city_choice] + jitter * 0.24).astype(np.float32), pa.float32()
+            ),
+            "asn": pa.array([pools.ASN_POOL[i][0] for i in asn_idx], pa.int32()),
+            "isp_name": pa.array([pools.ASN_POOL[i][1] for i in asn_idx]).dictionary_encode(),
+            "connection_kind": pa.array(block_kind).dictionary_encode(),
+            "is_anonymizer": pa.array(np.isin(block_kind, ["vpn", "datacenter"]), pa.bool_()),
+            "risk_weight": pa.array(
+                np.where(
+                    block_kind == "vpn",
+                    0.72,
+                    np.where(
+                        block_kind == "datacenter",
+                        0.61,
+                        np.where(block_kind == "mobile", 0.14, 0.06),
+                    ),
+                ).astype(np.float32),
+                pa.float32(),
+            ),
+        }
+    ), {"start": start, "country": block_country, "kind": block_kind}
 
 
 def dim_device(rng: np.random.Generator, n_devices: int) -> tuple[pa.Table, dict]:
@@ -111,8 +133,12 @@ def dim_device(rng: np.random.Generator, n_devices: int) -> tuple[pa.Table, dict
     fam_w /= fam_w.sum()
     fam = rng.choice(len(pools.DEVICE_MODELS), n_devices, p=fam_w)
 
-    os_family = np.array([pools.DEVICE_MODELS[i][0] for i in range(len(pools.DEVICE_MODELS))])[fam]
-    dev_class = np.array([pools.DEVICE_MODELS[i][2] for i in range(len(pools.DEVICE_MODELS))])[fam]
+    os_family = np.array([pools.DEVICE_MODELS[i][0] for i in range(len(pools.DEVICE_MODELS))])[
+        fam
+    ]
+    dev_class = np.array([pools.DEVICE_MODELS[i][2] for i in range(len(pools.DEVICE_MODELS))])[
+        fam
+    ]
     # Draw per FAMILY, not per row. The obvious comprehension is one Python-level
     # `rng.integers` call per device -- nineteen million of them at full scale,
     # and the single slowest thing in the whole generator before this changed.
@@ -141,7 +167,8 @@ def dim_device(rng: np.random.Generator, n_devices: int) -> tuple[pa.Table, dict
     bw = np.array([b[1] for b in pools.BROWSERS], dtype=np.float64)
     bw /= bw.sum()
     browser = np.array([b[0] for b in pools.BROWSERS])[
-        rng.choice(len(pools.BROWSERS), n_devices, p=bw)]
+        rng.choice(len(pools.BROWSERS), n_devices, p=bw)
+    ]
     # Safari does not exist on Windows or Android, and a dataset where it does is
     # a dataset a fraud analyst stops trusting on the first plot.
     bad = (browser == "Safari") & ~np.isin(os_family, ["iOS", "iPadOS", "macOS"])
@@ -150,25 +177,31 @@ def dim_device(rng: np.random.Generator, n_devices: int) -> tuple[pa.Table, dict
     browser[bad] = "Chrome"
 
     fp = rng.integers(0, 2**62, n_devices, dtype=np.int64)
-    return pa.table({
-        "device_sk": pa.array(np.arange(1, n_devices + 1), pa.int32()),
-        "device_fingerprint": pa.array([f"fp_{v:016x}" for v in fp]),
-        "device_class": pa.array(dev_class).dictionary_encode(),
-        "os_family": pa.array(os_family).dictionary_encode(),
-        "os_version": pa.array(os_version).dictionary_encode(),
-        "device_model": pa.array(model).dictionary_encode(),
-        "browser_family": pa.array(browser).dictionary_encode(),
-        "screen_resolution": pa.array(screen).dictionary_encode(),
-        "is_emulator": pa.array(rng.random(n_devices) < 0.0038, pa.bool_()),
-        "first_seen_on": pa.array(
-            [config.START_DATE - dt.timedelta(days=int(d))
-             for d in rng.integers(0, 900, n_devices)], pa.date32()),
-    }), {"fingerprint": fp}
+    return pa.table(
+        {
+            "device_sk": pa.array(np.arange(1, n_devices + 1), pa.int32()),
+            "device_fingerprint": pa.array([f"fp_{v:016x}" for v in fp]),
+            "device_class": pa.array(dev_class).dictionary_encode(),
+            "os_family": pa.array(os_family).dictionary_encode(),
+            "os_version": pa.array(os_version).dictionary_encode(),
+            "device_model": pa.array(model).dictionary_encode(),
+            "browser_family": pa.array(browser).dictionary_encode(),
+            "screen_resolution": pa.array(screen).dictionary_encode(),
+            "is_emulator": pa.array(rng.random(n_devices) < 0.0038, pa.bool_()),
+            "first_seen_on": pa.array(
+                [
+                    config.START_DATE - dt.timedelta(days=int(d))
+                    for d in rng.integers(0, 900, n_devices)
+                ],
+                pa.date32(),
+            ),
+        }
+    ), {"fingerprint": fp}
 
 
-def bridge_customer_device(rng: np.random.Generator, n_customers: int,
-                           n_devices: int, per_customer_mean: float
-                           ) -> tuple[pa.Table, dict]:
+def bridge_customer_device(
+    rng: np.random.Generator, n_customers: int, n_devices: int, per_customer_mean: float
+) -> tuple[pa.Table, dict]:
     """Who used which device. Many-to-many in BOTH directions, and that is the point.
 
     A customer has two or three devices. A device is usually used by one customer
@@ -186,12 +219,15 @@ def bridge_customer_device(rng: np.random.Generator, n_customers: int,
     # devices, and sharing is only ever deliberate.
     # Mean device count is the profile's own parameter, so the inventory that
     # `generate.py` sizes and the links drawn here cannot drift apart.
-    per_customer = 1 + rng.binomial(3, np.clip((per_customer_mean - 1) / 3.0, 0.02, 0.98),
-                                    n_customers)
+    per_customer = 1 + rng.binomial(
+        3, np.clip((per_customer_mean - 1) / 3.0, 0.02, 0.98), n_customers
+    )
     total_links = int(per_customer.sum())
     if total_links > n_devices:
-        raise ValueError(f"{n_devices} devices cannot give {n_customers} customers "
-                         f"{total_links} exclusive links; raise devices_per_customer")
+        raise ValueError(
+            f"{n_devices} devices cannot give {n_customers} customers "
+            f"{total_links} exclusive links; raise devices_per_customer"
+        )
     cust = np.repeat(np.arange(1, n_customers + 1), per_customer)
     device = np.arange(1, total_links + 1, dtype=np.int32)
     rng.shuffle(device)
@@ -211,7 +247,7 @@ def bridge_customer_device(rng: np.random.Generator, n_customers: int,
     # turns the flagship exercise of this dataset into `WHERE people >= 6` and
     # removes the reason to look at networks or categories at all.
     extra_counts = np.clip(rng.geometric(0.38, n_shared), 1, 10)
-    for d, kk in zip(shared_devices, extra_counts):
+    for d, kk in zip(shared_devices, extra_counts, strict=False):
         base = int(rng.integers(1, n_customers + 1))
         for j in range(int(kk)):
             extra_cust.append(1 + (base + j) % n_customers)
@@ -228,8 +264,7 @@ def bridge_customer_device(rng: np.random.Generator, n_customers: int,
         size = int(rng.integers(4, 12))
         members = rng.choice(np.arange(1, n_customers + 1), size, replace=False)
         ring_id[members] = r
-        shared = rng.choice(np.arange(1, total_links + 1), max(2, size // 2),
-                            replace=False)
+        shared = rng.choice(np.arange(1, total_links + 1), max(2, size // 2), replace=False)
         # A ring member uses SOME of the ring's devices, not all of them. Attaching
         # every member to every device gave each ring device exactly `size` owners,
         # so 9-to-11-person devices were rings and nothing else -- a second cliff,
@@ -254,18 +289,20 @@ def bridge_customer_device(rng: np.random.Generator, n_customers: int,
     span = rng.integers(0, 400, total)
     last_off = np.minimum(first_off + span, config.N_DAYS - 1)
 
-    tbl = pa.table({
-        "customer_sk": pa.array(cust.astype(np.int32), pa.int32()),
-        "device_sk": pa.array(device.astype(np.int32), pa.int32()),
-        "n_payments": pa.array(uses.astype(np.int32), pa.int32()),
-        "first_seen_on": pa.array(
-            [config.START_DATE + dt.timedelta(days=int(d)) for d in first_off],
-            pa.date32()),
-        "last_seen_on": pa.array(
-            [config.START_DATE + dt.timedelta(days=int(d)) for d in last_off],
-            pa.date32()),
-        "is_trusted": pa.array(rng.random(total) < 0.58, pa.bool_()),
-    })
+    tbl = pa.table(
+        {
+            "customer_sk": pa.array(cust.astype(np.int32), pa.int32()),
+            "device_sk": pa.array(device.astype(np.int32), pa.int32()),
+            "n_payments": pa.array(uses.astype(np.int32), pa.int32()),
+            "first_seen_on": pa.array(
+                [config.START_DATE + dt.timedelta(days=int(d)) for d in first_off], pa.date32()
+            ),
+            "last_seen_on": pa.array(
+                [config.START_DATE + dt.timedelta(days=int(d)) for d in last_off], pa.date32()
+            ),
+            "is_trusted": pa.array(rng.random(total) < 0.58, pa.bool_()),
+        }
+    )
 
     # Offsets so the fact generator can pick one of a customer's own devices with
     # a single gather instead of a lookup per row.
@@ -273,13 +310,15 @@ def bridge_customer_device(rng: np.random.Generator, n_customers: int,
     sorted_cust, sorted_dev = cust[order], device[order]
     starts = np.searchsorted(sorted_cust, np.arange(1, n_customers + 1), side="left")
     ends = np.searchsorted(sorted_cust, np.arange(1, n_customers + 1), side="right")
-    return tbl, {"dev_flat": sorted_dev.astype(np.int32),
-                 "dev_start": starts, "dev_count": (ends - starts),
-                 "ring_id": ring_id}
+    return tbl, {
+        "dev_flat": sorted_dev.astype(np.int32),
+        "dev_start": starts,
+        "dev_count": (ends - starts),
+        "ring_id": ring_id,
+    }
 
 
-def dim_product(rng: np.random.Generator, n: int,
-                weights: np.ndarray) -> tuple[pa.Table, dict]:
+def dim_product(rng: np.random.Generator, n: int, weights: np.ndarray) -> tuple[pa.Table, dict]:
     """The catalogue. Products belong to a category, and so do merchants: that
     shared vocabulary is what lets a basket be plausible for the shop it was
     bought in, and what makes "this segment buys these products" answerable."""
@@ -309,26 +348,37 @@ def dim_product(rng: np.random.Generator, n: int,
     price_minor = np.round(price * 100).astype(np.int64)
 
     margin = np.clip(rng.beta(2.6, 4.0, n) * 0.7 + 0.05, 0.03, 0.78)
-    return pa.table({
-        "product_sk": pa.array(np.arange(1, n + 1), pa.int32()),
-        "sku": pa.array([f"SKU-{i:07d}" for i in range(1, n + 1)]),
-        "product_name": pa.array([f"{b} {a} {nn}" for b, a, nn in zip(brand, adj, noun)]),
-        "brand": pa.array(brand).dictionary_encode(),
-        "category": pa.array(cat).dictionary_encode(),
-        "subcategory": pa.array(subcat).dictionary_encode(),
-        "list_price_minor": pa.array(price_minor, pa.int64()),
-        "unit_cost_minor": pa.array(
-            np.round(price_minor * (1 - margin)).astype(np.int64), pa.int64()),
-        "is_digital": pa.array(
-            np.isin(cat, ["MEDIA", "GAMING", "SAAS", "EDUCATION", "CRYPTO"]), pa.bool_()),
-        "is_age_restricted": pa.array(
-            np.isin(cat, ["ALCOHOL", "TOBACCO", "GAMBLING"]), pa.bool_()),
-        "launched_on": pa.array(
-            [config.START_DATE - dt.timedelta(days=int(d))
-             for d in rng.integers(0, 1800, n)], pa.date32()),
-        # SHUFFLED. The weight vector arrives sorted, so assigning it in order made
-        # `product_sk` literally the sales rank: SKU-0000001 was 2.18 % of all lines
-        # and 51.8 % of its own category, and `ORDER BY product_sk` was a bestseller
-        # list. A surrogate key must carry no information.
-        "popularity_weight": pa.array(rng.permutation(weights), pa.float64()),
-    }), {"cat": cat, "price_minor": price_minor, "sub": sub}
+    return pa.table(
+        {
+            "product_sk": pa.array(np.arange(1, n + 1), pa.int32()),
+            "sku": pa.array([f"SKU-{i:07d}" for i in range(1, n + 1)]),
+            "product_name": pa.array(
+                [f"{b} {a} {nn}" for b, a, nn in zip(brand, adj, noun, strict=False)]
+            ),
+            "brand": pa.array(brand).dictionary_encode(),
+            "category": pa.array(cat).dictionary_encode(),
+            "subcategory": pa.array(subcat).dictionary_encode(),
+            "list_price_minor": pa.array(price_minor, pa.int64()),
+            "unit_cost_minor": pa.array(
+                np.round(price_minor * (1 - margin)).astype(np.int64), pa.int64()
+            ),
+            "is_digital": pa.array(
+                np.isin(cat, ["MEDIA", "GAMING", "SAAS", "EDUCATION", "CRYPTO"]), pa.bool_()
+            ),
+            "is_age_restricted": pa.array(
+                np.isin(cat, ["ALCOHOL", "TOBACCO", "GAMBLING"]), pa.bool_()
+            ),
+            "launched_on": pa.array(
+                [
+                    config.START_DATE - dt.timedelta(days=int(d))
+                    for d in rng.integers(0, 1800, n)
+                ],
+                pa.date32(),
+            ),
+            # SHUFFLED. The weight vector arrives sorted, so assigning it in order made
+            # `product_sk` literally the sales rank: SKU-0000001 was 2.18 % of all lines
+            # and 51.8 % of its own category, and `ORDER BY product_sk` was a bestseller
+            # list. A surrogate key must carry no information.
+            "popularity_weight": pa.array(rng.permutation(weights), pa.float64()),
+        }
+    ), {"cat": cat, "price_minor": price_minor, "sub": sub}

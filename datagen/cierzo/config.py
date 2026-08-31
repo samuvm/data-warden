@@ -53,17 +53,41 @@ class Profile:
 PROFILES: dict[str, Profile] = {
     # Under a minute. All 730 days are still present, so every date range quoted
     # in the README returns rows at this scale too.
-    "dev": Profile("dev", merchants=380, customers=92_000, attempts=700_000,
-                   employees=64, products=1_800, groups=46,
-                   devices_per_customer=1.7, row_group_size=64_000),
+    "dev": Profile(
+        "dev",
+        merchants=380,
+        customers=92_000,
+        attempts=700_000,
+        employees=64,
+        products=1_800,
+        groups=46,
+        devices_per_customer=1.7,
+        row_group_size=64_000,
+    ),
     # What someone who clones the repository actually runs.
-    "demo": Profile("demo", merchants=3_100, customers=920_000, attempts=6_800_000,
-                    employees=320, products=9_000, groups=210,
-                    devices_per_customer=1.9, row_group_size=128_000),
+    "demo": Profile(
+        "demo",
+        merchants=3_100,
+        customers=920_000,
+        attempts=6_800_000,
+        employees=320,
+        products=9_000,
+        groups=210,
+        devices_per_customer=1.9,
+        row_group_size=128_000,
+    ),
     # The published dataset. Only this one may back a published metric.
-    "full": Profile("full", merchants=12_400, customers=9_200_000, attempts=68_400_000,
-                    employees=3_140, products=42_000, groups=1_450,
-                    devices_per_customer=2.1, row_group_size=256_000),
+    "full": Profile(
+        "full",
+        merchants=12_400,
+        customers=9_200_000,
+        attempts=68_400_000,
+        employees=3_140,
+        products=42_000,
+        groups=1_450,
+        devices_per_customer=2.1,
+        row_group_size=256_000,
+    ),
 }
 
 # ---------------------------------------------------------------------------
@@ -100,25 +124,25 @@ MERCHANT_COUNT_FLOOR = 300
 # Customers are NOT a rank power law -- that would put a fifth of all traffic on
 # one person. Payment counts follow a Gamma-Poisson mixture (negative binomial):
 # most people pay once or twice, a thin tail pays hundreds of times.
-CUSTOMER_GAMMA_SHAPE = 0.42          # < 1 => strongly over-dispersed
+CUSTOMER_GAMMA_SHAPE = 0.42  # < 1 => strongly over-dispersed
 CUSTOMER_ZERO_PAYMENT_SHARE = 0.043  # registered, never paid: a LEFT JOIN trap
 
-PRODUCT_TOP1PCT_SHARE = 0.34    # bestsellers concentrate, but less than merchants
-LINES_PER_ORDER_MEAN = 2.24     # basket size, geometric-ish with a long tail
+PRODUCT_TOP1PCT_SHARE = 0.34  # bestsellers concentrate, but less than merchants
+LINES_PER_ORDER_MEAN = 2.24  # basket size, geometric-ish with a long tail
 
 # Data-quality plants. Every one is a documented trap with a business meaning,
 # never noise for the sake of noise.
-DUPLICATE_ROW_SHARE = 0.0035    # at-least-once ingestion: same tuple, new ingestion_id
-LATE_ARRIVAL_SHARE = 0.017      # ingested_at lands 1-6 days after event_ts
-TEST_TRAFFIC_SHARE = 0.012      # merchant test keys hitting production
+DUPLICATE_ROW_SHARE = 0.0035  # at-least-once ingestion: same tuple, new ingestion_id
+LATE_ARRIVAL_SHARE = 0.017  # ingested_at lands 1-6 days after event_ts
+TEST_TRAFFIC_SHARE = 0.012  # merchant test keys hitting production
 IMPOSSIBLE_BIRTHDATE_SHARE = 0.0021  # 1900-01-01 sentinels and future dates
-GUEST_CHECKOUT_SHARE = 0.061    # customer_sk = -1, the unknown member
-DEPRECATED_COL_DRIFT = 0.004    # amount_cents disagrees with amount_minor
+GUEST_CHECKOUT_SHARE = 0.061  # customer_sk = -1, the unknown member
+DEPRECATED_COL_DRIFT = 0.004  # amount_cents disagrees with amount_minor
 
 # Identity plants -- these are what make the re-identification thesis real.
-SHARED_DEVICE_SHARE = 0.058     # a device used by 2-5 customers: family, or a fraud ring
+SHARED_DEVICE_SHARE = 0.058  # a device used by 2-5 customers: family, or a fraud ring
 FRAUD_RING_COUNT_PER_10K = 1.4  # rings of 4-11 customers sharing devices and IP block
-TRAVEL_SESSION_SHARE = 0.037    # payment from outside the customer's home country
+TRAVEL_SESSION_SHARE = 0.037  # payment from outside the customer's home country
 VPN_IP_SHARE = 0.024
 DATACENTER_IP_SHARE = 0.009
 
@@ -128,16 +152,44 @@ DATACENTER_IP_SHARE = 0.009
 ROLE_BUDGETS_GB = {"analyst": 0.60, "ops": 0.05, "finance": 0.80, "admin": 1.50}
 ROLE_ROW_LIMITS = {"analyst": 50_000, "ops": 2_000, "finance": 100_000, "admin": 250_000}
 
-CURRENCIES = ["EUR", "GBP", "USD", "SEK", "DKK", "NOK", "PLN", "CHF",
-              "CZK", "HUF", "RON", "BGN", "MXN", "BRL"]
-CURRENCY_WEIGHTS = [0.615, 0.108, 0.086, 0.031, 0.021, 0.019, 0.028, 0.024,
-                    0.014, 0.010, 0.008, 0.006, 0.017, 0.013]
+CURRENCIES = [
+    "EUR",
+    "GBP",
+    "USD",
+    "SEK",
+    "DKK",
+    "NOK",
+    "PLN",
+    "CHF",
+    "CZK",
+    "HUF",
+    "RON",
+    "BGN",
+    "MXN",
+    "BRL",
+]
+CURRENCY_WEIGHTS = [
+    0.615,
+    0.108,
+    0.086,
+    0.031,
+    0.021,
+    0.019,
+    0.028,
+    0.024,
+    0.014,
+    0.010,
+    0.008,
+    0.006,
+    0.017,
+    0.013,
+]
 
 # Corporate ownership graph. A merchant is owned by an operating company, which
 # may be owned by an intermediate holding, which rolls up to an ultimate parent.
 # Depth is what forces a recursive CTE to answer "where does the money land".
 GROUP_MAX_DEPTH = 5
-GROUP_ULTIMATE_SHARE = 0.11     # fraction of groups that are ultimate parents
+GROUP_ULTIMATE_SHARE = 0.11  # fraction of groups that are ultimate parents
 
 
 # Share of PAYMENT VOLUME per merchant category. Declared, then matched by a
@@ -150,11 +202,26 @@ GROUP_ULTIMATE_SHARE = 0.11     # fraction of groups that are ultimate parents
 # is smaller than a betting sector is a warehouse no payments person believes for
 # a second, and no amount of correct plumbing underneath recovers that.
 CATEGORY_VOLUME_SHARE = {
-    "RETAIL": 0.171, "FOOD": 0.124, "FASHION": 0.108, "TRAVEL": 0.071,
-    "ELECTRONICS": 0.062, "MEDIA": 0.058, "HOME": 0.052, "GAMING": 0.051,
-    "HEALTH": 0.049, "BEAUTY": 0.042, "LEISURE": 0.041, "AUTOMOTIVE": 0.039,
-    "SAAS": 0.037, "GAMBLING": 0.028, "EDUCATION": 0.021, "ALCOHOL": 0.018,
-    "FINANCIAL": 0.014, "TOBACCO": 0.008, "NONPROFIT": 0.004, "CRYPTO": 0.002,
+    "RETAIL": 0.171,
+    "FOOD": 0.124,
+    "FASHION": 0.108,
+    "TRAVEL": 0.071,
+    "ELECTRONICS": 0.062,
+    "MEDIA": 0.058,
+    "HOME": 0.052,
+    "GAMING": 0.051,
+    "HEALTH": 0.049,
+    "BEAUTY": 0.042,
+    "LEISURE": 0.041,
+    "AUTOMOTIVE": 0.039,
+    "SAAS": 0.037,
+    "GAMBLING": 0.028,
+    "EDUCATION": 0.021,
+    "ALCOHOL": 0.018,
+    "FINANCIAL": 0.014,
+    "TOBACCO": 0.008,
+    "NONPROFIT": 0.004,
+    "CRYPTO": 0.002,
 }
 
 
