@@ -698,3 +698,69 @@ tabla entera, 0,11 s.
 `thresholds.lock` sigue sin generar y solo lo puede hacer Samuel. Los dos contratos esperan su firma. Después,
 el esqueleto de la fase 0: `pyproject.toml` con `[tool.gate]`, `uv.lock`, Makefile canónico y el primer TDD en
 rojo de `resultset_equality`.
+
+## 2026-09-01 · fase 0 · el buzón completo, y una ruta mal dada que creó una base de datos vacía
+
+**Qué se intentó.**
+Samuel respondió las diez preguntas del buzón. Verificar el formato, aplicar lo que se puede aplicar ya y
+dejar el estado listo para arrancar una sesión nueva desde cero.
+
+**Qué falló.**
+**Le di mal la ruta de la base de datos.** Escribí `datagen/out/full/cierzo-full.duckdb` cuando el fichero es
+`datagen/out/cierzo-full.duckdb`: el perfil va en el NOMBRE del fichero, no en una subcarpeta. Y DuckDB hizo
+lo peor que podía hacer con una ruta inexistente: **crear una base vacía en silencio**. Samuel abrió su
+cliente, ejecutó `SHOW TABLES`, vio cero filas y razonablemente concluyó que no había nada generado. Había
+294,7 millones de filas a un directorio de distancia.
+
+Dos lecciones, y la segunda es la que vale:
+1. Una ruta en una instrucción para un humano hay que comprobarla antes de darla, igual que un número.
+2. **Una herramienta que crea en silencio lo que no encuentra es una trampa de usabilidad.** El fichero vacío
+   quedó en disco pareciéndose al bueno. Se eliminó y se verificó la ruta correcta ejecutando el CLI de verdad,
+   no razonando sobre él.
+
+Un defecto de formato en el buzón: `Q-008` escribía `**Estado propuesto: RESPONDIDA**` en vez de
+`**Estado: RESPONDIDA**`. Un script que busque el prefijo canónico —y el agente lo hace al empezar cada
+sesión— la habría contado como pendiente y habría frenado la fase 7 sin motivo. Normalizada.
+
+**Números.**
+- **10 de 10 preguntas RESPONDIDAS** y P-001 APROBADA. Comprobado por script que los once estados usan la
+  forma canónica y son parseables. La única aparición restante de `PENDIENTE` es la plantilla vacía del final.
+- **Ninguna fase está bloqueada por una pregunta.**
+- Q-007 verificada de verdad, no aceptada de palabra: Ollama **0.33.0** (se pedía ≥ 0.32.6) y los tres modelos
+  ya descargados — `qwen3.5:9b-mlx` `203e30078279`, `gemma4:12b-mlx` `117d0d84cf2a`, `qwen3.5:4b-mlx`
+  `61aa3858e9d3`. Fijados en **`models.lock`**. 20,6 GB de modelos más 8,0 GB de dataset e Iceberg sobre
+  164 GB libres: el matiz de D-03 se cumple con holgura.
+- Verificación de arranque para la sesión siguiente: `lint` verde · `mypy` sin incidencias en 17 ficheros ·
+  **3 contratos de importación en verde** · 14 tests en rojo por aserción · los dos invariantes en verde ·
+  `thresholds.lock` **coincide** con el sha de `GOALS.yaml`.
+
+**Decisiones (de Samuel, aplicadas).**
+- **Q-005 · holdout con tres condiciones.** El subagente recibe la ESPECIFICACIÓN y jamás
+  `src/datawarden/guard/`. Se publica el **intervalo de Wilson [0,80 – 1,00]** para 15/15, nunca «100 % de
+  bloqueo» a secas. Y el holdout **se congela por hash**: si el guard falla contra él, se arregla el guard;
+  reescribir un caso «porque estaba mal planteado» es exactamente cómo se degradan estos conjuntos, y el hash
+  convierte esa tentación en un fallo de gate.
+- **Q-006 · un solo agente.** Y corrige una premisa mía que había caducado: dije «sin git no hay worktrees» y
+  git existe desde el 28 de agosto, así que `LOCKS.md` sobra. El argumento de fondo es mejor que el técnico:
+  el cuello de botella no es el caudal de código, son las horas de Samuel, y **un gate evaluado sobre un árbol
+  que ya no existe es peor que no tener gate**. Se autorizan subagentes de SOLO LECTURA.
+- **Q-007 · digest y no tag**, con el mismo argumento que llevó a firmar `sqlglot`. Perfil `dev` con el 4b, y
+  **el informe de evaluación registra qué perfil produjo cada número**: un `G-RECOVERY` medido con el 4b y
+  publicado como del 9b es una mentira silenciosa.
+- **Q-008 · 20 escenarios**, cuatro ambiguos a propósito, umbral ≥ 18/20. Y la regla de reacción: si sale por
+  debajo, **se arregla la descripción de la tool**, no el umbral. El defecto estaría en el diseño del MCP, que
+  es lo que la prueba existe para medir.
+- **Q-009 · se cronometra.** El número publicable no es «funcionó», es «de cero a primera consulta en N
+  minutos siguiendo solo el README». Y la captura que convierte es la del **rechazo con su mensaje
+  accionable**, no la de la instalación.
+- **Q-010 · opción (a), y empezando en la FASE 2.** Cinco preguntas por sesión, doce sesiones. Fija el formato
+  de caso ANTES de escribir la primera, que es cuando hay que fijarlo: cambiarlo en la número treinta cuesta
+  las treinta. Los diez casos de rechazo **se reparten entre los tres estratos**, porque un rechazo que solo
+  aparece en preguntas simples enseña que lo complejo es seguro; y cada uno declara el `rule_id` esperado,
+  porque un rechazo por la regla equivocada es un acierto por casualidad.
+
+**Siguiente.**
+Fase VERDE de `resultset_equality`: implementar `compare()` hasta los 14 en verde contra
+`docs/spec/resultset-equality.md`. Lo único que sigue esperando a Samuel es firmar los dos contratos de
+`docs/spec/` (BORRADOR → FIRMADO) y las ocho decisiones globales de `_comun/`, ninguna de las cuales bloquea
+la fase 0 ni la 1.
