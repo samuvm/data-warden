@@ -1,0 +1,23 @@
+# Modelos locales, fijados POR DIGEST y no por tag.
+#
+# El mismo argumento que llevó a firmar `sqlglot==30.17.0` en Q-002: un tag de
+# Ollama es MÓVIL. `qwen3.5:9b-mlx` puede apuntar a otro peso dentro de tres meses
+# y `G-RECOVERY` cambiaría de valor sin que nadie tocara una línea de código.
+#
+# Verificado el 2026-09-01 con `ollama list` sobre Ollama 0.33.0.
+# Q-007 de docs/PARA-SAMUEL.md, respondida por Samuel.
+#
+# El juez NUNCA es el modelo que genera: usar el mismo infla la métrica de forma
+# sistemática, y aquí está evitado por diseño y no por disciplina.
+#
+# rol            tag                digest
+generador        qwen3.5:9b-mlx     203e30078279
+juez             gemma4:12b-mlx     117d0d84cf2a
+generador_dev    qwen3.5:4b-mlx     61aa3858e9d3
+
+# El perfil que produjo cada número VA EN EL INFORME DE EVALUACIÓN. Un G-RECOVERY
+# medido con el 4b y publicado como si fuera del 9b es una mentira silenciosa.
+#
+# Y nada de esto bloquea `make eval`, `eval-recovery` ni `eval-toolchoice`: corren
+# desde caché grabada, son deterministas y son gratis. Solo `make eval-refresh`
+# necesita que el modelo esté.
