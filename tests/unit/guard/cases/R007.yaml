@@ -48,6 +48,9 @@ reject:
     parametro: 10
     rule_id: R007
     code: nesting_too_deep
+    posicion: subquery
+    sujeto: "depth 21"
+    reintentable: true
     por_que: "Diez niveles de subconsulta. Ninguna pregunta de negocio se escribe así."
   - id: R007-R2
     rol: analyst
@@ -55,6 +58,9 @@ reject:
     parametro: 14
     rule_id: R007
     code: nesting_too_deep
+    posicion: subquery
+    sujeto: "depth 29"
+    reintentable: true
     por_que: "El mismo ataque cuatro escalones más arriba."
   - id: R007-R3
     rol: admin
@@ -62,6 +68,9 @@ reject:
     parametro: 9
     rule_id: R007
     code: nesting_too_deep
+    posicion: subquery
+    sujeto: "depth 19"
+    reintentable: true
     por_que: >-
       Nueve niveles, con rol ADMIN: la profundidad no es una cuestión de permisos,
       es una cuestión de que el coste no se puede estimar.

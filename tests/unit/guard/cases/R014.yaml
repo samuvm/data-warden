@@ -28,12 +28,18 @@ reject:
     sql: "SELECT column_name FROM information_schema.columns"
     rule_id: R014
     code: system_schema_access
+    posicion: statement
+    sujeto: "information_schema"
+    reintentable: false
     por_que: "Enumera TODAS las columnas, incluidas las que C-3 excluyó del catálogo."
   - id: R014-R2
     rol: admin
     sql: "SELECT table_name FROM information_schema.tables"
     rule_id: R014
     code: system_schema_access
+    posicion: statement
+    sujeto: "information_schema"
+    reintentable: false
     por_que: >-
       Con rol ADMIN. Admin ve todos los DATOS; los metadatos del motor no son datos,
       y el catálogo publicado es la única descripción que este servidor sirve.
@@ -42,18 +48,27 @@ reject:
     sql: "SELECT * FROM duckdb_settings"
     rule_id: R014
     code: system_schema_access
+    posicion: statement
+    sujeto: "duckdb_settings"
+    reintentable: false
     por_que: "La configuración del motor: rutas, extensiones cargadas, límites."
   - id: R014-R4
     rol: analyst
     sql: "SELECT name FROM sqlite_master"
     rule_id: R014
     code: system_schema_access
+    posicion: statement
+    sujeto: "sqlite_master"
+    reintentable: false
     por_que: "El mismo ataque con el vocabulario de otro motor."
   - id: R014-R5
     rol: admin
     sql: "SELECT table_name FROM dim_merchant_site"
     rule_id: R004
     code: relation_out_of_scope
+    posicion: statement
+    sujeto: "table_name"
+    reintentable: true
     por_que: >-
       Una columna que NO existe con un nombre que SUENA a metadato. Se rechaza por
       R004 y no por R014, y el caso está aquí precisamente para fijarlo: la regla

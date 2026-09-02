@@ -30,18 +30,27 @@ reject:
     sql: "SELECT customer_sk FROM dim_customer LIMIT (SELECT count(*) FROM dim_card)"
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "LIMIT"
+    reintentable: true
     por_que: "Un tope que depende de los datos no es un tope."
   - id: R006-R2
     rol: analyst
     sql: "SELECT customer_sk FROM dim_customer LIMIT -1"
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "LIMIT -1"
+    reintentable: true
     por_que: "Cada motor hace una cosa distinta con un límite negativo."
   - id: R006-R3
     rol: analyst
     sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 5000000"
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 5000000"
+    reintentable: true
     por_que: >-
       Cinco millones de filas producidas para tirarlas. El coste es el de
       devolverlas y no aparece en el LIMIT.
@@ -50,12 +59,18 @@ reject:
     sql: "SELECT customer_sk FROM dim_customer LIMIT 0"
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "LIMIT 0"
+    reintentable: true
     por_que: "Pedir cero filas es preguntar por la forma, y la forma está en el catálogo."
   - id: R006-R5
     rol: analyst
     sql: "SELECT customer_sk FROM (SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 9000000) AS s"
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 9000000"
+    reintentable: true
     por_que: >-
       **CASO PERMANENTE DE UNA EVASIÓN REAL.** La encontró la mutación de AST: la
       regla miraba el `OFFSET` de la RAÍZ, y envolver la consulta en una subconsulta
@@ -68,10 +83,16 @@ reject:
       SELECT customer_sk FROM m
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 9000000"
+    reintentable: true
     por_que: "La misma evasión con una CTE, que es como la produjo el mutador."
   - id: R006-R7
     rol: analyst
     sql: "SELECT customer_sk FROM (SELECT customer_sk FROM dim_customer LIMIT -3) AS s"
     rule_id: R006
     code: row_limit
+    posicion: statement
+    sujeto: "LIMIT -3"
+    reintentable: true
     por_que: "Y un límite negativo escondido a la misma profundidad."

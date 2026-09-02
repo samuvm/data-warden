@@ -32,18 +32,27 @@ reject:
     sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) = 1"
     rule_id: R012
     code: group_too_small
+    posicion: having
+    sujeto: "count eq 1"
+    reintentable: true
     por_que: "País a país, las cohortes de UNA persona."
   - id: R012-R2
     rol: analyst
     sql: "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band HAVING count(*) < 3"
     rule_id: R012
     code: group_too_small
+    posicion: having
+    sujeto: "count lt 3"
+    reintentable: true
     por_que: "El mismo ataque con `<` en vez de `=`, y por debajo de k."
   - id: R012-R3
     rol: admin
     sql: "SELECT count(*) AS n FROM dim_customer GROUP BY national_id"
     rule_id: R012
     code: group_too_small
+    posicion: group_by
+    sujeto: "dim_customer.national_id"
+    reintentable: true
     por_que: >-
       Agrupar por el NIF hace que cada grupo sea una persona. Con rol ADMIN, que
       puede VER la columna: ver un dato y agregarlo hasta aislarlo son cosas
@@ -53,4 +62,7 @@ reject:
     sql: "SELECT count(*) AS n FROM dim_customer GROUP BY email"
     rule_id: R012
     code: group_too_small
+    posicion: group_by
+    sujeto: "dim_customer.email"
+    reintentable: true
     por_que: "Un correo identifica a una persona igual que un NIF."

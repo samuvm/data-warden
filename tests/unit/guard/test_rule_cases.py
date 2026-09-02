@@ -65,6 +65,12 @@ class Case:
     expected_code: str | None
     level: str
     why: str
+    # ---- El VALOR del rechazo, no solo su existencia. Todos opcionales: un caso
+    # que no los declare se comporta exactamente como antes (retrocompatible).
+    expected_position: str | None = None
+    expected_subject: str | None = None
+    expected_retryable: bool | None = None
+    expected_alternative: str | None = None
 
     def __str__(self) -> str:
         return self.case_id
@@ -123,6 +129,10 @@ def _load() -> list[Case]:
                         expected_code=raw.get("code"),
                         level=raw.get("nivel", "guard"),
                         why=raw.get("por_que", ""),
+                        expected_position=raw.get("posicion"),
+                        expected_subject=raw.get("sujeto"),
+                        expected_retryable=raw.get("reintentable"),
+                        expected_alternative=raw.get("alternativa"),
                     )
                 )
     return cases
@@ -209,6 +219,50 @@ def test_caso_del_corpus(case: Case) -> None:
     )
     if case.expected_code is not None:
         assert verdict.code == case.expected_code
+
+    # ------------------------------------------------------------------------
+    # EL VALOR DEL RECHAZO, y no solo que exista.
+    #
+    # Lo de abajo lo pidió Samuel al aprobar P-005 «recortada»: *«la composición
+    # NO sale de la medida: una tabla de posición que devuelve la etiqueta
+    # equivocada es un mensaje que dice WHERE cuando la columna estaba en un
+    # GROUP BY. Eso no es prosa, es un bug.»* Tenía razón, y el censo de mutantes
+    # lo confirmó con un número: las aserciones de arriba son de EXISTENCIA
+    # —`position is not UNKNOWN`, `subject` truthy— así que un mutante que
+    # cambiara `Position.GROUP_BY` por `Position.WHERE` sobrevivía intacto, y
+    # `retryable` no se asertaba en NINGÚN sitio.
+    #
+    # Son cuatro columnas nuevas del YAML, opcionales, y el contrato «los casos
+    # son DATOS, no código» se mantiene: añadir la comprobación sigue siendo
+    # escribir una línea de YAML.
+    # ------------------------------------------------------------------------
+    if case.expected_position is not None:
+        assert verdict.position.value == case.expected_position, (
+            f"{case.case_id}: el rechazo sitúa el problema en "
+            f"{verdict.position.value!r} y el caso dice {case.expected_position!r}. "
+            "Decir la posición equivocada es peor que no decirla: manda al modelo "
+            "a corregir donde no está el fallo, y G-RECOVERY lo paga en la fase 6."
+        )
+    if case.expected_subject is not None:
+        assert str(verdict.subject) == case.expected_subject, (
+            f"{case.case_id}: el rechazo habla de {verdict.subject!r} y el caso "
+            f"dice {case.expected_subject!r}. El `subject` es lo que el reintento "
+            "sustituye; nombrar el objeto equivocado produce un reintento que "
+            "cambia lo que no era."
+        )
+    if case.expected_retryable is not None:
+        assert verdict.retryable is case.expected_retryable, (
+            f"{case.case_id}: el rechazo se declara "
+            f"{'reintentable' if verdict.retryable else 'NO reintentable'} y el "
+            f"caso dice lo contrario. Reintentar un DELETE no lo convierte en una "
+            "pregunta: solo gasta tokens y contamina la métrica de recuperación."
+        )
+    if case.expected_alternative is not None:
+        assert case.expected_alternative in (verdict.suggestion or ""), (
+            f"{case.case_id}: la política publica {case.expected_alternative!r} "
+            "como alternativa y la sugerencia no la nombra. Un rechazo sin salida "
+            "no redirige el trabajo: lo bloquea."
+        )
 
     # I-09 · TODO RECHAZO ES ACCIONABLE, y eso son cuatro cosas comprobables, no una
     # frase. Asertarlas una a una lo destapó la MUTACIÓN: `position=None` y

@@ -33,18 +33,27 @@ reject:
     sql: "PRAGMA database_list"
     rule_id: R001
     code: not_a_read_statement
+    posicion: statement
+    sujeto: "Pragma"
+    reintentable: false
     por_que: "Un PRAGMA no pregunta por datos: revela la configuración del motor."
   - id: R001-R2
     rol: analyst
     sql: "SET memory_limit = '1GB'"
     rule_id: R001
     code: not_a_read_statement
+    posicion: statement
+    sujeto: "Set"
+    reintentable: false
     por_que: "Cambia el estado del motor. No escribe datos, y aun así no se ejecuta."
   - id: R001-R3
     rol: analyst
     sql: "SELECT 1; SELECT 2"
     rule_id: R001
     code: unparseable_input
+    posicion: statement
+    sujeto: "the input"
+    reintentable: true
     por_que: >-
       DOS sentencias, las dos inofensivas. Se rechaza igual: si se aceptara el
       caso inofensivo, el mecanismo que para `SELECT 1; DROP TABLE x` no existiría.
@@ -53,18 +62,27 @@ reject:
     sql: "INSTALL httpfs"
     rule_id: R001
     code: not_a_read_statement
+    posicion: statement
+    sujeto: "Install"
+    reintentable: false
     por_que: "Cargar una extensión añade funciones que la allowlist nunca ha visto."
   - id: R001-R5
     rol: analyst
     sql: "SELECT FROM WHERE"
     rule_id: R001
     code: unparseable_input
+    posicion: statement
+    sujeto: "the input"
+    reintentable: true
     por_que: "Lo que no parsea no se ejecuta. Fail-closed también con la basura."
   - id: R001-R6
     rol: analyst
     sql: "x UNION SELECT 1"
     rule_id: R001
     code: not_a_read_statement
+    posicion: statement
+    sujeto: "Column"
+    reintentable: true
     por_que: >-
       **CASO PERMANENTE DE UN SIGSEGV.** Lo encontró la propiedad de fail-closed con
       5.000 entradas casi-SQL: la raíz es un `Union` legal, la rama izquierda no es
@@ -76,12 +94,18 @@ reject:
     sql: "1 EXCEPT SELECT 1"
     rule_id: R001
     code: not_a_read_statement
+    posicion: statement
+    sujeto: "Literal"
+    reintentable: true
     por_que: "El mismo fallo con `EXCEPT` y con el rol más alto. Misma raíz, misma caída."
   - id: R001-R8
     rol: analyst
     sql: "SELECT 1 UNION ALL 2"
     rule_id: R001
     code: unparseable_input
+    posicion: statement
+    sujeto: "expression"
+    reintentable: true
     por_que: >-
       Y con la rama mala a la DERECHA, que es la que se olvida al arreglarlo. Aquí
       ni siquiera parsea, así que el rechazo llega antes y con otro `code`: se fija

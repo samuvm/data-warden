@@ -41,18 +41,27 @@ reject:
     sql: "SELECT customer_sk FROM dim_customer WHERE birth_date > '1990-01-01'"
     rule_id: R008
     code: column_policy
+    posicion: where
+    sujeto: "dim_customer.birth_date"
+    reintentable: true
     por_que: "EL CANAL LATERAL POR PREDICADO. No devuelve la fecha y filtra por ella."
   - id: R008-R2
     rol: analyst
     sql: "SELECT national_id FROM dim_customer"
     rule_id: R008
     code: column_policy
+    posicion: projection
+    sujeto: "dim_customer.national_id"
+    reintentable: true
     por_que: "`deny` está prohibida incluso en proyección directa."
   - id: R008-R3
     rol: analyst
     sql: "SELECT concat(first_name, ' ', last_name_1) AS nombre FROM dim_customer"
     rule_id: R008
     code: column_policy
+    posicion: function_argument
+    sujeto: "dim_customer.first_name"
+    reintentable: true
     por_que: >-
       LA EXPRESIÓN DERIVADA que `PROJECT.md` describe. Dentro de una función es
       posición prohibida para una columna enmascarada, aunque la función esté en la
@@ -64,6 +73,9 @@ reject:
       SELECT customer_sk FROM c WHERE b > '1990-01-01'
     rule_id: R008
     code: column_policy
+    posicion: where
+    sujeto: "dim_customer.birth_date"
+    reintentable: true
     por_que: >-
       EL ALIAS QUE OCULTA. En el WHERE no pone `birth_date`, pone `b`. Lo encontró
       una prueba de humo, no una revisión, y obligó a resolver el linaje DENTRO de
@@ -73,6 +85,9 @@ reject:
     sql: "SELECT customer_sk FROM v_customer WHERE full_name LIKE 'Juan%'"
     rule_id: R008
     code: column_policy
+    posicion: where
+    sujeto: "dim_customer.first_name"
+    reintentable: true
     por_que: >-
       LA VISTA QUE REEXPONE. `v_customer.full_name` es `concat_ws` de tres columnas
       protegidas, servido por el propio catálogo.
@@ -81,6 +96,9 @@ reject:
     sql: "SELECT customer_sk FROM dim_customer WHERE phone_e164 = '+34600000000'"
     rule_id: R008
     code: column_policy
+    posicion: where
+    sujeto: "dim_customer.phone_e164"
+    reintentable: true
     por_que: "La otra mitad de la asimetría: finance no ve el teléfono en ninguna posición."
   - id: R008-R7
     rol: analyst
@@ -90,4 +108,88 @@ reject:
       JOIN dim_card k ON k.customer_sk = c.customer_sk AND c.birth_date > '1990-01-01'
     rule_id: R008
     code: column_policy
+    posicion: join_on
+    sujeto: "dim_customer.birth_date"
+    reintentable: true
     por_que: "El mismo predicado, escondido en la condición de un JOIN."
+
+  # ---------------------------------------------------------------------------
+  # FAIL-CLOSED DEL LINAJE · `_reject_unknown`, la rama que hasta el 2026-09-02
+  # NO TENÍA UN SOLO CASO. La mutación lo destapó: 22 de sus mutantes salían
+  # marcados «sin tests», o sea que ningún test los EJECUTABA siquiera. Es la
+  # rama que sostiene la mitad de `G-PII-LEAK`, así que era el agujero más serio
+  # del guard entero, por encima del número de mutación.
+  #
+  # `guard/query_lineage.py:81` se rinde cuando el cuerpo de una CTE o de una
+  # derivada NO es un `Select` —un `UNION`, un `INTERSECT`—, y devuelve `?`.
+  # Rendirse es lo correcto; lo que importa es qué se hace después, y lo que se
+  # hace es RECHAZAR: lo que no se puede afirmar seguro no se acepta.
+  # ---------------------------------------------------------------------------
+  - id: R008-R8
+    rol: analyst
+    sql: |
+      WITH u AS (
+        SELECT birth_date FROM dim_customer
+        UNION ALL
+        SELECT birth_date FROM dim_customer
+      )
+      SELECT birth_date FROM u
+    rule_id: R008
+    code: column_policy
+    posicion: projection
+    sujeto: "birth_date"
+    reintentable: true
+    por_que: >-
+      Una CTE cuyo cuerpo es un UNION esconde el origen de la columna. Sin este
+      rechazo, `birth_date` —que analyst solo puede ver enmascarada— saldría
+      entera por una construcción que el linaje no sabe atravesar.
+  - id: R008-R9
+    rol: analyst
+    sql: |
+      SELECT birth_date
+      FROM (
+        SELECT birth_date FROM dim_customer
+        UNION ALL
+        SELECT birth_date FROM dim_customer
+      ) AS u
+    rule_id: R008
+    code: column_policy
+    posicion: projection
+    sujeto: "birth_date"
+    reintentable: true
+    por_que: "La misma evasión sin CTE, con una tabla derivada. La forma más corta."
+  - id: R008-R10
+    rol: analyst
+    sql: |
+      SELECT b
+      FROM (
+        SELECT country_code AS b FROM dim_customer
+        UNION
+        SELECT country_code AS b FROM dim_customer
+      ) AS u
+    rule_id: R008
+    code: column_policy
+    posicion: projection
+    sujeto: "b"
+    reintentable: true
+    por_que: >-
+      **El caso que prueba que el fail-closed es de verdad.** `country_code` es
+      `allow` para analyst: no hay nada que proteger. Y aun así se rechaza,
+      porque la regla no es «esta columna es peligrosa» sino «no puedo AFIRMAR
+      que esta columna sea segura». Un guard que solo se cerrara ante lo que ya
+      sabe peligroso no serviría para lo que no ha visto nunca.
+  - id: R008-R11
+    rol: finance
+    sql: |
+      SELECT x.national_id
+      FROM (
+        SELECT national_id FROM dim_customer
+        INTERSECT
+        SELECT national_id FROM dim_customer
+      ) AS x
+    rule_id: R008
+    code: column_policy
+    posicion: projection
+    sujeto: "national_id"
+    reintentable: true
+    por_que: "INTERSECT, para que la rama no dependa de que el operador sea UNION."
