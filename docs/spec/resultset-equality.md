@@ -5,7 +5,7 @@
 ## Por qué este documento existe antes que el código
 
 `G-EXEC-ACC` promete «exactitud de ejecución ≥ 0,80». Ese número compara el resultado
-de la consulta que генera el modelo contra el de un SQL de referencia. Pero **«dan el
+de la consulta que genera el modelo contra el de un SQL de referencia. Pero **«dan el
 mismo resultado» no significa nada hasta que alguien decide qué cuenta como el mismo**:
 
 - ¿`[(1,'a'), (2,'b')]` es igual a `[(2,'b'), (1,'a')]`? Depende de si hubo `ORDER BY`.
@@ -111,3 +111,71 @@ y depurar la métrica cuesta más que calcularla.
 
 Motivos posibles: `equal`, `row_count`, `column_count`, `cell_value`, `cell_type`,
 `null_vs_empty`, `row_order`, `column_names`, `timeout`, `rejected`, `expected_rejection`.
+
+### Precisiones que la implementación obligó a escribir
+
+Se añaden el 2026-09-02, **antes** de implementar `compare()`. Son huecos de la
+especificación que solo aparecen al escribir el código; escribirlos aquí en vez de
+resolverlos dentro de la función es la diferencia entre un contrato y una costumbre.
+
+**P-1 · «Tipo» significa CLASE de tipo, no tipo de Python.** La decisión 7 opone un
+entero a su representación en texto, y la 5 opone `Decimal` a `float`. Las dos son la
+misma regla vista desde dos sitios: lo que no se puede confundir es **texto con
+número**, no `INTEGER` con `DOUBLE`. Se fijan seis clases y la comparación es dentro
+de la clase:
+
+| Clase | Tipos Python | Cómo se comparan dos valores de la clase |
+|---|---|---|
+| `number` | `int`, `float`, `Decimal` | `math.isclose(rel_tol=1e-9, abs_tol=1e-12)` |
+| `bool` | `bool` | Identidad. **No es un número**, aunque Python lo herede de `int` |
+| `text` | `str` | Igualdad exacta |
+| `bytes` | `bytes`, `bytearray`, `memoryview` | Igualdad exacta de bytes |
+| `null` | `None` | `None` es igual a `None` |
+| `date` | `date` | Fecha civil, sin convertir (decisión 10) |
+| `datetime` | `datetime` | Normalizado a UTC antes de comparar (decisión 10) |
+| `time` | `time` | Igualdad exacta |
+| `other` | lo demás | `==`, y el tipo exacto tiene que coincidir |
+
+Los tres temporales son clases separadas y no una sola: un `DATE` frente a un
+`TIMESTAMP` es un tipo distinto, y decirlo con `cell_type` en vez de con
+`cell_value` es la diferencia entre un informe que orienta y uno que despista.
+`bool` fuera de `number` es deliberado: DuckDB devuelve `BOOLEAN` donde una consulta
+mal escrita devuelve `1`, y equipararlos borraría un error real. Dos clases distintas
+producen `cell_type`; dos valores distintos de la misma clase producen `cell_value`.
+
+**P-2 · La forma de un vacío solo se compara si el resultset la lleva.** La decisión 8
+exige que dos vacíos coincidan en número de columnas, y una `list[tuple]` vacía **no
+tiene esa información**: no hay ninguna fila de la que leer la aridad. Por eso el
+contrato admite dos formas de resultset:
+
+```python
+compare([], [])                                   # sin forma: no se puede comparar, y no se finge
+compare(Table((), []), Table(("a","b"), []))      # con forma: column_count
+```
+
+`Table(columns, rows)` lleva los nombres de columna, que son además lo único que hace
+verificable `strict_names`. Una lista pelada sigue siendo válida y es lo que usan los
+casos donde la forma no está en duda; cuando falta, la comparación **no inventa** una
+aridad, y eso se dice aquí en vez de descubrirse en la fase 8.
+
+**P-3 · El orden de columnas se canonicaliza por CONTENIDO, no por nombre.** La
+decisión 2 dice «se emparejan por nombre» y la 3 dice que los nombres se ignoran: son
+incompatibles tal cual, porque `count(*)` y `total` son la misma columna con dos
+nombres. Manda la 3. Cada lado se transpone a columnas, cada columna recibe una clave
+derivada de su **multiconjunto de valores** —independiente por tanto del orden de
+filas— y las columnas se ordenan por esa clave en los dos lados. Las filas siguen
+enteras: la reordenación permuta columnas, nunca desempareja una fila.
+
+**P-4 · Un timeout gana a todo lo demás.** Se comprueba antes que el rechazo y antes
+que las filas, en cualquiera de los dos lados. Una consulta que no termina no es una
+respuesta y no hay nada que comparar (decisión 11).
+
+**P-5 · `expected_rejection` es el motivo del CASO, no del veredicto.** Cuando la
+referencia esperaba un rechazo, `reason` vale `expected_rejection` tanto si el rechazo
+ocurrió —y entonces `equal` es cierto— como si llegaron filas, y entonces es falso.
+`rejected` es el otro caso: rechazo que nadie esperaba, siempre fallo.
+
+**P-6 · `null` frente a cadena vacía tiene motivo propio; `null` frente a cualquier
+otra cosa es `cell_type`.** La decisión 6 existe porque confundir `NULL` con `''` es un
+error de significado, y merece que el informe lo nombre. `NULL` frente a `42` es
+sencillamente otra clase de tipo y no necesita un motivo especial.
