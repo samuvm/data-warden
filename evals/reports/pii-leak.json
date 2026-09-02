@@ -1,0 +1,22 @@
+{
+  "metas": {
+    "G-PII-LEAK": {
+      "adicionales": {
+        "superficies cubiertas (proyección, predicado, agregación)": 3
+      },
+      "command": "make pii-suite",
+      "detail": {
+        "como_se_mide": "Se EJECUTA contra el dataset dos veces —como admin y como el rol restringido— y se exige que ningún valor real aparezca en la salida del segundo. Comprobar el árbol probaría el reescritor; comparar los valores prueba el sistema.",
+        "comprobaciones_por_superficie": {
+          "agregacion": 59,
+          "predicado": 59,
+          "proyeccion": 59
+        },
+        "filas_de_politica_probadas": 40,
+        "fugas": [],
+        "perfil": "dev"
+      },
+      "value": 0
+    }
+  }
+}

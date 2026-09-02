@@ -6,7 +6,7 @@
       },
       "command": "make coverage && python scripts/check_function_coverage.py",
       "detail": {
-        "public_functions": 107,
+        "public_functions": 110,
         "uncovered": []
       },
       "value": 0
