@@ -38,6 +38,7 @@ from datawarden.domain.types import (
 )
 from datawarden.guard.context import build_context
 from datawarden.guard.registry import BY_ID
+from datawarden.guard.rules import messages
 from datawarden.guard.validator import validate
 from datawarden.principal import BUDGETS_PATH, POLICY_PATH
 from datawarden.principal.budgets import load_budgets
@@ -79,6 +80,11 @@ class Case:
     #: nombrarlo. No todos lo hacen: el fail-closed del linaje dice «no puedo saber
     #: de dónde sale esta columna», que es verdad para los cuatro roles.
     expects_role_named: bool | None = None
+    #: `true` cuando el mensaje se REDACTA a partir de la posición —R008 y R010 lo
+    #: hacen— y por tanto una posición equivocada produce una frase equivocada. La
+    #: mayoría de reglas no: R001 dice «the statement is a PRAGMA», que no lleva la
+    #: frase de posición dentro.
+    expects_position_named: bool | None = None
 
     def __str__(self) -> str:
         return self.case_id
@@ -143,6 +149,7 @@ def _load() -> list[Case]:
                         expected_alternative=raw.get("alternativa"),
                         expected_limit=raw.get("limite"),
                         expects_role_named=raw.get("menciona_rol"),
+                        expects_position_named=raw.get("menciona_posicion"),
                     )
                 )
     return cases
@@ -289,6 +296,21 @@ def test_caso_del_corpus(case: Case) -> None:
     # Se declara caso a caso y no se infiere de la regla, porque **no todo rechazo de
     # R008 depende del rol**: el fail-closed del linaje dice «no puedo saber de dónde
     # sale esta columna», y eso es igual de cierto para los cuatro.
+    # EL MENSAJE DICE LA POSICIÓN, y esto lo pidió Samuel con todas sus letras al
+    # recortar P-005: «una tabla de posición que devuelve la etiqueta equivocada es un
+    # mensaje que dice WHERE cuando la columna estaba en un GROUP BY. Eso no es prosa,
+    # es un bug». No se compara la frase entera —eso sería la fragilidad que
+    # `RULES.md §2` prohíbe—: se comprueba que la frase que corresponde a ESA posición
+    # aparece. Es la única coincidencia de texto que este corpus admite, y la admite
+    # porque una posición mal contada manda al modelo a corregir donde no está el
+    # fallo, y `G-RECOVERY` lo paga en la fase 6.
+    if case.expects_position_named:
+        esperada = messages.position_text(verdict.position)
+        assert esperada in verdict.message, (
+            f"{case.case_id}: el rechazo sitúa el problema en "
+            f"{verdict.position.value!r} y el mensaje no lo dice ({esperada!r} no "
+            f"aparece). Un rechazo que no dice DÓNDE es la mitad de un rechazo."
+        )
     if case.expects_role_named:
         assert case.role.value in verdict.message, (
             f"{case.case_id}: el rechazo depende del rol y el mensaje no lo nombra. "

@@ -23,11 +23,6 @@ from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
 from datawarden.guard.rules import messages
 
-#: El texto de la rama VALUES no depende de nada del árbol, así que se resuelve una
-#: vez al importar en vez de en cada rechazo. Un literal de prosa dentro del cuerpo
-#: de la regla es un mutante que ninguna aserción legítima puede matar.
-_VALUES_BRANCH = messages.values_branch()
-
 MAX_BRANCHES: Final = 10
 
 SET_OPERATIONS: Final = (exp.Union, exp.Except, exp.Intersect)
@@ -53,10 +48,11 @@ class SetOperationScopeRule:
                 if isinstance(side, exp.Values) or (
                     side is not None and side.find(exp.Values) is not None
                 ):
+                    message, suggestion = messages.values_branch()
                     return reject(
                         self,
-                        message=_VALUES_BRANCH[0],
-                        suggestion=_VALUES_BRANCH[1],
+                        message=message,
+                        suggestion=suggestion,
                         position=Position.SUBQUERY,
                         subject="VALUES",
                         retryable=False,

@@ -3,7 +3,7 @@
     "G-WRITE-BLOCK": {
       "adicionales": {
         "casos de holdout superados": 15,
-        "mutantes de AST evaluados": 3276
+        "mutantes de AST evaluados": 3388
       },
       "command": "make attack-holdout && make attack-mut",
       "detail": {

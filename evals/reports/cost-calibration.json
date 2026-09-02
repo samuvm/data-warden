@@ -11,7 +11,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 12631,
             "id": "C-01",
-            "latency_s": 0.047662167,
+            "latency_s": 0.046852041,
             "ratio": 0.8453,
             "real_bytes": 10677,
             "role": "analyst"
@@ -20,7 +20,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 317615,
             "id": "C-02",
-            "latency_s": 0.043131333,
+            "latency_s": 0.043556917,
             "ratio": 0.8453,
             "real_bytes": 268493,
             "role": "analyst"
@@ -29,7 +29,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 642284,
             "id": "C-03",
-            "latency_s": 0.050216209,
+            "latency_s": 0.050337459,
             "ratio": 1.0714,
             "real_bytes": 688140,
             "role": "analyst"
@@ -38,7 +38,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 357,
             "id": "C-04",
-            "latency_s": 0.036611168,
+            "latency_s": 0.036473458,
             "ratio": 1.0784,
             "real_bytes": 385,
             "role": "analyst"
@@ -47,7 +47,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 11734,
             "id": "C-05",
-            "latency_s": 0.036310584,
+            "latency_s": 0.036875041,
             "ratio": 0.9099,
             "real_bytes": 10677,
             "role": "analyst"
@@ -56,7 +56,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 265056,
             "id": "C-06",
-            "latency_s": 0.036038208,
+            "latency_s": 0.036753376,
             "ratio": 0.8923,
             "real_bytes": 236520,
             "role": "finance"
@@ -65,7 +65,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 308519,
             "id": "C-07",
-            "latency_s": 0.036537084,
+            "latency_s": 0.037094125,
             "ratio": 0.8839,
             "real_bytes": 272704,
             "role": "ops"
@@ -74,7 +74,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 607977,
             "id": "C-08",
-            "latency_s": 0.050754916,
+            "latency_s": 0.050920374,
             "ratio": 0.8565,
             "real_bytes": 520725,
             "role": "admin"
@@ -83,7 +83,7 @@
             "engine_file_fraction": 0.009589,
             "estimated_bytes": 80729,
             "id": "C-09",
-            "latency_s": 0.043007501,
+            "latency_s": 0.042079375,
             "ratio": 0.9258,
             "real_bytes": 74742,
             "role": "analyst"
@@ -92,7 +92,7 @@
             "engine_file_fraction": 0.009589,
             "estimated_bytes": 80729,
             "id": "C-10",
-            "latency_s": 0.036437166,
+            "latency_s": 0.036341457,
             "ratio": 0.9258,
             "real_bytes": 74742,
             "role": "analyst"
@@ -101,7 +101,7 @@
             "engine_file_fraction": 0.042466,
             "estimated_bytes": 339722,
             "id": "C-11",
-            "latency_s": 0.041242916,
+            "latency_s": 0.041618125,
             "ratio": 0.9743,
             "real_bytes": 331004,
             "role": "analyst"
@@ -110,7 +110,7 @@
             "engine_file_fraction": 0.042466,
             "estimated_bytes": 4053653,
             "id": "C-12",
-            "latency_s": 0.037308958,
+            "latency_s": 0.037734792,
             "ratio": 0.9743,
             "real_bytes": 3949633,
             "role": "finance"
@@ -119,7 +119,7 @@
             "engine_file_fraction": 0.00411,
             "estimated_bytes": 148412,
             "id": "C-13",
-            "latency_s": 0.037021833,
+            "latency_s": 0.036504333,
             "ratio": 1.0478,
             "real_bytes": 155508,
             "role": "analyst"
@@ -128,7 +128,7 @@
             "engine_file_fraction": 0.015068,
             "estimated_bytes": 2877363,
             "id": "C-14",
-            "latency_s": 0.043109458,
+            "latency_s": 0.043416083,
             "ratio": 0.9436,
             "real_bytes": 2714939,
             "role": "analyst"
@@ -137,7 +137,7 @@
             "engine_file_fraction": 0.006849,
             "estimated_bytes": 1650,
             "id": "C-15",
-            "latency_s": 0.037374083,
+            "latency_s": 0.035999125,
             "ratio": 1.1673,
             "real_bytes": 1926,
             "role": "admin"
@@ -146,7 +146,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 7513280,
             "id": "C-16",
-            "latency_s": 0.080932626,
+            "latency_s": 0.07945675,
             "ratio": 1.0,
             "real_bytes": 7513280,
             "role": "analyst"
@@ -155,7 +155,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 37559016,
             "id": "C-17",
-            "latency_s": 0.074073876,
+            "latency_s": 0.073547542,
             "ratio": 1.0,
             "real_bytes": 37559016,
             "role": "analyst"
@@ -164,7 +164,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 4109502648,
             "id": "C-18",
-            "latency_s": 0.060370292,
+            "latency_s": 0.060873874,
             "ratio": 1.0,
             "real_bytes": 4109502648,
             "role": "admin"
@@ -173,7 +173,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 190116358,
             "id": "C-19",
-            "latency_s": 0.107905917,
+            "latency_s": 0.109408374,
             "ratio": 1.0,
             "real_bytes": 190116358,
             "role": "finance"
@@ -182,7 +182,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 14990920,
             "id": "C-20",
-            "latency_s": 0.073596333,
+            "latency_s": 0.073779083,
             "ratio": 1.0,
             "real_bytes": 14990920,
             "role": "analyst"
@@ -191,7 +191,7 @@
             "engine_file_fraction": 0.042466,
             "estimated_bytes": 7794614,
             "id": "C-21",
-            "latency_s": 0.037982876,
+            "latency_s": 0.038207,
             "ratio": 0.0425,
             "real_bytes": 331004,
             "role": "analyst"
@@ -200,7 +200,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 188486631,
             "id": "C-22",
-            "latency_s": 0.090205417,
+            "latency_s": 0.088784917,
             "ratio": 1.0,
             "real_bytes": 188486631,
             "role": "analyst"
@@ -209,7 +209,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 7513280,
             "id": "C-23",
-            "latency_s": 0.066396626,
+            "latency_s": 0.069581374,
             "ratio": 1.0,
             "real_bytes": 7513280,
             "role": "analyst"
@@ -218,7 +218,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 1533971,
             "id": "C-24",
-            "latency_s": 0.063841126,
+            "latency_s": 0.066051916,
             "ratio": 1.0,
             "real_bytes": 1533971,
             "role": "analyst"
@@ -227,7 +227,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 81938500,
             "id": "C-25",
-            "latency_s": 0.075935292,
+            "latency_s": 0.075639417,
             "ratio": 1.0,
             "real_bytes": 81938500,
             "role": "analyst"
@@ -236,7 +236,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 957,
             "id": "C-26",
-            "latency_s": 0.041315958,
+            "latency_s": 0.039033666,
             "ratio": 0.813,
             "real_bytes": 778,
             "role": "analyst"
@@ -245,7 +245,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 434093,
             "id": "C-27",
-            "latency_s": 0.039266959,
+            "latency_s": 0.039896917,
             "ratio": 1.0455,
             "real_bytes": 453854,
             "role": "analyst"
@@ -254,7 +254,7 @@
             "engine_file_fraction": 0.042466,
             "estimated_bytes": 24757,
             "id": "C-28",
-            "latency_s": 0.035721291,
+            "latency_s": 0.03577775,
             "ratio": 0.9742,
             "real_bytes": 24119,
             "role": "analyst"
@@ -263,7 +263,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 375511,
             "id": "C-29",
-            "latency_s": 0.035452916,
+            "latency_s": 0.034744459,
             "ratio": 1.0833,
             "real_bytes": 406794,
             "role": "finance"
@@ -272,7 +272,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 1759521197,
             "id": "C-30",
-            "latency_s": 0.053247125,
+            "latency_s": 0.079813793,
             "ratio": 1.0,
             "real_bytes": 1759521197,
             "role": "admin"
@@ -281,7 +281,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 5441181,
             "id": "C-31",
-            "latency_s": 0.007696501,
+            "latency_s": 0.006058167,
             "ratio": 1.0,
             "real_bytes": 5441181,
             "role": "analyst"
@@ -290,7 +290,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 3374670,
             "id": "C-32",
-            "latency_s": 0.006259625,
+            "latency_s": 0.006364793,
             "ratio": 1.0,
             "real_bytes": 3374670,
             "role": "analyst"
@@ -299,7 +299,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 4220201,
             "id": "C-33",
-            "latency_s": 0.011514,
+            "latency_s": 0.011210958,
             "ratio": 1.0,
             "real_bytes": 4220201,
             "role": "analyst"
@@ -308,7 +308,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 527147442,
             "id": "C-34",
-            "latency_s": 0.001128124,
+            "latency_s": 0.001187959,
             "ratio": 1.0,
             "real_bytes": 527147442,
             "role": "admin"
@@ -317,7 +317,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 4628842,
             "id": "C-35",
-            "latency_s": 0.009854375,
+            "latency_s": 0.009895084,
             "ratio": 1.0,
             "real_bytes": 4628842,
             "role": "analyst"
@@ -326,7 +326,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 8375696,
             "id": "C-36",
-            "latency_s": 0.009685083,
+            "latency_s": 0.009857791,
             "ratio": 1.0,
             "real_bytes": 8375696,
             "role": "analyst"
@@ -335,7 +335,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 3763105,
             "id": "C-37",
-            "latency_s": 0.010415458,
+            "latency_s": 0.010609833,
             "ratio": 1.0,
             "real_bytes": 3763105,
             "role": "analyst"
@@ -344,7 +344,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 6782652,
             "id": "C-38",
-            "latency_s": 0.009674708,
+            "latency_s": 0.010079751,
             "ratio": 1.0,
             "real_bytes": 6782652,
             "role": "analyst"
@@ -353,7 +353,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 265700127,
             "id": "C-39",
-            "latency_s": 0.000699543,
+            "latency_s": 0.000810792,
             "ratio": 1.0,
             "real_bytes": 265700127,
             "role": "admin"
@@ -362,7 +362,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 1258581,
             "id": "C-40",
-            "latency_s": 0.000448458,
+            "latency_s": 0.000618709,
             "ratio": 1.0,
             "real_bytes": 1258581,
             "role": "analyst"
@@ -371,7 +371,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 19963956,
             "id": "C-41",
-            "latency_s": 0.006888291,
+            "latency_s": 0.0071115,
             "ratio": 1.0,
             "real_bytes": 19963956,
             "role": "finance"
@@ -380,7 +380,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 181480,
             "id": "C-42",
-            "latency_s": 0.003846417,
+            "latency_s": 0.004049667,
             "ratio": 1.0,
             "real_bytes": 181480,
             "role": "finance"
@@ -389,7 +389,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 37807250,
             "id": "C-43",
-            "latency_s": 0.010031584,
+            "latency_s": 0.010175667,
             "ratio": 1.0,
             "real_bytes": 37807250,
             "role": "finance"
@@ -398,7 +398,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 136391,
             "id": "C-44",
-            "latency_s": 0.001257458,
+            "latency_s": 0.001282292,
             "ratio": 1.0,
             "real_bytes": 136391,
             "role": "analyst"
@@ -407,7 +407,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 29678152,
             "id": "C-45",
-            "latency_s": 0.0004265,
+            "latency_s": 0.000416208,
             "ratio": 1.0,
             "real_bytes": 29678152,
             "role": "analyst"
@@ -416,7 +416,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 6783356,
             "id": "C-46",
-            "latency_s": 0.000334583,
+            "latency_s": 0.000300749,
             "ratio": 1.0,
             "real_bytes": 6783356,
             "role": "finance"
@@ -425,7 +425,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 10787,
             "id": "C-47",
-            "latency_s": 0.001189584,
+            "latency_s": 0.001236584,
             "ratio": 1.0,
             "real_bytes": 10787,
             "role": "analyst"
@@ -434,7 +434,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 3729,
             "id": "C-48",
-            "latency_s": 0.000700625,
+            "latency_s": 0.000675874,
             "ratio": 1.0,
             "real_bytes": 3729,
             "role": "analyst"
@@ -443,7 +443,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 16516,
             "id": "C-49",
-            "latency_s": 0.000927209,
+            "latency_s": 0.000857958,
             "ratio": 1.0,
             "real_bytes": 16516,
             "role": "analyst"
@@ -452,7 +452,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 1273977,
             "id": "C-50",
-            "latency_s": 0.000459708,
+            "latency_s": 0.000489209,
             "ratio": 1.0,
             "real_bytes": 1273977,
             "role": "analyst"
@@ -461,7 +461,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 244,
             "id": "C-51",
-            "latency_s": 0.000807291,
+            "latency_s": 0.000655292,
             "ratio": 1.0,
             "real_bytes": 244,
             "role": "analyst"
@@ -470,7 +470,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 515,
             "id": "C-52",
-            "latency_s": 0.000938334,
+            "latency_s": 0.000796126,
             "ratio": 1.0,
             "real_bytes": 515,
             "role": "analyst"
@@ -479,7 +479,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 337,
             "id": "C-53",
-            "latency_s": 0.000651208,
+            "latency_s": 0.000892458,
             "ratio": 1.0,
             "real_bytes": 337,
             "role": "analyst"
@@ -488,7 +488,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 537,
             "id": "C-54",
-            "latency_s": 0.000663125,
+            "latency_s": 0.000591458,
             "ratio": 1.0,
             "real_bytes": 537,
             "role": "analyst"
@@ -497,7 +497,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 58953,
             "id": "C-55",
-            "latency_s": 0.000395417,
+            "latency_s": 0.000407167,
             "ratio": 1.0,
             "real_bytes": 58953,
             "role": "analyst"
@@ -506,7 +506,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 92415828,
             "id": "C-56",
-            "latency_s": 0.065731833,
+            "latency_s": 0.083288667,
             "ratio": 0.9991,
             "real_bytes": 92329023,
             "role": "analyst"
@@ -515,7 +515,7 @@
             "engine_file_fraction": 1.0,
             "estimated_bytes": 1032535934,
             "id": "C-57",
-            "latency_s": 0.021079791,
+            "latency_s": 0.020515292,
             "ratio": 0.0315,
             "real_bytes": 32535934,
             "role": "finance"
@@ -524,7 +524,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 106688775,
             "id": "C-58",
-            "latency_s": 0.061804167,
+            "latency_s": 0.064926334,
             "ratio": 1.0003,
             "real_bytes": 106720483,
             "role": "analyst"
@@ -533,7 +533,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 16240,
             "id": "C-59",
-            "latency_s": 0.035166916,
+            "latency_s": 0.036572375,
             "ratio": 1.0774,
             "real_bytes": 17497,
             "role": "analyst"
@@ -542,7 +542,7 @@
             "engine_file_fraction": 0.00137,
             "estimated_bytes": 49509216,
             "id": "C-60",
-            "latency_s": 0.051901876,
+            "latency_s": 0.053676041,
             "ratio": 0.9991,
             "real_bytes": 49465069,
             "role": "analyst"

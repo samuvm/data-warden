@@ -5,11 +5,11 @@
       "command": "make mutation",
       "detail": {
         "floor": 85.0,
-        "killed": 655,
+        "killed": 664,
         "scope": "src/datawarden/guard/rules",
-        "total": 778
+        "total": 777
       },
-      "value": 84.19
+      "value": 85.46
     },
     "G-MUTATION": {
       "adicionales": {},
@@ -35,8 +35,7 @@
           "datawarden.audit.store": {
             "killed": 165,
             "score": 86.39,
-            "survived": 25,
-            "timeout": 1,
+            "survived": 26,
             "total": 191
           },
           "datawarden.catalog.build": {
@@ -49,15 +48,14 @@
             "killed": 109,
             "no tests": 76,
             "score": 51.42,
-            "survived": 26,
-            "timeout": 1,
+            "survived": 27,
             "total": 212
           },
           "datawarden.catalog.lineage": {
-            "killed": 173,
-            "score": 71.49,
-            "survived": 67,
-            "timeout": 2,
+            "killed": 171,
+            "score": 70.66,
+            "survived": 66,
+            "timeout": 5,
             "total": 242
           },
           "datawarden.catalog.statistics": {
@@ -128,9 +126,9 @@
             "total": 89
           },
           "datawarden.guard.rule": {
-            "killed": 17,
-            "score": 77.27,
-            "survived": 5,
+            "killed": 19,
+            "score": 86.36,
+            "survived": 3,
             "total": 22
           },
           "datawarden.guard.rules.r001_single_read_statement": {
@@ -177,9 +175,9 @@
             "total": 38
           },
           "datawarden.guard.rules.r008_column_policy": {
-            "killed": 80,
-            "score": 82.47,
-            "survived": 17,
+            "killed": 81,
+            "score": 83.51,
+            "survived": 16,
             "total": 97
           },
           "datawarden.guard.rules.r009_star_expansion": {
@@ -189,21 +187,21 @@
             "total": 28
           },
           "datawarden.guard.rules.r010_no_write_node": {
-            "killed": 22,
-            "score": 91.67,
-            "survived": 2,
+            "killed": 23,
+            "score": 95.83,
+            "survived": 1,
             "total": 24
           },
           "datawarden.guard.rules.r011_set_operation_scope": {
-            "killed": 48,
-            "score": 90.57,
+            "killed": 47,
+            "score": 90.38,
             "survived": 5,
-            "total": 53
+            "total": 52
           },
           "datawarden.guard.rules.r012_group_cardinality": {
-            "killed": 82,
-            "score": 71.3,
-            "survived": 33,
+            "killed": 90,
+            "score": 78.26,
+            "survived": 25,
             "total": 115
           },
           "datawarden.guard.rules.r013_tree_size": {

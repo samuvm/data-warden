@@ -104,14 +104,84 @@
       "axiom": false,
       "blocking_from": 2,
       "id": "G-GUARD-P95",
-      "measured": 0.892,
+      "measured": 0.837,
       "operator": "<=",
       "passed": true,
       "threshold": 25,
       "unit": "ms"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 3,
+      "id": "G-MUT-GUARD",
+      "measured": 85.46,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 85,
+      "unit": "porcentaje"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 3,
+      "id": "G-MUTATION",
+      "measured": 71.6,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 70,
+      "unit": "porcentaje"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 3,
+      "id": "G-BUDGET-ESCAPE",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 3,
+      "id": "G-COST-CALIB",
+      "measured": 1.0774,
+      "operator": "<=",
+      "passed": true,
+      "threshold": 1.5,
+      "unit": "ratio"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 4,
+      "id": "G-PII-LEAK",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 5,
+      "id": "G-AUDIT-COV",
+      "measured": 100.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 100,
+      "unit": "porcentaje"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 5,
+      "id": "G-AUDIT-TAMPER",
+      "measured": 100.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 100,
+      "unit": "porcentaje"
     }
   ],
-  "milestone": 2,
+  "milestone": 5,
   "passed": true,
   "problems": []
 }

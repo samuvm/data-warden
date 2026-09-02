@@ -6,14 +6,14 @@
       },
       "command": "make coverage && python scripts/check_function_coverage.py",
       "detail": {
-        "public_functions": 110,
+        "public_functions": 133,
         "uncovered": []
       },
       "value": 0
     },
     "G-COV-LINE": {
       "adicionales": {
-        "guard/, mask/, audit/, principal/ (%)": 97.08
+        "guard/, mask/, audit/, principal/ (%)": 97.48
       },
       "command": "make coverage && python scripts/check_line_coverage.py",
       "detail": {
@@ -23,7 +23,7 @@
           "cost": 98.0,
           "domain": 100.0,
           "evalsupport": 99.21,
-          "guard": 97.08,
+          "guard": 97.48,
           "mask": 100.0,
           "principal": 100.0
         },
