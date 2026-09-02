@@ -35,6 +35,22 @@ accept:
     rol: analyst
     sql: "SELECT email_domain, count(*) AS n FROM dim_customer GROUP BY email_domain"
     por_que: "El dominio del correo es lo que de verdad quería quien pidió los correos."
+  # ---------------------------------------------------------------------------
+  # Y el otro lado del arreglo del alias en ORDER BY: una columna PERMITIDA sigue
+  # pudiendo ordenarse por su alias y por su ordinal. Sin estos dos casos, el
+  # cierre de R008-R12/R13 podría hacerse rechazando todo alias sin tabla, que es
+  # un guard que bloquea trabajo legítimo. Están aquí para que el arreglo no pueda
+  # degenerar en eso sin que la suite se entere.
+  # ---------------------------------------------------------------------------
+  - id: R008-A6
+    rol: analyst
+    sql: "SELECT country_code AS c FROM dim_customer ORDER BY c LIMIT 5"
+    por_que: "`country_code` es `allow`: ordenar por su alias es trabajo normal."
+  - id: R008-A7
+    rol: analyst
+    sql: "SELECT country_code AS c FROM dim_customer ORDER BY 1 LIMIT 5"
+    por_que: "Y por su ordinal, que `qualify` convierte en el mismo alias."
+
 reject:
   - id: R008-R1
     rol: analyst
@@ -193,3 +209,55 @@ reject:
     sujeto: "national_id"
     reintentable: true
     por_que: "INTERSECT, para que la rama no dependa de que el operador sea UNION."
+
+  # ---------------------------------------------------------------------------
+  # REGRESIÓN · EXFILTRACIÓN POR ORDEN. Los tres se ACEPTABAN hasta el 2026-09-02.
+  #
+  # `qualify()` expande el alias de salida en `GROUP BY` y en `HAVING` —por eso
+  # esos dos siempre se rechazaron— pero **no en `ORDER BY`**, donde deja una
+  # columna sin tabla; y de paso convierte el ordinal en el alias, así que
+  # `ORDER BY 1` acababa en el mismo sitio. `Scope.columns` de sqlglot excluye a
+  # propósito esas referencias, el linaje nunca las indexaba, R008 preguntaba por
+  # `.n`, no encontraba fila y aplicaba el `allow` por defecto.
+  #
+  # No era un rechazo perdido cualquiera: **`ORDER BY n LIMIT 1` con predicados
+  # sobre columnas permitidas es una búsqueda binaria sobre un valor enmascarado.**
+  # Se ordena, se mira el extremo, se acota, se repite. La política firmada lo
+  # prohíbe con esas palabras: una columna «alcanzada a través de un alias».
+  #
+  # El rechazo nombra la columna BASE y no el alias, que es lo que permite
+  # corregir la consulta: decir «no puedes usar `n`» no redirige a nadie.
+  # ---------------------------------------------------------------------------
+  - id: R008-R12
+    rol: analyst
+    sql: "SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 5"
+    rule_id: R008
+    code: column_policy
+    posicion: order_by
+    sujeto: "dim_customer.first_name"
+    reintentable: true
+    por_que: >-
+      Ordenar por el alias de una columna enmascarada. Es el caso que estaba
+      abierto y el que convierte el orden en un oráculo de comparación.
+  - id: R008-R13
+    rol: analyst
+    sql: "SELECT first_name AS n FROM dim_customer ORDER BY 1 LIMIT 5"
+    rule_id: R008
+    code: column_policy
+    posicion: order_by
+    sujeto: "dim_customer.first_name"
+    reintentable: true
+    por_que: >-
+      El mismo ataque por ordinal. `qualify` lo reescribe al alias, así que
+      cerrarlo por el nombre del alias no habría bastado.
+  - id: R008-R14
+    rol: analyst
+    sql: "SELECT first_name AS a FROM dim_customer ORDER BY a DESC LIMIT 1"
+    rule_id: R008
+    code: column_policy
+    posicion: order_by
+    sujeto: "dim_customer.first_name"
+    reintentable: true
+    por_que: >-
+      `ORDER BY ... DESC LIMIT 1` es la forma más directa del oráculo: devuelve el
+      extremo del recorrido en una sola consulta.
