@@ -165,6 +165,7 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (2, "attack_mut.py", "G-WRITE-BLOCK · mutación de AST"),
     (2, "attack_holdout.py", "G-WRITE-BLOCK · la RESERVA"),
     (2, "bench_guard.py", "G-GUARD-P95"),
+    (3, "check_mutation_scope.py", "anti-gaming · lo excluido de la mutación no decide"),
     (3, "check_budget_invariant.py", "G-BUDGET-ESCAPE"),
     (3, "cost_calibration.py", "G-COST-CALIB"),
     (4, "pii_suite.py", "G-PII-LEAK · axioma, tres superficies contra el dataset"),

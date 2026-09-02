@@ -26,6 +26,7 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 #: Tablas por debajo de las cuales un cartesiano no es un problema. Son las de
 #: referencia del almacén: divisas, países, motivos de rechazo. Multiplicar por
@@ -55,18 +56,11 @@ class JoinPredicateRule:
                 left = _relation_name(_from_relation(select))
                 if _is_small(right) or _is_small(left):
                     continue
+                message, suggestion = messages.cartesian_join(left, right)
                 return reject(
                     self,
-                    message=(
-                        f"the join between {left or 'a subquery'} and "
-                        f"{right or 'a subquery'} has no ON or USING condition, so it "
-                        "is a cartesian product between two large relations"
-                    ),
-                    suggestion=(
-                        "add the join key. Facts join dimensions through their "
-                        "surrogate key (`merchant_sk`, `customer_sk`, `card_sk`); "
-                        "the catalog resource lists them"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=Position.JOIN_ON,
                     subject=f"{left} x {right}",
                     retryable=True,

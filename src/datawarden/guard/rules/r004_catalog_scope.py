@@ -27,6 +27,7 @@ from sqlglot import expressions as exp
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.allowlist import KNOWN_DANGEROUS
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 
 class CatalogScopeRule:
@@ -51,17 +52,15 @@ class CatalogScopeRule:
             inner = table.this
             if not isinstance(inner, exp.Identifier):
                 name = _function_name(inner)
-                danger = " it reads from outside the query" if name in KNOWN_DANGEROUS else ""
+                # LA DECISION —si la funcion lee de fuera del proceso— se queda aqui
+                # y se mide; el fragmento de frase que la cuenta esta en `messages`.
+                message, suggestion = messages.table_function(
+                    name, dangerous=name in KNOWN_DANGEROUS
+                )
                 return reject(
                     self,
-                    message=(
-                        f"the FROM clause uses the table function {name}(), not a table;"
-                        f"{danger} only relations from the published catalog can be read"
-                    ),
-                    suggestion=(
-                        "name one of the catalog tables directly. The catalog resource "
-                        "lists every relation this server can read"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=Position.STATEMENT,
                     subject=name,
                     retryable=False,
@@ -74,17 +73,11 @@ class CatalogScopeRule:
             # alcance), así que cualquier cualificación es un intento de salir de él.
             qualifier = (table.db or table.catalog or "").lower()
             if qualifier:
+                message, suggestion = messages.qualified_relation(qualifier, name)
                 return reject(
                     self,
-                    message=(
-                        f"the query names {qualifier}.{name}: a relation qualified with "
-                        "another database or schema. This server serves exactly one "
-                        "catalog and never reaches outside it"
-                    ),
-                    suggestion=(
-                        f"name the relation without a qualifier: {name}. If it is not "
-                        "in the catalog resource, it is not readable from here"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=Position.STATEMENT,
                     subject=f"{qualifier}.{name}",
                     retryable=False,
@@ -92,16 +85,11 @@ class CatalogScopeRule:
             if name in cte_names:
                 continue
             if ctx.schema.table(name) is None:
+                message, suggestion = messages.relation_unknown(name)
                 return reject(
                     self,
-                    message=(
-                        f"relation {name} is not in the generated catalog and cannot be read"
-                    ),
-                    suggestion=(
-                        "read the catalog resource and use one of the relations it "
-                        "lists. If the name looks close to an existing one, it is "
-                        "probably a typo in the table name"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=Position.STATEMENT,
                     subject=name,
                     retryable=True,

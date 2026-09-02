@@ -23,6 +23,7 @@ from sqlglot import expressions as exp
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.allowlist import SYSTEM_SCHEMAS
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 
 class SystemSchemaRule:
@@ -39,18 +40,11 @@ class SystemSchemaRule:
         for table in ctx.tree.find_all(exp.Table):
             for part in (table.db, table.catalog, table.name):
                 if part and part.lower() in SYSTEM_SCHEMAS:
+                    message, suggestion = messages.system_schema(part.lower())
                     return reject(
                         self,
-                        message=(
-                            f"the query reads {part.lower()}, which is the engine's own "
-                            "metadata; the published catalog is the only description of "
-                            "this warehouse that this server serves"
-                        ),
-                        suggestion=(
-                            "read the catalog resource to find out which tables and "
-                            "columns exist. What the engine knows and what this server "
-                            "publishes are deliberately not the same thing"
-                        ),
+                        message=message,
+                        suggestion=suggestion,
                         position=Position.STATEMENT,
                         subject=part.lower(),
                         retryable=False,

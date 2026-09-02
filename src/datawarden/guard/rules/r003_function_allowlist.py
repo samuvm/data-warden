@@ -22,6 +22,7 @@ from sqlglot import expressions as exp
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.allowlist import ALLOWED_ANONYMOUS, KNOWN_DANGEROUS
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 
 class FunctionAllowlistRule:
@@ -43,26 +44,12 @@ class FunctionAllowlistRule:
             name = str(node.this).lower()
             if name in ALLOWED_ANONYMOUS:
                 continue
-            if name in KNOWN_DANGEROUS:
-                message = (
-                    f"the function {name}() reads from outside the query — files, the "
-                    "network or the engine process — and is never executed here"
-                )
-                suggestion = (
-                    "every answer this server gives comes from the catalog tables. "
-                    "Ask the question against them"
-                )
-                retryable = False
-            else:
-                message = (
-                    f"the function {name}() is not on the allowlist; the guard cannot "
-                    "reason about what an unknown function does, so it refuses it"
-                )
-                suggestion = (
-                    "use a standard SQL function. If this one is genuinely needed, it "
-                    "has to be added to the allowlist as a decision, with its case"
-                )
-                retryable = True
+            # LA DECISIÓN se queda aquí y se mide: una función que lee de fuera del
+            # proceso no es reintentable, y una desconocida sí. El TEXTO de cada una
+            # está en `messages.py`, fuera de la mutación (P-005).
+            dangerous = name in KNOWN_DANGEROUS
+            retryable = not dangerous
+            message, suggestion = messages.function_not_allowed(name, dangerous=dangerous)
             return reject(
                 self,
                 message=message,

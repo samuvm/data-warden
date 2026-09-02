@@ -23,6 +23,7 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 #: Lo único que puede estar en la raíz. `Subquery` entra porque `(SELECT 1)` con
 #: paréntesis es una consulta legítima y no un caso raro.
@@ -51,18 +52,11 @@ class SingleReadStatementRule:
         if isinstance(root, READ_ROOTS):
             return self._check_branches(ctx) or PASS
         kind = root.__class__.__name__
+        message, suggestion = messages.not_a_query(kind)
         return reject(
             self,
-            message=(
-                f"the statement is a {kind.upper()} and only queries are accepted; "
-                "this server answers questions about data, it does not run engine "
-                "commands"
-            ),
-            suggestion=(
-                "ask for the data itself with a SELECT. To find out what tables and "
-                "columns exist, read the catalog resource instead of querying the "
-                "engine's own metadata"
-            ),
+            message=message,
+            suggestion=suggestion,
             position=Position.STATEMENT,
             subject=kind,
             retryable=False,
@@ -93,17 +87,11 @@ class SingleReadStatementRule:
                 if side is None or isinstance(side, READ_ROOTS):
                     continue
                 kind = side.__class__.__name__
+                message, suggestion = messages.branch_not_a_query(kind)
                 return reject(
                     self,
-                    message=(
-                        f"one branch of the set operation is a {kind} and not a query; "
-                        "every branch of a UNION, EXCEPT or INTERSECT has to be a "
-                        "SELECT of its own"
-                    ),
-                    suggestion=(
-                        "write each branch as a full SELECT with its own FROM. A bare "
-                        "expression on one side of a UNION is not a query"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=Position.STATEMENT,
                     subject=kind,
                     retryable=True,

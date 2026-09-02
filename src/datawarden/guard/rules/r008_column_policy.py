@@ -36,25 +36,8 @@ from datawarden.domain.types import Position, Severity
 from datawarden.guard.position import position_of, table_and_column
 from datawarden.guard.query_lineage import UNKNOWN as LINEAGE_UNKNOWN
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 from datawarden.principal.policy import Level
-
-#: Cómo se lee cada posición en el mensaje. En vocabulario de SQL y no de sqlglot:
-#: quien lee el rechazo escribió SQL, no un árbol.
-_POSITION_TEXT: dict[Position, str] = {
-    Position.PROJECTION: "in the SELECT list",
-    Position.WHERE: "in a WHERE predicate",
-    Position.JOIN_ON: "in a JOIN condition",
-    Position.GROUP_BY: "in a GROUP BY",
-    Position.ORDER_BY: "in an ORDER BY",
-    Position.HAVING: "in a HAVING clause",
-    Position.QUALIFY: "in a QUALIFY clause",
-    Position.FUNCTION_ARGUMENT: "as a function argument",
-    Position.WINDOW_PARTITION: "as a window PARTITION BY key",
-    Position.SUBQUERY: "inside a subquery",
-    Position.CTE: "inside a CTE",
-    Position.STATEMENT: "in the statement",
-    Position.UNKNOWN: "somewhere the guard could not place",
-}
 
 
 class ColumnPolicyRule:
@@ -100,17 +83,11 @@ def _reject_unknown(
     position: Position,
 ) -> RuleResult:
     """Cuando no se puede saber de dónde sale una columna."""
+    message, suggestion = messages.lineage_unknown(name)
     return reject(
         rule,
-        message=(
-            f"the guard cannot resolve where column {name} comes from, so it cannot "
-            "tell whether the access policy applies to it"
-        ),
-        suggestion=(
-            "reference the column from its table directly instead of through the "
-            "construct that hides it. A column whose origin cannot be followed is "
-            "refused, not assumed safe"
-        ),
+        message=message,
+        suggestion=suggestion,
         position=position,
         subject=name,
         retryable=True,
@@ -127,40 +104,19 @@ def _reject_for(
     level: Level,
 ) -> RuleResult:
     """El rechazo, con el detalle que lo hace accionable en vez de mudo."""
+    # LAS DECISIONES se quedan aquí y se miden: qué nivel se violó, si la columna se
+    # alcanzó por otro nombre, y si la política publica una alternativa. El TEXTO con
+    # el que eso se cuenta está en `messages.py`, fuera de la mutación (P-005).
     alternative = ctx.policy.generalized_for(base)
     written = f"{written_table}.{written_name}" if written_table else written_name
-    derived = base != written
-    where = _POSITION_TEXT.get(position, "in the query")
-
-    if level is Level.DENY:
-        message = (
-            f"column {base} is denied for role {ctx.principal.role.value} and appears {where}"
-        )
-    else:
-        message = (
-            f"column {base} is masked for role {ctx.principal.role.value}: it may only "
-            f"appear as a direct projection, and it appears {where}"
-        )
-    if derived:
-        message += f", reached through {written}"
-
-    if alternative is not None:
-        suggestion = (
-            f"use {alternative} instead: the policy publishes it as the generalised "
-            f"answer to the same question, and it is visible to your role"
-        )
-    elif level is Level.MASK:
-        suggestion = (
-            "move the column to the SELECT list, where it is returned masked. What is "
-            "not allowed is filtering, grouping or ordering by it — that would let the "
-            "value be reconstructed one question at a time"
-        )
-    else:
-        suggestion = (
-            "this column is not available to your role in any position. Ask the "
-            "question in terms of the aggregates and generalised columns the catalog "
-            "publishes"
-        )
+    message, suggestion = messages.column_policy(
+        base,
+        ctx.principal.role.value,
+        position,
+        denied=level is Level.DENY,
+        written=written if base != written else None,
+        alternative=alternative,
+    )
 
     return reject(
         rule,

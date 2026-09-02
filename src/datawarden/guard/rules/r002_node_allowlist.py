@@ -17,6 +17,7 @@ from __future__ import annotations
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.allowlist import ALLOWED_NODES
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 
 class NodeAllowlistRule:
@@ -37,17 +38,11 @@ class NodeAllowlistRule:
                 # cayera aquí sería un rechazo por la regla equivocada, y eso es un
                 # acierto por casualidad.
                 continue
+            message, suggestion = messages.node_not_allowed(name)
             return reject(
                 self,
-                message=(
-                    f"the query uses a {name} construct, which is not on the allowlist "
-                    "of analytical constructs this server accepts"
-                ),
-                suggestion=(
-                    "rewrite the question using plain SELECT, JOIN, WHERE, GROUP BY, "
-                    "ORDER BY and window functions. If this construct is genuinely "
-                    "needed, it has to be added to the allowlist as a decision"
-                ),
+                message=message,
+                suggestion=suggestion,
                 position=Position.STATEMENT,
                 subject=name,
                 retryable=True,

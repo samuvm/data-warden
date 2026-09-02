@@ -20,6 +20,7 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 MAX_DEPTH: Final = 8
 
@@ -48,17 +49,11 @@ class NestingDepthRule:
             )
             deepest = max(deepest, depth)
         if deepest > MAX_DEPTH:
+            message, suggestion = messages.nesting_too_deep(deepest, MAX_DEPTH)
             return reject(
                 self,
-                message=(
-                    f"the query nests queries {deepest} levels deep and the limit is "
-                    f"{MAX_DEPTH}; the cost of a correlated subquery at that depth "
-                    "cannot be estimated before running it"
-                ),
-                suggestion=(
-                    "flatten the query with CTEs at the top level, or aggregate in "
-                    "steps so each level answers one thing"
-                ),
+                message=message,
+                suggestion=suggestion,
                 position=Position.SUBQUERY,
                 subject=f"depth {deepest}",
                 retryable=True,

@@ -1452,3 +1452,53 @@ las dos**: `G-MUT-GUARD` 61,87 % contra su suelo de 85. Todo lo demás en verde,
 axiomas `G-PII-LEAK`, `G-AUDIT-COV` y `G-BUDGET-ESCAPE`. Lo que impide cerrar las fases 3, 4 y 5 es
 exactamente un número, y es trabajo de tests: no queda ninguna decisión pendiente de Samuel salvo
 los tres minutos de P-004.
+
+## 2026-09-02 · P-005 ejecutada, y dos agujeros más que apareció la mutación
+
+**El refactor, con el recorte de Samuel aplicado al pie de la letra.** El TEXTO de los 22 sitios de
+rechazo de las catorce reglas se mudó a `guard/rules/messages.py`, y **solo el texto**: qué
+`Position` es, cuál es el `subject`, si es `retryable` y qué nivel de política se violó se quedan en
+la regla y se miden. Es la línea que él pidió: *«una tabla de posición que devuelve la etiqueta
+equivocada es un bug, no prosa»*.
+
+**Cómo sale de la medida, y por qué así.** `[tool.mutmut].do_not_mutate`, no mudar el fichero de
+carpeta. Un fichero excluido se COPIA sin mutar y produce cero mutantes, así que sale de los **dos**
+denominadores; moverlo a `guard/rendering.py` lo habría sacado de `G-MUT-GUARD` para meterlo en
+`G-MUTATION`, que no es excluir prosa sino **mudarla de meta**. `docs/GOALS.yaml` no se toca y no
+hay que regenerar `thresholds.lock`.
+
+**Y la puerta se cierra el mismo día que se abre.** `scripts/check_mutation_scope.py` comprueba tres
+cosas sobre lo excluido: que la lista es la aprobada —solo `messages.py`—, que no importa `sqlglot`,
+y que no nombra `retryable`, `Level`, `GuardContext` ni `RuleResult`. Verificado que **rechaza un
+fichero de regla real** y acepta `messages.py`. Sin ese check, meter lógica en el fichero excluido la
+sacaría del alcance sin que ninguna meta se enterara, que es el mecanismo 2 de anti-gaming y encima
+silencioso.
+
+| | Antes | Ahora |
+|---|---|---|
+| `G-MUT-GUARD` | 50,73 % (452/891) | **83,68 % (651/778)** |
+
+**Los muertos SUBIERON, no solo bajó el denominador**: de 452 a 651. Estructurar el rechazo hizo que
+el corpus matara mutantes que antes sobrevivían, que es exactamente lo que Samuel predijo al escribir
+«estructurar antes que excluir». El denominador bajó 113 y los muertos subieron 199.
+
+**Y el trabajo destapó dos agujeros que no eran de mutación, eran de seguridad.**
+
+**1 · `HAVING count(*) <= N` devolvía los grupos de una persona.** La comprobación era «rechaza si
+el literal está por debajo de `K_MIN`», correcta para una igualdad —`count(*) = 3` pide grupos de
+tres— y **falsa para un límite superior**: `count(*) <= 5` devuelve los grupos de 1, 2, 3, 4 y 5, y
+`count(*) <= 1000` devuelve **todos los grupos pequeños del almacén**. Acotar por arriba el tamaño de
+grupo *es* la consulta de k-anonimato al revés: «enséñame las cohortes raras».
+
+Reforzada: un `<` o `<=` sobre un conteo se rechaza siempre, **salvo que el mismo `HAVING` ponga un
+suelo de al menos `K_MIN`**. Medido caso a caso: `<= 5` rechaza, `<= 1000` rechaza, `= 5` acepta,
+`>= 5 AND <= 100` acepta, `> 4 AND <= 100` acepta, `>= 3 AND <= 100` rechaza. La franja legítima
+sigue funcionando, que es lo que impide que el refuerzo degenere en rechazar todo `<=`.
+
+**2 · Ocho posiciones en la matriz y `window_partition` sin un solo caso.** `PARTITION BY
+national_id` estaba parado por R008 —bien— pero nadie lo comprobaba. Tres casos nuevos, incluido el
+`ORDER BY` de dentro de una ventana, que es otra rama del árbol y otro oráculo de comparación.
+
+**Lo que queda.** `G-MUT-GUARD` en 83,68 % contra su 85: faltan **11 mutantes**, y están repartidos
+en `_check_grouping`, `_reject_for` y `RowLimitRule.check`. Es picar mutante a mutante con
+rendimiento decreciente, y se deja anotado en vez de forzado.
