@@ -71,6 +71,10 @@ class Case:
     expected_subject: str | None = None
     expected_retryable: bool | None = None
     expected_alternative: str | None = None
+    #: El `LIMIT` EXACTO con el que tiene que salir un caso aceptado. R006 inyecta el
+    #: tope del rol si falta y lo recorta si sobra, y hasta hoy nadie comprobaba el
+    #: número: bastaba con que hubiera un `LIMIT` cualquiera.
+    expected_limit: int | None = None
 
     def __str__(self) -> str:
         return self.case_id
@@ -133,6 +137,7 @@ def _load() -> list[Case]:
                         expected_subject=raw.get("sujeto"),
                         expected_retryable=raw.get("reintentable"),
                         expected_alternative=raw.get("alternativa"),
+                        expected_limit=raw.get("limite"),
                     )
                 )
     return cases
@@ -207,6 +212,20 @@ def test_caso_del_corpus(case: Case) -> None:
             "LIMIT" in rendered.upper()
         ), f"{case.case_id}: el árbol aceptado no lleva LIMIT"
         assert verdict.max_rows == _BUDGETS.max_rows(case.role)
+        if case.expected_limit is not None:
+            # EL NÚMERO, no «que haya un LIMIT». R006 inyecta el tope del rol cuando
+            # falta y lo recorta cuando sobra, y esas dos son decisiones con un borde
+            # exacto: un `>` por un `>=` deja pasar una fila de más para siempre, y
+            # ningún test que solo mire «hay LIMIT» lo nota.
+            limite = verdict.ast.args.get("limit")
+            assert limite is not None, f"{case.case_id}: el árbol aceptado no lleva LIMIT"
+            emitido = int(limite.expression.this)
+            assert emitido == case.expected_limit, (
+                f"{case.case_id}: sale con LIMIT {emitido} y el caso espera "
+                f"{case.expected_limit}. El tope de filas es del DOMINIO (I-12): si el "
+                "número no es exacto, DuckDB y Athena devolverían cosas distintas para "
+                "el mismo rol."
+            )
         return
 
     assert isinstance(verdict, RejectionReason), (

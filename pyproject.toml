@@ -239,6 +239,21 @@ source_paths = [
 # test unitario que fuerza una regla a estallar.
 pytest_add_cli_args_test_selection = ["tests/unit", "tests/contract"]
 
+# P-005, aprobada RECORTADA por Samuel el 2026-09-02. Sale de la medida el TEXTO
+# literal de los mensajes de rechazo, y NADA MÁS: la composición —qué `Position` es,
+# cuál es el `subject`, si es `retryable`— se queda dentro y el corpus la asierta por
+# su VALOR desde el mismo día.
+#
+# `do_not_mutate` y no mudar el fichero de carpeta, y la diferencia importa: un fichero
+# excluido se COPIA sin mutar y produce CERO mutantes, así que sale de los DOS
+# denominadores. Moverlo a `guard/rendering.py` lo habría sacado de `G-MUT-GUARD` para
+# meterlo en `G-MUTATION`, que no es excluir prosa: es mudarla de meta.
+#
+# `docs/GOALS.yaml` no cambia y no hay que regenerar `thresholds.lock`: el alcance de
+# las dos metas lo decide el prefijo de módulo en `scripts/check_mutation.py`, y la
+# nota en prosa de G-MUT-GUARD —«mutantes muertos en guard/rules»— sigue siendo cierta.
+do_not_mutate = ["src/datawarden/guard/rules/messages.py"]
+
 # mutmut copia el árbol a `mutants/` y corre desde allí, así que lo que los tests
 # lean por ruta tiene que viajar con ellos. `docs/` son unos cientos de kilobytes y
 # lo necesitan los tests de contrato.

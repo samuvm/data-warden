@@ -1,0 +1,19 @@
+{
+  "metas": {
+    "G-MUT-SCOPE": {
+      "adicionales": {},
+      "command": "make mutation",
+      "detail": {
+        "autorizados": [
+          "src/datawarden/guard/rules/messages.py"
+        ],
+        "excluidos": [
+          "src/datawarden/guard/rules/messages.py"
+        ],
+        "por_que": "Un fichero excluido de la mutación no se mide. Meter lógica ahí la sacaría del alcance sin que ninguna meta se enterara, que es el mecanismo 2 de anti-gaming y encima silencioso.",
+        "problemas": []
+      },
+      "value": 0
+    }
+  }
+}

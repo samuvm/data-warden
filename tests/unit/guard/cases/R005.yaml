@@ -31,6 +31,18 @@ accept:
     rol: analyst
     sql: "SELECT a.payment_intent_id, d.date_key FROM fact_payment_attempt a, dim_date d WHERE d.date_key = a.event_date"
     por_que: "La coma con predicado en el WHERE, contra el calendario, que es pequeño."
+  # ---------------------------------------------------------------------------
+  # Anadidos el 2026-09-02, y los dos salen de mutantes que sobrevivian.
+  # ---------------------------------------------------------------------------
+  - id: R005-A5
+    rol: analyst
+    sql: "SELECT a.currency_code FROM ref_currency r CROSS JOIN fact_payment_attempt a"
+    por_que: >-
+      **La relacion pequena a la IZQUIERDA.** Hasta el arreglo de `_from_relation`
+      este caso no podia existir: `select.args.get("from")` devolvia siempre `None`,
+      asi que `_is_small(left)` nunca era cierta y esto se RECHAZABA. Multiplicar por
+      catorce filas es lo que `SMALL_RELATION_PREFIXES` declara normal.
+
 reject:
   - id: R005-R1
     rol: analyst
@@ -61,3 +73,20 @@ reject:
     por_que: >-
       Tiene ON, y el ON es `TRUE`: un cartesiano disfrazado de unión. Nueve millones
       por dieciocho millones de filas.
+  - id: R005-R4
+    rol: analyst
+    sql: |
+      SELECT a.payment_intent_id
+      FROM fact_payment_attempt a
+      JOIN dim_card k ON k.card_sk = a.card_sk
+      CROSS JOIN fact_order_line l
+    rule_id: R005
+    code: cartesian_join
+    posicion: join_on
+    sujeto: "fact_payment_attempt x fact_order_line"
+    reintentable: true
+    por_que: >-
+      **El cartesiano es el SEGUNDO join, no el primero.** La regla tiene que seguir
+      mirando despues de encontrar uno bueno: un `continue` que fuera un `break`
+      aceptaria esta consulta, y ningun caso con un solo join lo notaria.
+

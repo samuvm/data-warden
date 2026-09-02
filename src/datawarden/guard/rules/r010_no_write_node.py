@@ -23,6 +23,7 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 #: Escrituras de DATOS, y solo eso. `PRAGMA`, `SET`, `ATTACH` o `INSTALL` cambian
 #: el estado del MOTOR y no los datos: los para R001 en la raíz —que es donde
@@ -67,25 +68,24 @@ class NoWriteNodeRule:
         for node in ctx.tree.walk():
             if isinstance(node, WRITE_NODES):
                 kind = node.__class__.__name__
-                where = (
-                    "inside a CTE"
+                # LA DECISION: dónde estaba el nodo de escritura. Se calcula mirando
+                # la ascendencia en el ÁRBOL y se devuelve como `Position`, que es lo
+                # que el corpus asierta por su valor. Antes se derivaba de una cadena
+                # de prosa —`Position.CTE if "CTE" in where`— y eso era decisión
+                # disfrazada de texto: cambiar la frase cambiaba la posición.
+                position = (
+                    Position.CTE
                     if node.find_ancestor(exp.CTE) is not None
-                    else "inside a subquery"
+                    else Position.SUBQUERY
                     if node.find_ancestor(exp.Subquery) is not None
-                    else "at the top level"
+                    else Position.STATEMENT
                 )
+                message, suggestion = messages.write_node_present(kind, position)
                 return reject(
                     self,
-                    message=(
-                        f"the tree contains a {kind.upper()} node {where}; this system "
-                        "is read-only by construction and never writes"
-                    ),
-                    suggestion=(
-                        "rephrase the question as something to READ. If you need to "
-                        "know what would change, describe it with a SELECT that counts "
-                        "or lists the affected rows"
-                    ),
-                    position=Position.CTE if "CTE" in where else Position.STATEMENT,
+                    message=message,
+                    suggestion=suggestion,
+                    position=position,
                     subject=kind,
                     retryable=False,
                 )

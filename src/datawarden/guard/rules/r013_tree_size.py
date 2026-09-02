@@ -17,6 +17,7 @@ from typing import Final
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 #: Nodos máximos. Una consulta legítima de este almacén —cuatro tablas, una ventana
 #: y un par de subconsultas— ronda los 200 nodos; las 60 preguntas del banco caben
@@ -41,16 +42,11 @@ class TreeSizeRule:
     def check(self, ctx: GuardContext) -> RuleResult:
         nodes = sum(1 for _ in ctx.tree.walk())
         if nodes > MAX_NODES:
+            message, suggestion = messages.tree_too_large(nodes, MAX_NODES)
             return reject(
                 self,
-                message=(
-                    f"the parsed tree has {nodes} nodes and the limit is {MAX_NODES}; "
-                    "a query this large cannot be validated within the guard budget"
-                ),
-                suggestion=(
-                    "split the question into smaller queries, or aggregate earlier so "
-                    "the expression tree stays within the limit"
-                ),
+                message=message,
+                suggestion=suggestion,
                 position=Position.STATEMENT,
                 subject=f"{nodes} nodes",
                 retryable=True,

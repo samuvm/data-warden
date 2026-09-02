@@ -34,6 +34,7 @@ from sqlglot import expressions as exp
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.position import table_and_column
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 #: Tamaño mínimo de grupo que se puede pedir explícitamente. Cinco es el suelo
 #: habitual en estadística oficial para publicar una celda, y aquí se aplica al
@@ -86,27 +87,48 @@ class GroupCardinalityRule:
         return self._check_grouping(ctx) or PASS
 
     def _check_having(self, ctx: GuardContext) -> RuleResult | None:
+        """Un `HAVING` que acota el tamaño de grupo POR ARRIBA pide los grupos raros.
+
+        **Esto tenía un off-by-one, y lo encontró la mutación.** La comprobación era
+        «rechaza si el literal está por debajo de `K_MIN`», que es correcta para una
+        igualdad —`count(*) = 3` pide grupos de tres— y **falsa para un límite
+        superior**: `count(*) <= 5` devuelve los grupos de 1, 2, 3, 4 y 5, y
+        `count(*) <= 1000` devuelve TODOS los grupos pequeños del almacén, incluidos
+        los de una persona. Se aceptaban las dos.
+
+        Acotar por arriba el tamaño de grupo **es** la consulta de k-anonimato al
+        revés: «enséñame las cohortes raras». Así que un `<` o un `<=` sobre un
+        conteo se rechaza **siempre**, salvo que el mismo `HAVING` ponga también un
+        suelo de al menos `K_MIN` —`count(*) >= 5 AND count(*) <= 100`—, que es la
+        forma legítima de preguntar por una franja de tamaños.
+
+        La igualdad se queda como estaba: `count(*) = 5` pide grupos de exactamente
+        cinco, y cinco es el mínimo.
+        """
         for having in ctx.tree.find_all(exp.Having):
+            floor = _group_floor(having)
             for comparison in having.find_all(*_SMALL_COMPARISONS):
                 left, right = comparison.this, comparison.expression
                 for count_side, literal_side in ((left, right), (right, left)):
                     if not isinstance(count_side, _COUNT_NODES):
                         continue
                     value = _int_literal(literal_side)
-                    if value is None or value >= K_MIN:
+                    if value is None:
                         continue
+                    bounded_above = isinstance(comparison, (exp.LT, exp.LTE))
+                    if bounded_above:
+                        # Un techo sin suelo devuelve siempre los grupos de uno.
+                        if floor is not None and floor >= K_MIN:
+                            continue
+                    elif value >= K_MIN:
+                        continue
+                    message, suggestion = messages.having_group_too_small(
+                        comparison.key, value, K_MIN
+                    )
                     return reject(
                         self,
-                        message=(
-                            f"the HAVING clause asks for groups whose count is "
-                            f"{value} or fewer, and the minimum group size is "
-                            f"{K_MIN}; groups that small are individuals with the "
-                            "shape of an aggregate"
-                        ),
-                        suggestion=(
-                            f"ask for groups of at least {K_MIN} rows, or drop the "
-                            "HAVING and read the distribution of group sizes instead"
-                        ),
+                        message=message,
+                        suggestion=suggestion,
                         position=Position.HAVING,
                         subject=f"count {comparison.key} {value}",
                         retryable=True,
@@ -128,25 +150,41 @@ class GroupCardinalityRule:
                 if data_type not in IDENTIFYING_TYPES:
                     continue
                 alternative = ctx.policy.generalized_for(base)
+                message, suggestion = messages.group_by_identifier(base, data_type, alternative)
                 return reject(
                     self,
-                    message=(
-                        f"grouping by {base} makes each group one person: it is a "
-                        f"{data_type} and every distinct value identifies an individual"
-                    ),
-                    suggestion=(
-                        f"group by {alternative} instead, which is the generalised "
-                        "column the policy publishes"
-                        if alternative
-                        else "group by a category, a period or a region, so that each "
-                        "group covers many rows"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=position,
                     subject=base,
                     alternative=alternative,
                     retryable=True,
                 )
         return None
+
+
+def _group_floor(having: exp.Having) -> int | None:
+    """El SUELO que el `HAVING` pone al tamaño de grupo, si pone alguno.
+
+    `count(*) >= 5` o `count(*) > 4`. Es lo que convierte un techo en una franja
+    legítima: preguntar por grupos de entre 5 y 100 es análisis normal; preguntar
+    por grupos de «100 o menos» es pedir los raros.
+    """
+    best: int | None = None
+    for comparison in having.find_all(exp.GT, exp.GTE):
+        for count_side, literal_side in (
+            (comparison.this, comparison.expression),
+            (comparison.expression, comparison.this),
+        ):
+            if not isinstance(count_side, _COUNT_NODES):
+                continue
+            value = _int_literal(literal_side)
+            if value is None:
+                continue
+            # `> 4` es un suelo de 5; `>= 5` también.
+            floor = value + 1 if isinstance(comparison, exp.GT) else value
+            best = floor if best is None else max(best, floor)
+    return best
 
 
 def _int_literal(node: exp.Expression | None) -> int | None:

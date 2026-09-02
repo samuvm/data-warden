@@ -26,6 +26,35 @@ accept:
       `customer_id` es un PSEUDÓNIMO estable y la política firmada dice que sirve
       «para todo lo que un análisis necesita: agrupar, contar y unir». Aceptarlo es
       respetar lo que Samuel firmó, no un descuido.
+  # ---------------------------------------------------------------------------
+  # EL BORDE DE K_MIN, que vale 5. Anadidos el 2026-09-02: la mutacion dejaba vivos
+  # 29 mutantes en esta regla y la mayoria eran comparaciones de borde. Un `>=` por
+  # un `>` aqui deja pasar grupos de una persona con forma de agregado, que es
+  # exactamente lo que la regla existe para parar.
+  # ---------------------------------------------------------------------------
+  - id: R012-A5
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) >= 5"
+    por_que: "El borde exacto: pedir grupos de 5 o mas es legal, porque K_MIN es 5."
+  - id: R012-A6
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) > 100"
+    por_que: "Muy por encima del minimo: la regla no estorba al trabajo normal."
+
+  # ---------------------------------------------------------------------------
+  # LA FRANJA LEGITIMA. Un techo CON suelo de al menos K_MIN es analisis normal;
+  # un techo solo es pedir los grupos raros. Estos dos casos son lo que impide que
+  # el refuerzo del 2026-09-02 degenere en rechazar toda consulta con `<=`.
+  # ---------------------------------------------------------------------------
+  - id: R012-A7
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) >= 5 AND count(*) <= 100"
+    por_que: "Franja de tamanos con suelo en K_MIN: legitimo y frecuente."
+  - id: R012-A8
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) > 4 AND count(*) <= 100"
+    por_que: "El mismo suelo escrito con `>`: cuatro exclusivo son cinco inclusivo."
+
 reject:
   - id: R012-R1
     rol: analyst
@@ -65,4 +94,64 @@ reject:
     posicion: group_by
     sujeto: "dim_customer.email"
     reintentable: true
+    alternativa: "dim_customer.email_domain"
     por_que: "Un correo identifica a una persona igual que un NIF."
+  - id: R012-R5
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 4"
+    rule_id: R012
+    code: group_too_small
+    posicion: having
+    sujeto: "count lte 4"
+    reintentable: true
+    por_que: >-
+      Una fila por debajo del borde. Junto con R012-A5 fija K_MIN exactamente: 4 se
+      rechaza y 5 se acepta, y ningun mutante de comparacion sobrevive a las dos.
+  - id: R012-R6
+    rol: analyst
+    sql: "SELECT count(*) AS n FROM dim_customer GROUP BY first_name"
+    rule_id: R008
+    code: column_policy
+    posicion: group_by
+    sujeto: "dim_customer.first_name"
+    reintentable: true
+    por_que: >-
+      Agrupar por una columna ENMASCARADA la para R008 antes que R012, y el caso
+      vive aqui para dejar escrito cual de las dos manda: la de politica, porque
+      da el mensaje que redirige.
+  # ---------------------------------------------------------------------------
+  # REGRESION · OFF-BY-ONE. Los tres se ACEPTABAN hasta el 2026-09-02.
+  #
+  # La comprobacion era «rechaza si el literal esta por debajo de K_MIN», correcta
+  # para una igualdad —`count(*) = 3` pide grupos de tres— y FALSA para un limite
+  # superior: `count(*) <= 5` devuelve los grupos de 1, 2, 3, 4 y 5, y
+  # `count(*) <= 1000` devuelve todos los grupos pequenos del almacen. Acotar por
+  # arriba el tamano de grupo ES la consulta de k-anonimato al reves.
+  # ---------------------------------------------------------------------------
+  - id: R012-R7
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 5"
+    rule_id: R012
+    code: group_too_small
+    posicion: having
+    reintentable: true
+    por_que: "El borde: `<= 5` incluye los grupos de una persona, aunque 5 sea K_MIN."
+  - id: R012-R8
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 1000"
+    rule_id: R012
+    code: group_too_small
+    posicion: having
+    reintentable: true
+    por_que: >-
+      Y con un numero grande, que es la forma que mas facil se cuela: pedir los
+      grupos de «mil o menos» devuelve tambien los de uno.
+  - id: R012-R9
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) >= 3 AND count(*) <= 100"
+    rule_id: R012
+    code: group_too_small
+    posicion: having
+    reintentable: true
+    por_que: "Un suelo POR DEBAJO de K_MIN no salva el techo: la franja sigue empezando en 3."
+

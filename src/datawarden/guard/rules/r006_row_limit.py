@@ -29,6 +29,7 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 #: Desplazamiento máximo. Un `OFFSET 1000000` recorre un millón de filas para
 #: tirarlas: el coste es el mismo que devolverlas y no aparece en el `LIMIT`.
@@ -92,17 +93,11 @@ class RowLimitRule:
             if value is None:
                 return self._not_static(offset.expression, "OFFSET")
             if value < 0 or value > MAX_OFFSET:
+                message, suggestion = messages.offset_too_large(value, MAX_OFFSET)
                 return reject(
                     self,
-                    message=(
-                        f"OFFSET {value} is outside the allowed range [0, {MAX_OFFSET}]; "
-                        "a large offset makes the engine produce and discard rows, "
-                        "which costs the same as returning them"
-                    ),
-                    suggestion=(
-                        "narrow the question with a WHERE predicate instead of paging "
-                        "deep into the result. Filtering is what makes a query cheap"
-                    ),
+                    message=message,
+                    suggestion=suggestion,
                     position=Position.STATEMENT,
                     subject=f"OFFSET {value}",
                     retryable=True,
@@ -115,17 +110,11 @@ class RowLimitRule:
         if value is None:
             return self._not_static(limit.expression, "LIMIT")
         if value <= 0:
+            message, suggestion = messages.limit_asks_for_nothing(value)
             return reject(
                 self,
-                message=(
-                    f"LIMIT {value} asks for no rows at all; this server answers "
-                    "questions about data, and the shape of a table is published in "
-                    "the catalog"
-                ),
-                suggestion=(
-                    "read the catalog resource for the columns and their types, or ask "
-                    "for a positive number of rows"
-                ),
+                message=message,
+                suggestion=suggestion,
                 position=Position.STATEMENT,
                 subject=f"LIMIT {value}",
                 retryable=True,
@@ -134,16 +123,11 @@ class RowLimitRule:
 
     def _not_static(self, node: exp.Expression | None, clause: str) -> RuleResult:
         rendered = node.__class__.__name__ if node is not None else "nothing"
+        message, suggestion = messages.limit_not_literal(clause, rendered)
         return reject(
             self,
-            message=(
-                f"the {clause} is a {rendered} and not a literal number, so the number "
-                "of rows cannot be known before running the query"
-            ),
-            suggestion=(
-                f"write a plain number: `{clause} 100`. A row cap that depends on the "
-                "data is not a cap"
-            ),
+            message=message,
+            suggestion=suggestion,
             position=Position.STATEMENT,
             subject=clause,
             retryable=True,

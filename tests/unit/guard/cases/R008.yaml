@@ -51,6 +51,13 @@ accept:
     sql: "SELECT country_code AS c FROM dim_customer ORDER BY 1 LIMIT 5"
     por_que: "Y por su ordinal, que `qualify` convierte en el mismo alias."
 
+  # `PARTITION BY` de ventana: la octava posicion de la matriz, y hasta el 2026-09-02
+  # no tenia ni un caso. Una columna PERMITIDA sigue pudiendo particionar.
+  - id: R008-A8
+    rol: analyst
+    sql: "SELECT row_number() OVER (PARTITION BY country_code) AS r FROM dim_customer"
+    por_que: "Ventanas sobre columnas permitidas: trabajo analitico normal."
+
 reject:
   - id: R008-R1
     rol: analyst
@@ -60,6 +67,7 @@ reject:
     posicion: where
     sujeto: "dim_customer.birth_date"
     reintentable: true
+    alternativa: "dim_customer.age_band"
     por_que: "EL CANAL LATERAL POR PREDICADO. No devuelve la fecha y filtra por ella."
   - id: R008-R2
     rol: analyst
@@ -92,6 +100,7 @@ reject:
     posicion: where
     sujeto: "dim_customer.birth_date"
     reintentable: true
+    alternativa: "dim_customer.age_band"
     por_que: >-
       EL ALIAS QUE OCULTA. En el WHERE no pone `birth_date`, pone `b`. Lo encontró
       una prueba de humo, no una revisión, y obligó a resolver el linaje DENTRO de
@@ -127,6 +136,7 @@ reject:
     posicion: join_on
     sujeto: "dim_customer.birth_date"
     reintentable: true
+    alternativa: "dim_customer.age_band"
     por_que: "El mismo predicado, escondido en la condición de un JOIN."
 
   # ---------------------------------------------------------------------------
@@ -261,3 +271,66 @@ reject:
     por_que: >-
       `ORDER BY ... DESC LIMIT 1` es la forma más directa del oráculo: devuelve el
       extremo del recorrido en una sola consulta.
+  # ---------------------------------------------------------------------------
+  # LA POSICION `window_partition`, que estaba en el enum y en la matriz y no
+  # tenia ni un caso. Particionar una ventana por una columna protegida es el
+  # mismo ataque que agrupar por ella: cada particion acaba siendo una persona,
+  # y el numero de fila revela la posicion de esa persona en el orden.
+  # ---------------------------------------------------------------------------
+  - id: R008-R15
+    rol: analyst
+    sql: "SELECT row_number() OVER (PARTITION BY national_id) AS r FROM dim_customer"
+    rule_id: R008
+    code: column_policy
+    posicion: window_partition
+    sujeto: "dim_customer.national_id"
+    reintentable: true
+    por_que: "Particionar por un identificador denegado. Cada particion es una persona."
+  - id: R008-R16
+    rol: analyst
+    sql: "SELECT row_number() OVER (PARTITION BY first_name) AS r FROM dim_customer"
+    rule_id: R008
+    code: column_policy
+    posicion: window_partition
+    sujeto: "dim_customer.first_name"
+    reintentable: true
+    por_que: >-
+      Y con una columna ENMASCARADA, no denegada: `mask` es legal en la proyeccion
+      y prohibida aqui, que es la asimetria entera de la politica.
+  - id: R008-R17
+    rol: analyst
+    sql: "SELECT row_number() OVER (ORDER BY national_id) AS r FROM dim_customer"
+    rule_id: R008
+    code: column_policy
+    posicion: order_by
+    sujeto: "dim_customer.national_id"
+    reintentable: true
+    por_que: >-
+      El ORDER BY de dentro de una ventana, que es otra rama del arbol y otro
+      oraculo de comparacion: ordena por el valor sin proyectarlo.
+  - id: R008-R18
+    rol: analyst
+    sql: "SELECT count(*) AS n FROM dim_customer GROUP BY country_code, national_id"
+    rule_id: R008
+    code: column_policy
+    posicion: group_by
+    sujeto: "dim_customer.national_id"
+    reintentable: true
+    por_que: >-
+      **La columna prohibida es la SEGUNDA del GROUP BY.** La regla tiene que seguir
+      mirando despues de encontrar una permitida: un `continue` que fuera un `break`
+      aceptaria esta consulta, y ningun caso de una sola columna lo notaria.
+  - id: R008-R19
+    rol: analyst
+    sql: |
+      WITH c AS (SELECT national_id AS x FROM dim_customer)
+      SELECT count(*) AS n FROM c GROUP BY x
+    rule_id: R008
+    code: column_policy
+    posicion: group_by
+    sujeto: "dim_customer.national_id"
+    reintentable: true
+    por_que: >-
+      Agrupar por el alias de una CTE. El rechazo nombra la columna BASE y no la
+      `x`, que es lo unico que permite corregir la consulta.
+

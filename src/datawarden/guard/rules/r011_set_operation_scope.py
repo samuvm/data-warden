@@ -21,6 +21,12 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
+
+#: El texto de la rama VALUES no depende de nada del árbol, así que se resuelve una
+#: vez al importar en vez de en cada rechazo. Un literal de prosa dentro del cuerpo
+#: de la regla es un mutante que ninguna aserción legítima puede matar.
+_VALUES_BRANCH = messages.values_branch()
 
 MAX_BRANCHES: Final = 10
 
@@ -49,30 +55,18 @@ class SetOperationScopeRule:
                 ):
                     return reject(
                         self,
-                        message=(
-                            "one branch of the set operation is a VALUES list, so it "
-                            "would add rows that do not come from the warehouse"
-                        ),
-                        suggestion=(
-                            "every branch has to read from a catalog relation. If you "
-                            "need a constant, put it in the projection of a branch "
-                            "that reads real rows"
-                        ),
+                        message=_VALUES_BRANCH[0],
+                        suggestion=_VALUES_BRANCH[1],
                         position=Position.SUBQUERY,
                         subject="VALUES",
                         retryable=False,
                     )
         if branches >= MAX_BRANCHES:
+            message, suggestion = messages.too_many_branches(branches + 1, MAX_BRANCHES)
             return reject(
                 self,
-                message=(
-                    f"the query chains {branches + 1} set-operation branches and the "
-                    f"limit is {MAX_BRANCHES}; each branch is another scan"
-                ),
-                suggestion=(
-                    "use a single query with an IN or a JOIN against a dimension "
-                    "instead of unioning one branch per value"
-                ),
+                message=message,
+                suggestion=suggestion,
                 position=Position.SUBQUERY,
                 subject=f"{branches + 1} branches",
                 retryable=True,

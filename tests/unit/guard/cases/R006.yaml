@@ -24,6 +24,62 @@ accept:
     rol: analyst
     sql: "SELECT customer_sk FROM dim_customer LIMIT 100 OFFSET 200"
     por_que: "Un desplazamiento pequeño es paginación normal."
+  # ---------------------------------------------------------------------------
+  # LOS BORDES DEL TOPE DE FILAS. Anadidos el 2026-09-02: la mutacion dejaba vivos
+  # 55 mutantes en esta regla, y casi todos eran comparaciones de borde —un `>`
+  # por un `>=`, un `<= 0` por un `< 0`— que ningun caso ejercitaba. Un tope que
+  # se equivoca en una fila se equivoca para siempre y en silencio.
+  #
+  # `limite:` es la columna nueva del corpus: asierta el LIMIT EXACTO con el que
+  # sale el arbol, no que haya uno cualquiera. `max_rows` de analyst es 50.000.
+  # ---------------------------------------------------------------------------
+  - id: R006-A10
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer"
+    limite: 50000
+    por_que: "Sin LIMIT, R006 inyecta el tope del rol. El numero es el del rol, no otro."
+  - id: R006-A11
+    rol: ops
+    sql: "SELECT customer_sk FROM dim_customer"
+    limite: 2000
+    por_que: "El mismo caso con otro rol: el tope sale de la politica, no de una constante."
+  - id: R006-A12
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 999999"
+    limite: 50000
+    por_que: "Por encima del tope se RECORTA, no se rechaza: la pregunta es legitima."
+  - id: R006-A13
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 50000"
+    limite: 50000
+    por_que: "El borde exacto. Pedir justo el tope no se recorta: `>` y no `>=`."
+  - id: R006-A14
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 50001"
+    limite: 50000
+    por_que: "Una fila por encima del borde, y se recorta. Es la otra mitad de A13."
+  - id: R006-A15
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 1"
+    limite: 1
+    por_que: "El borde de abajo: `LIMIT 1` es legal y no se toca. `<= 0` y no `< 0`."
+  - id: R006-A16
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 0"
+    limite: 10
+    por_que: "OFFSET 0 es legal: el rechazo es `< 0`, no `<= 0`."
+  - id: R006-A17
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 100000"
+    limite: 10
+    por_que: "El borde exacto de MAX_OFFSET. Se acepta: el rechazo es `> MAX_OFFSET`."
+
+  - id: R006-A18
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 20"
+    limite: 10
+    por_que: "Un OFFSET normal y sano, dentro del rango, que no toca el LIMIT pedido."
+
 reject:
   - id: R006-R1
     rol: analyst
@@ -96,3 +152,45 @@ reject:
     sujeto: "LIMIT -3"
     reintentable: true
     por_que: "Y un límite negativo escondido a la misma profundidad."
+  - id: R006-R8
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 100001"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 100001"
+    reintentable: true
+    por_que: >-
+      Una fila por encima de MAX_OFFSET. Junto con R006-A17 fija el borde exacto:
+      un `>=` en vez de un `>` rechazaria el caso legitimo, y al reves dejaria pasar
+      un desplazamiento de mas para siempre.
+  - id: R006-R9
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET -1"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "OFFSET -1"
+    reintentable: true
+    por_que: "Un OFFSET negativo. Cierra la otra mitad de `value < 0 or value > MAX`."
+  - id: R006-R10
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 1 + 1"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "LIMIT"
+    reintentable: true
+    por_que: >-
+      Un LIMIT que no es un literal. Un tope que depende de una expresion no se
+      puede conocer antes de ejecutar, y por tanto no es un tope.
+  - id: R006-R11
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 5 + 5"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "OFFSET"
+    reintentable: true
+    por_que: "Lo mismo por el lado del OFFSET, que es una rama distinta de la regla."
+

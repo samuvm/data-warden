@@ -19,6 +19,7 @@ from sqlglot import expressions as exp
 
 from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
+from datawarden.guard.rules import messages
 
 
 class StarExpansionRule:
@@ -48,16 +49,11 @@ class StarExpansionRule:
             return PASS
         parent = star.parent
         where = parent.__class__.__name__ if parent is not None else "the query"
+        message, suggestion = messages.star_survived(where)
         return reject(
             self,
-            message=(
-                f"a * survived qualification inside {where}; the guard would then be "
-                "deciding about columns it has never seen"
-            ),
-            suggestion=(
-                "name the columns you want. The catalog resource lists them, and "
-                "naming them is also what keeps the query cheap"
-            ),
+            message=message,
+            suggestion=suggestion,
             position=Position.PROJECTION,
             subject="*",
             retryable=True,
