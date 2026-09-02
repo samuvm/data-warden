@@ -325,7 +325,16 @@ Se dicen aquí porque no decirlas sería el fallo:
 - **La calibración del coste** usa la fracción de ficheros escaneados que reporta el
   motor, no `total_bytes_read`: ese contador mide E/S y lo falsea la caché — medido, un
   escaneo de la tabla entera reportó menos bytes que uno de un solo día lanzado antes.
-- Los anillos **2 (generación) y 5 (enmascarado y auditoría)** todavía no existen.
+- **El enmascarado es determinista con pimienta fija, no con sal por sesión.** Se ganan
+  respuestas de referencia comparables entre ejecuciones —sin eso, ninguna pregunta del
+  banco que toque una columna enmascarada podría medirse— y **se pierde la resistencia a
+  correlacionar dos sesiones distintas**. Es un cambio decidido, no una errata.
+- **La pimienta del hash llega al motor, y por tanto a sus logs.** Vive dentro de un
+  `CREATE TEMP MACRO` que se instala al abrir la conexión, así que **no** aparece en el
+  registro de auditoría y **sí** aparece en los logs del motor, una vez por conexión en
+  vez de una vez por consulta. Es una reducción, no una eliminación. Afecta a dos
+  columnas de diecisiete; ver `docs/threat-model.md §4.2.1`.
+- El anillo **2 (generación)** todavía no existe.
 
 ## Licencia
 

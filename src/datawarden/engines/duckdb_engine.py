@@ -23,8 +23,18 @@ class DuckDBEngine:
 
     name = "duckdb"
 
-    def __init__(self, database: pathlib.Path) -> None:
+    def __init__(self, database: pathlib.Path, setup_sql: tuple[str, ...] = ()) -> None:
         self._database = database
+        # DDL que se ejecuta UNA VEZ al abrir la conexión. Hoy sirve para instalar la
+        # macro de enmascarado (P-008), y el motor NO sabe qué es: recibe cadenas y
+        # las ejecuta. Saberlo exigiría que `engines` importara `mask`, y el contrato
+        # de capas lo prohíbe —con razón: un adaptador que conoce la política deja de
+        # ser un adaptador—. Quien decide qué va aquí es `audit/`, que puede ver los
+        # dos lados.
+        #
+        # **Estas cadenas NO se auditan y no deben registrarse.** No son consultas de
+        # un usuario: son la instalación de una clave, y llevan la pimienta dentro.
+        self._setup_sql = setup_sql
         self._connection: Any = None
 
     def _connect(self) -> Any:
@@ -32,6 +42,11 @@ class DuckDBEngine:
             import duckdb
 
             self._connection = duckdb.connect(str(self._database), read_only=True)
+            for statement in self._setup_sql:
+                # Macros TEMPORALES: viven en el esquema de sesión y no tocan el
+                # fichero, así que la conexión sigue siendo de SOLO LECTURA, que es
+                # innegociable.
+                self._connection.execute(statement)
         return self._connection
 
     def execute(self, query: ValidatedQuery) -> ResultSet:

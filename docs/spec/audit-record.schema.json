@@ -38,17 +38,31 @@
     "role": {
       "description": "El rol EFECTIVO con el que se resolvió la consulta.",
       "type": "string",
-      "enum": ["analyst", "ops", "finance", "admin"]
+      "enum": [
+        "analyst",
+        "ops",
+        "finance",
+        "admin"
+      ]
     },
     "role_source": {
       "description": "DE DÓNDE salió el rol, y es el campo que hace auditable el invariante I-05. `server_process` es un proceso por rol; `principal_token` es un handle HMAC acuñado por el servidor. NO EXISTE un valor `request_meta` ni `tool_argument`: si el rol pudiera venir de ahí, el anillo 5 sería ficción, y un enum sin esos valores convierte la promesa en algo que un esquema rechaza.",
       "type": "string",
-      "enum": ["server_process", "principal_token", "cli_flag"]
+      "enum": [
+        "server_process",
+        "principal_token",
+        "cli_flag"
+      ]
     },
     "status": {
       "description": "Los CUATRO estados que G-AUDIT-COV exige. `rejected_by_guard` y `rejected_by_budget` se registran igual que `executed`: auditar solo lo ejecutado deja fuera precisamente los eventos que importan.",
       "type": "string",
-      "enum": ["rejected_by_guard", "rejected_by_budget", "executed", "error"]
+      "enum": [
+        "rejected_by_guard",
+        "rejected_by_budget",
+        "executed",
+        "error"
+      ]
     },
     "question_digest": {
       "description": "sha256 hex de la pregunta en lenguaje natural, NO la pregunta. La pregunta puede contener el nombre de una persona ('cuánto cobra Fulano') y la auditoría es inmutable: guardarla en claro crea la contradicción entre append-only y derecho de supresión que la política declara como límite. El digest permite demostrar que la pregunta fue esa sin conservarla.",
@@ -57,85 +71,140 @@
     },
     "question_preview": {
       "description": "Opcional y APAGADO por defecto. Existe para el modo de depuración local, donde no hay datos de personas reales porque el dataset es sintético. Que sea opcional y esté documentado como tal es la diferencia entre una decisión y un descuido.",
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 500
     },
     "sql_digest": {
-      "description": "sha256 hex del SQL RE-SERIALIZADO desde el AST validado -- lo que de verdad se ejecutó (I-02)-- y nunca de la cadena de entrada. Si se hasheara la entrada, la auditoría certificaría algo distinto de lo que corrió.",
+      "description": "sha256 hex del SQL RE-SERIALIZADO desde el AST validado -- lo que de verdad se ejecutó (I-02)-- y nunca de la cadena de entrada. Si se hasheara la entrada, la auditoría certificaría algo distinto de lo que corrió. CENTINELA (P-007, aprobada por Samuel el 2026-09-02): cuando el rechazo ocurre ANTES de que exista arbol validado -- R001 sobre una consulta que ni parsea -- no hay nada legitimo que hashear, y hashear la entrada seria justo lo que este campo prohibe. En ese caso el campo lleva 64 ceros: un valor legal, que casa el patron, distinguible de cualquier sha real, y el mismo vocabulario que este contrato ya usa para el genesis de `prev_hash`. OJO, y por eso se escribe aqui: `prev_hash` y `sql_digest` usan EL MISMO relleno de 64 ceros con DOS significados distintos -- «primero de la cadena» y «no hubo arbol»--. No colisiona, porque son campos distintos y se leen por nombre; pero un ayudante generico del tipo «¿esto es un centinela?» los confundiria. Se leen por campo, nunca por valor.",
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
     "sql": {
       "description": "El SQL re-serializado, en claro. Opcional: es esquema y estructura, no datos, así que guardarlo no filtra nada de nadie, pero abulta.",
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "maxLength": 20000
     },
     "tables": {
       "description": "Tablas del árbol validado, cualificadas y ordenadas. Ordenadas por obligación: entran en el hash.",
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "uniqueItems": true
     },
     "columns_masked": {
       "description": "Columnas que el anillo 4 reescribió, `tabla.columna`, ordenadas. Es la evidencia de que el enmascarado ocurrió, no la promesa de que ocurrió.",
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "uniqueItems": true
     },
     "rejection": {
       "description": "El rechazo íntegro, conforme a rejection.schema.json, cuando `status` empieza por `rejected_`. Se guarda entero porque el mensaje accionable ES el evento.",
-      "type": ["object", "null"]
+      "type": [
+        "object",
+        "null"
+      ]
     },
     "estimated_bytes": {
       "description": "Bytes que el estimador previó que se escanearían, ANTES de ejecutar. Junto con `scanned_bytes` es lo que alimenta G-COST-CALIB sin tener que volver a correr nada.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 0
     },
     "scanned_bytes": {
       "description": "Bytes que el motor dice haber escaneado, si el motor lo reporta. `null` cuando no lo reporta, que es distinto de cero y no se puede confundir con él.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 0
     },
     "budget_bytes": {
       "description": "El presupuesto duro del rol en el momento de la invocación. Se guarda porque el presupuesto se recalibra, y un registro que solo dijera 'rechazado por presupuesto' no sería reproducible seis meses después.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 0
     },
     "row_count": {
       "description": "Filas DEVUELTAS tras aplicar `max_rows` del dominio.",
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 0
     },
     "truncated": {
       "description": "Si `max_rows` recortó el resultado. Sin este campo, un análisis sobre 2.000 filas parece completo.",
-      "type": ["boolean", "null"]
+      "type": [
+        "boolean",
+        "null"
+      ]
     },
     "duration_ms": {
-      "type": ["number", "null"],
+      "type": [
+        "number",
+        "null"
+      ],
       "minimum": 0
     },
     "engine": {
-      "type": ["string", "null"],
-      "enum": ["duckdb", "athena", null]
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "duckdb",
+        "athena",
+        null
+      ]
     },
     "model": {
       "description": "Qué modelo generó el SQL, por TAG y por DIGEST. El digest porque un tag de Ollama es móvil: `qwen3.5:9b-mlx` puede apuntar a otro peso dentro de tres meses (models.lock, Q-007).",
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
-        "tag": { "type": "string" },
-        "digest": { "type": "string" },
-        "prompt_id": { "type": "string" },
-        "prompt_version": { "type": "integer" },
-        "prompt_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        "tag": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "prompt_id": {
+          "type": "string"
+        },
+        "prompt_version": {
+          "type": "integer"
+        },
+        "prompt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
     "trace_id": {
       "description": "`traceparent` propagado desde `_meta` (MCP 2026-07-28). Es DATO transportado y jamás autoridad: encadena trazas, no concede permisos.",
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "prev_hash": {
-      "description": "El `hash` del registro anterior. El primero de la cadena lleva 64 ceros, que es un valor legal y distinguible en vez de `null`, para que el verificador no necesite un caso especial.",
+      "description": "El `hash` del registro anterior. El primero de la cadena lleva 64 ceros, que es un valor legal y distinguible en vez de `null`, para que el verificador no necesite un caso especial. Los mismos 64 ceros significan otra cosa en `sql_digest` -- «no hubo arbol validado»--: se leen por campo, nunca por valor.",
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },

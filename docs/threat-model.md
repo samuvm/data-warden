@@ -115,6 +115,41 @@ ejecuciones. El precio es que **el mismo valor produce el mismo hash siempre**, 
 conozca un valor puede reconocerlo en el resultset. Quien tenga acceso a la pimienta puede además
 construir un diccionario y revertir cualquier columna de cardinalidad baja.
 
+**Y hay una segunda pérdida, que se acepta a sabiendas.** El plan original pedía **sal por sesión**,
+que impedía correlacionar dos sesiones distintas del mismo usuario. La pimienta fija no lo impide:
+dos sesiones producen los mismos hashes y se pueden cruzar. Se cambió porque con sal por sesión el
+resultset de toda consulta con columna `mask` deja de ser comparable entre ejecuciones, y entonces
+las preguntas del banco de 60 que tocan una columna enmascarada **no pueden tener respuesta de
+referencia** — o sea, `G-EXEC-ACC` dejaría de poder medirse sobre ellas. Es un cambio, no una
+errata, y va escrito aquí como pérdida (P-006).
+
+### 4.2.1 · Dónde está la pimienta, exactamente
+
+`hash_estable` se calcula **en el motor**: es la consecuencia directa de que el enmascarado sea una
+reescritura de AST y no un post-proceso, y para hashear en el motor hay que darle la clave. La
+primera versión escribía la pimienta en cada consulta. Hoy vive dentro de un `CREATE TEMP MACRO`
+que se instala al abrir la conexión, y el árbol solo dice `warden_hash(...)`.
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Campo `sql` del registro de auditoría | la pimienta, en cada registro | **no aparece** |
+| Logs del motor | una vez por CONSULTA | **una vez por CONEXIÓN**, en el `CREATE MACRO` |
+
+**La macro NO elimina la pimienta de los logs del motor: la reduce.** Se dice con esas palabras
+porque un límite declarado a medias es peor que uno que no se declara, ya que parece cerrado. Quien
+pueda leer los logs del motor sigue pudiendo obtener la pimienta, y con ella revertir las dos
+columnas hasheadas —`dim_device.device_fingerprint` y `fact_payment_attempt.ip_address_int`— por
+diccionario, porque las dos son de cardinalidad acotada.
+
+**La solución de verdad está decidida y no es esta.** Esas dos columnas no necesitan un hash con
+clave: necesitan un **pseudónimo estable**, que es el patrón que este almacén ya usa con
+`dim_card.card_token` (denegada) y su alternativa publicada `card_sk`. Generando
+`device_fingerprint_sk` e `ip_address_sk` en tiempo de construcción, la capacidad de contar sesiones
+distintas se conserva entera y **la pimienta deja de existir para ellas**: un problema de gestión de
+claves se convierte en uno de modelado de datos, que es mucho más barato de tener. Va cuando se
+regenere el dataset, porque hacerlo hoy invalida el `MANIFEST` contra el que cerraron las fases 0, 1
+y 2 (P-008).
+
 ### 4.3 · El modelo
 
 El modelo puede generar SQL correcto y **semánticamente equivocado**: la consulta pasa los cinco
