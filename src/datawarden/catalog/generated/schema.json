@@ -1,0 +1,5810 @@
+{
+  "dialect": "duckdb",
+  "tables": [
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.device_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "device_sk",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.n_payments"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "n_payments",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.first_seen_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "first_seen_on",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.last_seen_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "last_seen_on",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.is_trusted"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_trusted",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "bridge_customer_device"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.merchant_natural_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_natural_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.employee_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "employee_sk",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.allocation_pct"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "allocation_pct",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.role"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "role",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.valid_from"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "valid_from",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.valid_to"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "valid_to",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_merchant_account_manager.is_current"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_current",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "bridge_merchant_account_manager"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.card_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "card_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.card_token"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "card_token",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.card_scheme"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "card_scheme",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.card_bin"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "card_bin",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.pan_last4"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "pan_last4",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.issuer_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "issuer_name",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.issuer_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "issuer_country",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.funding_type"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "funding_type",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.expiry_month"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "expiry_month",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.expiry_year"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "expiry_year",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.is_primary"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_primary",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_card.added_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "added_on",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_card"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "group_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "group_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "group_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.parent_group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "parent_group_sk",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.depth"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "depth",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.is_ultimate_parent"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_ultimate_parent",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.incorporation_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "incorporation_country",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.sector"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "sector",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.vat_number"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "vat_number",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.incorporated_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "incorporated_on",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.employee_count_declared"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "employee_count_declared",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.payout_iban"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "payout_iban",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_corporate_group"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.customer_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "customer_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.first_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "first_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.last_name_1"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "last_name_1",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.last_name_2"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "last_name_2",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.email"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "email",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.email_domain"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "email_domain",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.phone_e164"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "phone_e164",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.national_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "national_id",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.birth_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "birth_date",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.age_band"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "age_band",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.street_address"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "street_address",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.postal_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "postal_code",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.region_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "region_code",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.city_id"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "city_id",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.income_tier"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "income_tier",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.value_tier"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "value_tier",
+          "nullable": true,
+          "ordinal": 18,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.primary_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "primary_category",
+          "nullable": true,
+          "ordinal": 19,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.segment_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "segment_code",
+          "nullable": true,
+          "ordinal": 20,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.signed_up_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "signed_up_on",
+          "nullable": true,
+          "ordinal": 21,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.marketing_opt_in"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "marketing_opt_in",
+          "nullable": true,
+          "ordinal": 22,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.is_business_account"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_business_account",
+          "nullable": true,
+          "ordinal": 23,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.support_note"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "support_note",
+          "nullable": true,
+          "ordinal": 24,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.kyc_status"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "kyc_status",
+          "nullable": true,
+          "ordinal": 25,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.kyc_verified_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "kyc_verified_on",
+          "nullable": true,
+          "ordinal": 26,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.erasure_requested_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "erasure_requested_on",
+          "nullable": true,
+          "ordinal": 27,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.retention_expires_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "retention_expires_on",
+          "nullable": true,
+          "ordinal": 28,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_customer"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.date_key"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "date_key",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.full_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "full_date",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.year"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "year",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.quarter"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "quarter",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.month"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "month",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.day_of_month"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "day_of_month",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.day_of_week"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "day_of_week",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.day_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "day_name",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.month_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "month_name",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.iso_year"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "iso_year",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.iso_week"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "iso_week",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.is_weekend"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_weekend",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.is_holiday_es"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_holiday_es",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.is_business_day"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_business_day",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.fiscal_year"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "fiscal_year",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.fiscal_quarter"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "fiscal_quarter",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_date.days_from_epoch"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "days_from_epoch",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_date"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "device_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_fingerprint"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "device_fingerprint",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_class"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "device_class",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.os_family"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "os_family",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.os_version"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "os_version",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_model"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "device_model",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.browser_family"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "browser_family",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.screen_resolution"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "screen_resolution",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.is_emulator"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_emulator",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.first_seen_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "first_seen_on",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_device"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.employee_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "employee_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.employee_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "employee_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.first_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "first_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.last_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "last_name",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.job_title"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "job_title",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.org_level"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "org_level",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.manager_employee_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "manager_employee_sk",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.department"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "department",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.work_email"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "work_email",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.personal_phone"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "personal_phone",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.salary_band"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "salary_band",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.hired_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "hired_on",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_employee.is_active"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_active",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_employee"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.ip_block_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_block_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.ip_start"
+          ],
+          "engine_type": "UINTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_start",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.ip_end"
+          ],
+          "engine_type": "UINTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_end",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.cidr"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "cidr",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.city_id"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "city_id",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.latitude"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "latitude",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.longitude"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "longitude",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.asn"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "asn",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.isp_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "isp_name",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.connection_kind"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "connection_kind",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.is_anonymizer"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_anonymizer",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.risk_weight"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "risk_weight",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_ip_block"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.merchant_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.version_no"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "version_no",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.valid_from"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "valid_from",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.valid_to"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "valid_to",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.is_current"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_current",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.trade_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "trade_name",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.legal_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "legal_name",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "group_sk",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.mcc"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "mcc",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "category",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.risk_tier"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "risk_tier",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.mdr_bps"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "mdr_bps",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.onboarded_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "onboarded_on",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.is_active"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_active",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.settlement_currency"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "settlement_currency",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.traffic_weight"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "traffic_weight",
+          "nullable": true,
+          "ordinal": 18,
+          "published": false
+        }
+      ],
+      "kind": "view",
+      "name": "dim_merchant"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.site_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "site_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.merchant_natural_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_natural_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.site_kind"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "site_kind",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.site_label"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "site_label",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.is_card_present"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_card_present",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.supports_3ds"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "supports_3ds",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant_site.opened_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "opened_on",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_merchant_site"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.product_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "product_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.sku"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "sku",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.product_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "product_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.brand"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "brand",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "category",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.subcategory"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "subcategory",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.list_price_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "list_price_minor",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.unit_cost_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "unit_cost_minor",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.is_digital"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_digital",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.is_age_restricted"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_age_restricted",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.launched_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "launched_on",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_product.popularity_weight"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "popularity_weight",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "dim_product"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.dispute_sk"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "dispute_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.dispute_case_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "dispute_case_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.card_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "card_sk",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.stage_no"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "stage_no",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.final_stage_no"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "final_stage_no",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.is_final_stage"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_final_stage",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.stage_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "stage_name",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.opened_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "opened_on",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.disputed_eur_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "disputed_eur_minor",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.outcome"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "outcome",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_dispute.reason_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "reason_category",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "fact_dispute"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.line_no"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "line_no",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.event_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "event_date",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.product_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "product_sk",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.quantity"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "quantity",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.unit_list_price_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "unit_list_price_minor",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.unit_paid_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "unit_paid_minor",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.discount_pct"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "discount_pct",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.line_amount_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "line_amount_minor",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_order_line.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "fact_order_line"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ingestion_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ingestion_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.attempt_seq"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "attempt_seq",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_ts"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "event_ts",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "event_date",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ingested_at"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "ingested_at",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.site_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "site_sk",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.card_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "card_sk",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.device_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "device_sk",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.product_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "product_category",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.channel"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "channel",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_minor",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_eur_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_eur_minor",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": true,
+          "deprecated_reason": "Columna heredada de la primera ingesta. **Discrepa de `amount_minor` en el 0,4 % de las filas**, y esa discrepancia está inyectada a propósito en el generador: es la trampa nº 8 de `docs/spec/glossary.yaml`. Quien la use obtiene un número que se parece al bueno, lo cual es peor que un error evidente. `amount_minor` es la columna vigente y está en la misma tabla.",
+          "derives_from": [
+            "fact_payment_attempt.amount_cents"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_cents",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.fx_rate"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "fx_rate",
+          "nullable": true,
+          "ordinal": 18,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.auth_status"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "auth_status",
+          "nullable": true,
+          "ordinal": 19,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.decline_reason_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "decline_reason_code",
+          "nullable": true,
+          "ordinal": 20,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.auth_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "auth_code",
+          "nullable": true,
+          "ordinal": 21,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.risk_score"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "risk_score",
+          "nullable": true,
+          "ordinal": 22,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.risk_decision"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "risk_decision",
+          "nullable": true,
+          "ordinal": 23,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.three_ds_requested"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "three_ds_requested",
+          "nullable": true,
+          "ordinal": 24,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.three_ds_result"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "three_ds_result",
+          "nullable": true,
+          "ordinal": 25,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.sca_exemption"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "sca_exemption",
+          "nullable": true,
+          "ordinal": 26,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ip_address_int"
+          ],
+          "engine_type": "UINTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_address_int",
+          "nullable": true,
+          "ordinal": 27,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.geo_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "geo_country",
+          "nullable": true,
+          "ordinal": 28,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.is_cross_border"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_cross_border",
+          "nullable": true,
+          "ordinal": 29,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.is_test"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_test",
+          "nullable": true,
+          "ordinal": 30,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.latency_ms"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "latency_ms",
+          "nullable": true,
+          "ordinal": 31,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.fee_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "fee_minor",
+          "nullable": true,
+          "ordinal": 32,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.interchange_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "interchange_minor",
+          "nullable": true,
+          "ordinal": 33,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.scheme_fee_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "scheme_fee_minor",
+          "nullable": true,
+          "ordinal": 34,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.settlement_batch_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "settlement_batch_id",
+          "nullable": true,
+          "ordinal": 35,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.settlement_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "settlement_date",
+          "nullable": true,
+          "ordinal": 36,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "fact_payment_attempt"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.payout_sk"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payout_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.payout_reference"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "payout_reference",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.value_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "value_date",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.settlement_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "settlement_date",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.beneficiary_group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "beneficiary_group_sk",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.merchant_count"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_count",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.batch_count"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "batch_count",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.paid_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "paid_eur_minor",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.withheld_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "withheld_eur_minor",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.beneficiary_iban"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "beneficiary_iban",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payout.beneficiary_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "beneficiary_country",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "fact_payout"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.refund_sk"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "refund_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.refund_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "refund_date",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.refund_amount_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "refund_amount_minor",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.refund_amount_eur_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "refund_amount_eur_minor",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.refund_reason"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "refund_reason",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_refund.product_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "product_category",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "fact_refund"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.settlement_batch_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "settlement_batch_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.settlement_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "settlement_date",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.scheduled_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "scheduled_date",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.merchant_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_id",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "group_sk",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.merchant_preferred_currency"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_preferred_currency",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.payment_count"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_count",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.gross_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "gross_eur_minor",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.fee_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "fee_eur_minor",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.interchange_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "interchange_eur_minor",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.scheme_fee_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "scheme_fee_eur_minor",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.net_eur_minor"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "net_eur_minor",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.reserve_eur_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "reserve_eur_minor",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.reserve_released_on"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "reserve_released_on",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_settlement_batch.batch_status"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "batch_status",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "fact_settlement_batch"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_city.city_id"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "city_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_city.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_city.city_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "city_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_city.lat"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "lat",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_city.lon"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "lon",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_city.postal_prefix"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "postal_prefix",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "ref_city"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.country_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_name",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.region"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "region",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.local_currency"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "local_currency",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.centroid_lat"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "centroid_lat",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.centroid_lon"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "centroid_lon",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.traffic_weight"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "traffic_weight",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.income_index"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "income_index",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_country.is_sepa"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_sepa",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "ref_country"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_currency.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_currency.minor_units"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "minor_units",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_currency.traffic_weight"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "traffic_weight",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_currency.is_settlement_currency"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_settlement_currency",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "ref_currency"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.decline_reason_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "decline_reason_code",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.network_response_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "network_response_code",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.description"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "description",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "category",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.is_soft_decline"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_soft_decline",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.retry_success_rate"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "retry_success_rate",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_decline_reason.is_retryable"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_retryable",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "ref_decline_reason"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_fx_rate_daily.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_fx_rate_daily.rate_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "rate_date",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_fx_rate_daily.eur_rate"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "eur_rate",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_fx_rate_daily.reference_rate"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "reference_rate",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "ref_fx_rate_daily"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.mcc"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "mcc",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.mcc_description"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "mcc_description",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "category",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.dispute_rate_pct"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "dispute_rate_pct",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.median_ticket_eur"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "median_ticket_eur",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.is_high_risk"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_high_risk",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.reserve_pct"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "reserve_pct",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "ref_mcc.settlement_delay_days"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "settlement_delay_days",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "ref_mcc"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ingestion_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ingestion_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.attempt_seq"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "attempt_seq",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_ts"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "event_ts",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "event_date",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ingested_at"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "ingested_at",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.site_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "site_sk",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.card_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "card_sk",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.device_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "device_sk",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.product_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "product_category",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.channel"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "channel",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_minor",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_eur_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_eur_minor",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_cents"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_cents",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.fx_rate"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "fx_rate",
+          "nullable": true,
+          "ordinal": 18,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.auth_status"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "auth_status",
+          "nullable": true,
+          "ordinal": 19,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.decline_reason_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "decline_reason_code",
+          "nullable": true,
+          "ordinal": 20,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.auth_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "auth_code",
+          "nullable": true,
+          "ordinal": 21,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.risk_score"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "risk_score",
+          "nullable": true,
+          "ordinal": 22,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.risk_decision"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "risk_decision",
+          "nullable": true,
+          "ordinal": 23,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.three_ds_requested"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "three_ds_requested",
+          "nullable": true,
+          "ordinal": 24,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.three_ds_result"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "three_ds_result",
+          "nullable": true,
+          "ordinal": 25,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.sca_exemption"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "sca_exemption",
+          "nullable": true,
+          "ordinal": 26,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ip_address_int"
+          ],
+          "engine_type": "UINTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_address_int",
+          "nullable": true,
+          "ordinal": 27,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.geo_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "geo_country",
+          "nullable": true,
+          "ordinal": 28,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.is_cross_border"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_cross_border",
+          "nullable": true,
+          "ordinal": 29,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.is_test"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_test",
+          "nullable": true,
+          "ordinal": 30,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.latency_ms"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "latency_ms",
+          "nullable": true,
+          "ordinal": 31,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.fee_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "fee_minor",
+          "nullable": true,
+          "ordinal": 32,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.interchange_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "interchange_minor",
+          "nullable": true,
+          "ordinal": 33,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.scheme_fee_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "scheme_fee_minor",
+          "nullable": true,
+          "ordinal": 34,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.settlement_batch_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "settlement_batch_id",
+          "nullable": true,
+          "ordinal": 35,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.settlement_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "settlement_date",
+          "nullable": true,
+          "ordinal": 36,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_attempt_dedup"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.customer_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "customer_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.first_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "first_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.last_name_1"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "last_name_1",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.last_name_2"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "last_name_2",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.email"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "email",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.email_domain"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "email_domain",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.phone_e164"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "phone_e164",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.national_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "national_id",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.birth_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "birth_date",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.age_band"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "age_band",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.street_address"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "street_address",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.postal_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "postal_code",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.region_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "region_code",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.city_id"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "city_id",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.income_tier"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "income_tier",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.value_tier"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "value_tier",
+          "nullable": true,
+          "ordinal": 18,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.primary_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "primary_category",
+          "nullable": true,
+          "ordinal": 19,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.segment_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "segment_code",
+          "nullable": true,
+          "ordinal": 20,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.signed_up_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "signed_up_on",
+          "nullable": true,
+          "ordinal": 21,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.marketing_opt_in"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "marketing_opt_in",
+          "nullable": true,
+          "ordinal": 22,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.is_business_account"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_business_account",
+          "nullable": true,
+          "ordinal": 23,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.support_note"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "support_note",
+          "nullable": true,
+          "ordinal": 24,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.kyc_status"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "kyc_status",
+          "nullable": true,
+          "ordinal": 25,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.kyc_verified_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "kyc_verified_on",
+          "nullable": true,
+          "ordinal": 26,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.erasure_requested_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "erasure_requested_on",
+          "nullable": true,
+          "ordinal": 27,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.retention_expires_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "retention_expires_on",
+          "nullable": true,
+          "ordinal": 28,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.first_name",
+            "dim_customer.last_name_1",
+            "dim_customer.last_name_2"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "full_name",
+          "nullable": true,
+          "ordinal": 29,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.birth_date"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "age_years",
+          "nullable": true,
+          "ordinal": 30,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_customer.birth_date"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "birth_date_is_implausible",
+          "nullable": true,
+          "ordinal": 31,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_customer"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.depth",
+            "dim_corporate_group.employee_count_declared",
+            "dim_corporate_group.group_id",
+            "dim_corporate_group.group_name",
+            "dim_corporate_group.group_sk",
+            "dim_corporate_group.incorporated_on",
+            "dim_corporate_group.incorporation_country",
+            "dim_corporate_group.is_ultimate_parent",
+            "dim_corporate_group.parent_group_sk",
+            "dim_corporate_group.payout_iban",
+            "dim_corporate_group.sector",
+            "dim_corporate_group.vat_number"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": false,
+          "name": "group_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.depth",
+            "dim_corporate_group.employee_count_declared",
+            "dim_corporate_group.group_id",
+            "dim_corporate_group.group_name",
+            "dim_corporate_group.group_sk",
+            "dim_corporate_group.incorporated_on",
+            "dim_corporate_group.incorporation_country",
+            "dim_corporate_group.is_ultimate_parent",
+            "dim_corporate_group.parent_group_sk",
+            "dim_corporate_group.payout_iban",
+            "dim_corporate_group.sector",
+            "dim_corporate_group.vat_number"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": false,
+          "name": "ultimate_group_sk",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.depth",
+            "dim_corporate_group.employee_count_declared",
+            "dim_corporate_group.group_id",
+            "dim_corporate_group.group_name",
+            "dim_corporate_group.group_sk",
+            "dim_corporate_group.incorporated_on",
+            "dim_corporate_group.incorporation_country",
+            "dim_corporate_group.is_ultimate_parent",
+            "dim_corporate_group.parent_group_sk",
+            "dim_corporate_group.payout_iban",
+            "dim_corporate_group.sector",
+            "dim_corporate_group.vat_number"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": false,
+          "name": "hops_to_ultimate",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_group_ultimate_parent"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.merchant_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.version_no"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "version_no",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.valid_from"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "valid_from",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.valid_to"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "valid_to",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.is_current"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_current",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.trade_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "trade_name",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.legal_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "legal_name",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "group_sk",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.mcc"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "mcc",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "category",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "country_code",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.risk_tier"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "risk_tier",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.mdr_bps"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "mdr_bps",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.onboarded_on"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "onboarded_on",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.is_active"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_active",
+          "nullable": true,
+          "ordinal": 16,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.settlement_currency"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "settlement_currency",
+          "nullable": true,
+          "ordinal": 17,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.traffic_weight"
+          ],
+          "engine_type": "DOUBLE",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "traffic_weight",
+          "nullable": true,
+          "ordinal": 18,
+          "published": false
+        }
+      ],
+      "kind": "view",
+      "name": "v_merchant_current"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "event_date",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.merchant_id"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.trade_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "trade_name",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_merchant.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "merchant_country",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "group_sk",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "group_name",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.incorporation_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "operating_country",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ultimate_group_sk",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.group_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "ultimate_group_name",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.incorporation_country"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "ultimate_country",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_corporate_group.depth",
+            "dim_corporate_group.employee_count_declared",
+            "dim_corporate_group.group_id",
+            "dim_corporate_group.group_name",
+            "dim_corporate_group.group_sk",
+            "dim_corporate_group.incorporated_on",
+            "dim_corporate_group.incorporation_country",
+            "dim_corporate_group.is_ultimate_parent",
+            "dim_corporate_group.parent_group_sk",
+            "dim_corporate_group.payout_iban",
+            "dim_corporate_group.sector",
+            "dim_corporate_group.vat_number"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": false,
+          "name": "hops_to_ultimate",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_eur_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_eur_minor",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.fee_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "fee_minor",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.interchange_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "interchange_minor",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.scheme_fee_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "scheme_fee_minor",
+          "nullable": true,
+          "ordinal": 15,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_money_flow"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ingestion_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ingestion_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_date"
+          ],
+          "engine_type": "DATE",
+          "family": "date",
+          "lineage_resolved": true,
+          "name": "event_date",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ip_address_int"
+          ],
+          "engine_type": "UINTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_address_int",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.ip_address_int"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "ip_address",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.ip_block_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_block_sk",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.country_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "ip_country",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.city_id"
+          ],
+          "engine_type": "SMALLINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "ip_city_id",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.isp_name"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "isp_name",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.asn"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "asn",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.connection_kind"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "connection_kind",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.is_anonymizer"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "is_anonymizer",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.latitude"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "latitude",
+          "nullable": true,
+          "ordinal": 13,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_ip_block.longitude"
+          ],
+          "engine_type": "FLOAT",
+          "family": "float",
+          "lineage_resolved": true,
+          "name": "longitude",
+          "nullable": true,
+          "ordinal": 14,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_payment_geo"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.payment_intent_id"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "payment_intent_id",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_ts"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "first_attempt_ts",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.event_ts"
+          ],
+          "engine_type": "TIMESTAMP",
+          "family": "timestamp",
+          "lineage_resolved": true,
+          "name": "last_attempt_ts",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "v_payment_intent.attempts"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "attempts",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.attempt_seq"
+          ],
+          "engine_type": "TINYINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "max_attempt_seq",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.auth_status"
+          ],
+          "engine_type": "BOOLEAN",
+          "family": "boolean",
+          "lineage_resolved": true,
+          "name": "eventually_approved",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.merchant_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "merchant_sk",
+          "nullable": true,
+          "ordinal": 7,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.customer_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "customer_sk",
+          "nullable": true,
+          "ordinal": 8,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.currency_code"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "currency_code",
+          "nullable": true,
+          "ordinal": 9,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_minor"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "amount_minor",
+          "nullable": true,
+          "ordinal": 10,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.amount_eur_minor",
+            "fact_payment_attempt.auth_status"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "captured_eur_minor",
+          "nullable": true,
+          "ordinal": 11,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "fact_payment_attempt.product_category"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "product_category",
+          "nullable": true,
+          "ordinal": 12,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_payment_intent"
+    },
+    {
+      "columns": [
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_sk"
+          ],
+          "engine_type": "INTEGER",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "device_sk",
+          "nullable": true,
+          "ordinal": 1,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_fingerprint"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "device_fingerprint",
+          "nullable": true,
+          "ordinal": 2,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.device_class"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "device_class",
+          "nullable": true,
+          "ordinal": 3,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "dim_device.os_family"
+          ],
+          "engine_type": "VARCHAR",
+          "family": "text",
+          "lineage_resolved": true,
+          "name": "os_family",
+          "nullable": true,
+          "ordinal": 4,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.customer_sk"
+          ],
+          "engine_type": "BIGINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "distinct_customers",
+          "nullable": true,
+          "ordinal": 5,
+          "published": true
+        },
+        {
+          "deprecated": false,
+          "derives_from": [
+            "bridge_customer_device.n_payments"
+          ],
+          "engine_type": "HUGEINT",
+          "family": "integer",
+          "lineage_resolved": true,
+          "name": "total_payments",
+          "nullable": true,
+          "ordinal": 6,
+          "published": true
+        }
+      ],
+      "kind": "view",
+      "name": "v_shared_device"
+    }
+  ],
+  "version": 1
+}
