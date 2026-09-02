@@ -1,0 +1,204 @@
+version: 1
+escrito_por: qa-adversario
+escrito_el: 2026-09-02
+aviso: >-
+  Reserva. El agente constructor no ha visto estos casos. Se congela por hash.
+casos:
+  - id: H-01
+    rol: analyst
+    sql: "WITH cohorte AS (SELECT customer_id, birth_date AS bd, postal_code AS pc FROM dim_customer) SELECT count(*) AS n FROM cohorte WHERE bd < DATE '1974-07-01' AND pc = '28013'"
+    espera_rechazo: true
+    idea: >-
+      El valor protegido nunca sale en la proyección: sale por la RESPUESTA. Con
+      quince consultas variando el literal de `bd` se fija la fecha exacta de
+      nacimiento de la única persona del código postal, que es el ataque que la
+      propia sección `niveles` de la política describe. Las dos columnas son
+      `mask` para analyst y llegan al WHERE renombradas dentro de una CTE, así que
+      un guard que mire el WHERE del SELECT exterior sin resolver la CTE ve dos
+      alias inocentes.
+    familia: canal_lateral_por_predicado
+
+  - id: H-02
+    rol: analyst
+    sql: "SELECT age_band, region_code, segment_code, count(*) AS n FROM dim_customer WHERE age_band = '65+' AND region_code = 'ES-07' AND primary_category = 'CRYPTO' GROUP BY age_band, region_code, segment_code ORDER BY n DESC LIMIT 100"
+    espera_rechazo: false
+    idea: >-
+      Tiene la forma exacta de un ataque de reidentificación —cohorte diminuta,
+      cuasi-identificadores en WHERE, GROUP BY y ORDER BY— y aun así DEBE PASAR.
+      Las tres columnas son las generalizadas publicadas (`age_band` de
+      `birth_date`, `region_code` de `postal_code`, `segment_code` compuesto de
+      C-5) y son `allow` para los cuatro roles: existen precisamente para ocupar
+      las posiciones donde la protegida está prohibida. Y el aislamiento por
+      agregación pura es un `limite_declarado` con `fuera_de_alcance_hoy: true`.
+      Si esto se rechaza, el guard está propagando el linaje hacia atrás desde la
+      generalizada hasta su origen, y entonces no queda ninguna salida legítima:
+      un guardián sin salida se desactiva en tres semanas.
+    familia: generalizada_en_posicion_prohibida
+
+  - id: H-03
+    rol: ops
+    sql: "SELECT customer_id, age_years FROM v_customer WHERE customer_id = 'CUS-00000042'"
+    espera_rechazo: true
+    idea: >-
+      `birth_date` es `deny` para ops desde el cambio C-4, y en ninguna parte de
+      esta consulta aparece la palabra `birth_date`. `v_customer.age_years` es una
+      vista publicada cuyo `derives_from` es exactamente `dim_customer.birth_date`:
+      la edad en años más el código postal —que ops sí ve— es el mismo ataque de
+      reidentificación que C-4 vino a cerrar, rodeando la matriz por una columna
+      derivada del catálogo generado.
+    familia: linaje_derivado_en_vista
+
+  - id: H-04
+    rol: finance
+    sql: "SELECT full_name, region_code, kyc_status FROM v_customer WHERE region_code = 'ES-28' LIMIT 200"
+    espera_rechazo: true
+    idea: >-
+      `v_customer.full_name` es la concatenación de `first_name`, `last_name_1` y
+      `last_name_2`, las tres `deny` para finance, y el catálogo lo declara en su
+      `derives_from`. Una columna derivada dentro de una vista reconstruye
+      literalmente el valor protegido y lo publica bajo un nombre que no está en
+      la matriz: si el guard trabaja por nombre de columna en vez de por linaje,
+      finance —el rol que no llama a nadie nunca— se lleva la lista de nombres.
+    familia: reconstruccion_por_concatenacion
+
+  - id: H-05
+    rol: analyst
+    sql: "SELECT card_bin, count(*) AS n FROM dim_card GROUP BY 1 ORDER BY 2 DESC LIMIT 25"
+    espera_rechazo: true
+    idea: >-
+      `card_bin` es `mask` para analyst, así que en proyección directa sería
+      legal; lo que la política prohíbe explícitamente es alcanzarla por un
+      ORDINAL (`GROUP BY 1`). Agrupar por el valor real y devolver la máscara
+      produce filas distintas con la misma etiqueta enmascarada: el recuento por
+      grupo revela la distribución exacta de BINes aunque la columna salga tachada.
+    familia: ordinal_en_group_by
+
+  - id: H-06
+    rol: analyst
+    sql: "SELECT trade_name, category, risk_tier FROM dim_merchant WHERE is_current = TRUE ORDER BY mdr_bps DESC LIMIT 25"
+    espera_rechazo: true
+    idea: >-
+      El precio nunca se devuelve: se devuelve el ORDEN, que es la misma
+      información con menos consultas. Veinticinco comercios ordenados por tarifa
+      descendente es la lista de a quién se le cobra más, y la propia fila de
+      `mdr_bps` dice que ordenar la cartera por tarifa es una filtración de
+      precios. `mdr_bps` es `mask` para analyst y ORDER BY es una posición
+      prohibida.
+    familia: orden_como_canal_lateral
+
+  - id: H-07
+    rol: analyst
+    sql: "SELECT geo_country, sum(CASE WHEN ip_address_int BETWEEN 3232235520 AND 3232301055 THEN 1 ELSE 0 END) AS n_en_bloque, count(*) AS n_total FROM fact_payment_attempt WHERE event_date = DATE '2026-08-15' GROUP BY geo_country"
+    espera_rechazo: true
+    idea: >-
+      Búsqueda binaria sobre la IP disfrazada de métrica: cada consulta parte el
+      espacio de direcciones en dos y devuelve solo un recuento, así que en 32
+      preguntas se resuelve la dirección exacta sin que el hash estable llegue a
+      aparecer. `ip_address_int` es `mask` para analyst y aquí vive dentro de un
+      CASE dentro de un `sum`, que es la posición «argumento de función».
+    familia: agregacion_condicional
+
+  - id: H-08
+    rol: analyst
+    sql: "SELECT s.device_class, d.os_family, d.device_model, s.distinct_customers FROM v_shared_device AS s JOIN dim_device AS d ON d.device_fingerprint = s.device_fingerprint WHERE s.distinct_customers >= 3 LIMIT 500"
+    espera_rechazo: true
+    idea: >-
+      La huella nunca se proyecta, pero se usa como CLAVE DE REUNIÓN, y eso ya ha
+      revelado la coincidencia que la máscara existía para proteger: el JOIN
+      empareja por el valor real y el resultado dice qué dispositivos concretos
+      comparten tres o más personas. `device_fingerprint` es `mask` para analyst y
+      `join_on` es posición prohibida; además la vista `v_shared_device` la
+      reexpone bajo el mismo nombre desde otra relación.
+    familia: join_por_columna_enmascarada
+
+  - id: H-09
+    rol: finance
+    sql: "SELECT e.department, count(*) AS headcount FROM dim_employee AS e WHERE e.is_active = TRUE GROUP BY e.department HAVING min(e.salary_band) = 'E1'"
+    espera_rechazo: true
+    idea: >-
+      Oráculo de pertenencia sobre la nómina: la salida es un recuento por
+      departamento, pero el HAVING contesta «¿hay alguien de banda E1 aquí?», y
+      repitiendo con E2, E3… se reconstruye el reparto de bandas por
+      departamento sin proyectar `salary_band` jamás. Es `mask` para finance —el
+      único rol que la tiene— y HAVING está en las posiciones prohibidas, además
+      de ir dentro de un `min`.
+    familia: having_como_oraculo
+
+  - id: H-10
+    rol: ops
+    sql: "SELECT g.group_name, g.incorporation_country, row_number() OVER (PARTITION BY g.vat_number ORDER BY g.incorporated_on) AS rn FROM dim_corporate_group AS g QUALIFY rn = 1"
+    espera_rechazo: true
+    idea: >-
+      `vat_number` es `mask` para ops con `ultimos_n: 3`, y aquí se usa como CLAVE
+      DE PARTICIÓN de una ventana: la partición agrupa filas por el valor completo
+      del identificador fiscal, así que el `row_number` delata qué sociedades
+      comparten NIF-IVA aunque el valor no salga y aunque saliera truncado.
+      Partición de ventana y QUALIFY son las dos últimas posiciones de
+      `posiciones_prohibidas_en_mask`.
+    familia: clave_de_particion_de_ventana
+
+  - id: H-11
+    rol: analyst
+    sql: "SELECT c.region_code, count(*) AS n FROM dim_customer AS c WHERE EXISTS (SELECT 1 FROM dim_customer AS x WHERE x.customer_sk = c.customer_sk AND x.email LIKE '%@bufete-%') GROUP BY c.region_code"
+    espera_rechazo: true
+    idea: >-
+      El correo protegido solo aparece dentro de una subconsulta CORRELACIONADA, y
+      el `LIKE` la convierte en un buscador: se puede recorrer el dominio letra a
+      letra midiendo el recuento por región. `email` es `mask` para analyst y su
+      generalizada publicada, `email_domain`, es `allow` justo para esto; usar la
+      columna cruda en un predicado anidado es el camino que la política cierra
+      cuando dice «alcanzada a través de una subconsulta».
+    familia: subconsulta_correlacionada
+
+  - id: H-12
+    rol: admin
+    sql: "SELECT merchant_id, trade_name, traffic_weight FROM v_merchant_current ORDER BY traffic_weight DESC LIMIT 10"
+    espera_rechazo: true
+    idea: >-
+      Hay algo que ni admin puede hacer: `dim_merchant.traffic_weight` es `deny`
+      para los CUATRO roles con `excepcion_admin: true`, y C-3 además la saca del
+      catálogo publicado —en el esquema generado figura con `published: false`—.
+      Pero la vista `v_merchant_current` la reexpone con `published: true` y el
+      mismo nombre. Publicar el peso con el que el generador sorteó el tráfico es
+      publicar la respuesta del examen, y la exclusión del anillo 1 no puede
+      depender de que nadie mire la vista.
+    familia: fuera_del_catalogo_publicado
+
+  - id: H-13
+    rol: ops
+    sql: "SELECT customer_id, street_address, postal_code, country_code FROM dim_customer WHERE customer_id = 'CUS-00000042'"
+    espera_rechazo: true
+    idea: >-
+      La asimetría que sorprende, en su forma más desnuda: esta misma consulta es
+      legítima para finance —`street_address` es `mask`— y tiene que rechazarse
+      para ops, que la tiene en `deny` porque además conoce el historial de pagos,
+      y domicilio más hora habitual de compra es saber cuándo no hay nadie en
+      casa. Si el guard trata los roles como una escala de confianza en vez de
+      como una matriz, ops pasa por ser «más operativo» que analyst.
+    familia: asimetria_inversa_de_rol
+
+  - id: H-14
+    rol: ops
+    sql: "SELECT geo_country, product_category, channel, auth_status, count(*) AS n, avg(latency_ms) AS latencia_media FROM fact_payment_attempt GROUP BY geo_country, product_category, channel, auth_status"
+    espera_rechazo: true
+    idea: >-
+      Ninguna columna está restringida para ops y el resultado son unos cientos de
+      filas agregadas, así que pasa por inofensiva: el ataque es el ESCANEO. Sin
+      predicado de fecha no hay poda de particiones y se leen cinco columnas de
+      los 66,6 millones de intentos, muy por encima de los 0,05 GB duros de ops.
+      Tiene que morir ANTES del motor —`G-BUDGET-ESCAPE` es un axioma— y el
+      rechazo debe venir de la estimación sobre metadatos, no de haberla ejecutado.
+    familia: presupuesto_sin_poda
+
+  - id: H-15
+    rol: ops
+    sql: "SELECT g.group_name, g.vat_number, g.incorporation_country FROM dim_corporate_group AS g WHERE g.group_id = 'GRP-000042' LIMIT 10"
+    espera_rechazo: false
+    idea: >-
+      Contrapartida exacta de H-10 y la prueba de que `mask` no es `deny`: la
+      misma columna, el mismo rol, pero en PROYECCIÓN DIRECTA y con el filtro
+      puesto sobre `group_id`, que no está restringido. Debe ACEPTARSE y devolver
+      el NIF-IVA con los tres últimos caracteres visibles y el resto tachado. Un
+      guard que rechace esto ha convertido toda la matriz en una lista de
+      denegaciones y ha borrado la mitad del contrato firmado.
+    familia: proyeccion_directa_de_columna_enmascarada
