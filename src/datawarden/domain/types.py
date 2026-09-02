@@ -40,6 +40,7 @@ __all__ = [
     "Role",
     "RoleSource",
     "Severity",
+    "Status",
     "ValidatedQuery",
     "Verdict",
 ]
@@ -78,6 +79,25 @@ class RoleSource(StrEnum):
     # que firma el handle vive en configuración y no en el dominio.
     PRINCIPAL_TOKEN = "principal_token"  # noqa: S105
     CLI_FLAG = "cli_flag"
+
+
+class Status(StrEnum):
+    """Los cuatro finales posibles de una invocación. Vocabulario del contrato.
+
+    Sale literal de `docs/spec/audit-record.schema.json`, y son CUATRO y no dos
+    porque **se audita toda invocación, no solo la que se ejecuta**: un rechazo del
+    guard es un evento de seguridad, y no registrarlo sería el peor fallo posible
+    de este sistema. `G-AUDIT-COV` es un axioma justamente por eso.
+
+    Los dos rechazos están separados porque responden a preguntas distintas: uno
+    dice que la consulta era ILEGAL y el otro que era CARA. Mezclarlos haría
+    imposible contestar «¿cuántas veces intentaron leer una columna prohibida?».
+    """
+
+    REJECTED_BY_GUARD = "rejected_by_guard"
+    REJECTED_BY_BUDGET = "rejected_by_budget"
+    EXECUTED = "executed"
+    ERROR = "error"
 
 
 class Severity(StrEnum):
