@@ -58,3 +58,8 @@ docs/PLAN.md
 .DS_Store
 *.duckdb
 *.duckdb.wal
+
+# El almacen de auditoria de una ejecucion local. La cadena es evidencia de UNA
+# maquina y de UN momento; versionarla no significaria nada y ademas mezclaria
+# datos de consultas reales en el repositorio.
+var/
