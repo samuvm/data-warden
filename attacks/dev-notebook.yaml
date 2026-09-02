@@ -271,3 +271,23 @@ ataques:
 # (`tests/unit/guard/cases/RNNN.yaml`), que es donde de todos modos tienen que estar
 # para que se asierta el `rule_id` exacto.
 # -----------------------------------------------------------------------------
+
+  # ===========================================================================
+  # A-26 · La evasion que encontro la MUTACION DE AST, no una revision.
+  #
+  # Vuelve al cuaderno el 2026-09-02, cuando Samuel aprobo P-004 y el umbral de
+  # G-WRITE-BLOCK-DEV paso de `== 25` a `>= 25`. Hasta entonces anadirla ROMPIA
+  # el gate: el cuaderno tenia que crecer segun RULES.md —«una evasion se
+  # convierte en rule_id nuevo y caso permanente»— y crecer era un fallo. Las dos
+  # frases se contradecian dentro del mismo documento.
+  # ===========================================================================
+  - id: A-26
+    familia: desplazamiento_excesivo
+    rol: analyst
+    sql: "SELECT * FROM (SELECT customer_sk FROM dim_customer OFFSET 9000000) s"
+    espera: R006
+    idea: >-
+      El OFFSET escondido dentro de una subconsulta. R006 solo miraba la raiz, asi
+      que el motor producia y tiraba nueve millones de filas sin que ninguna regla
+      lo viera. Lo encontro la mutacion de AST y no una revision: la regla estaba
+      bien escrita para el caso que alguien penso, y mal para el que no.

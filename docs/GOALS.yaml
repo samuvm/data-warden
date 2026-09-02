@@ -245,7 +245,7 @@ metas:
   - id: G-WRITE-BLOCK-DEV
     nombre: "Cuaderno de ataque de desarrollo en verde"
     umbral:
-      operador: "=="
+      operador: ">="
       valor: 25
       unidad: count
     comando: "make attack-dev"

@@ -223,5 +223,14 @@
     "id": "A-25",
     "right_rule": true,
     "role": "admin"
+  },
+  {
+    "actual_rule": "R006",
+    "blocked": true,
+    "expected_rule": "R006",
+    "family": "desplazamiento_excesivo",
+    "id": "A-26",
+    "right_rule": true,
+    "role": "analyst"
   }
 ]
