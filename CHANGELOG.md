@@ -8,10 +8,107 @@ puede leer después.
 Los números que aparecen aquí están **medidos**, con su comando al lado, y viven en
 `evals/reports/`. Un número sin comando que lo reproduzca no es un número.
 
-## [0.3.0-rc] · fase 3 · 2026-09-02 · **construida y medida, NO cerrada**
+## [0.5.0] · fase 5 · 2026-09-02 · **cerrada**
 
-El anillo de coste. `make done MILESTONE=3` sale **ROJO** en el paso de mutación, y
-esta entrada existe igual: una fase que no cierra también deja evidencia.
+La cadena de auditoría. `audit/chain.py` (pura), `audit/store.py` (SQLite en WAL,
+append-only por TRIGGER) y `audit/executor.py`, el `AuditedExecutor`: **el único
+camino a `Engine.execute()`**.
+
+### Añadido
+
+- **Se audita TODA invocación, no solo la que ejecuta.** Los cuatro estados del
+  contrato dejan registro, y el que más importa es el que no ejecuta nada: un rechazo
+  del guard es un evento de seguridad, y quien sondea la política sistemáticamente es
+  precisamente el que no dejaría ni una línea si solo se registraran los éxitos.
+- **El append-only lo impone el motor, no el código.** Un trigger viaja con los datos:
+  quien quiera reescribir un registro tiene que borrarlo antes, y eso es un acto
+  deliberado. Si viviera en Python, el primer script que abriera el fichero con
+  `sqlite3` se lo saltaría sin enterarse.
+- **`warden audit verify | reconcile | anchor`**, probados contra un fichero real: el
+  trigger para la escritura normal, quien lo borra consigue escribir, y `verify` lo
+  caza **nombrando el `seq`**.
+- **I-06 dejó de ser prosa.** Un contrato de import-linter prohíbe `datawarden.engines`
+  a los diez paquetes que no son `audit`. El contrato de capas no podía expresarlo.
+
+### Corregido
+
+- **`schema_version` se guarda, no se inyecta.** Lo encontró la propiedad de
+  manipulación recorriendo el registro byte a byte: era el único hueco, y el problema
+  de fondo era peor que el hueco — **el día que la versión subiera a 2, todo registro
+  escrito bajo la 1 habría dejado de verificar**, porque se le habría inyectado una
+  versión que no era la suya.
+- **`tables` y `columns_masked` se emiten siempre, aunque vayan vacías.** `[]` es
+  evidencia de que no se enmascaró nada; el campo ausente es ambigüedad.
+
+### Medido
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-AUDIT-COV` *(axioma)* | == 100 %, 4 estados | **100 % · 4** | `pytest tests/property/test_audit_coverage.py` |
+| `G-AUDIT-TAMPER` | >= 1.000 mutaciones de byte | **1.299, todas detectadas** | `pytest tests/property/test_audit_chain.py` |
+
+### Límite declarado
+
+**Quien tiene escritura sobre el almacén puede recalcular la cadena entera.** El hash
+encadenado detecta a quien NO puede reescribir todo lo posterior; por eso existe
+`warden audit anchor`. Está en `docs/threat-model.md §4.1` con esas palabras.
+
+## [0.4.0] · fase 4 · 2026-09-02 · **cerrada**
+
+El enmascarado por rol, **reescribiendo el AST antes de ejecutar** y nunca
+post-procesando el DataFrame. El valor real no sale de la base de datos.
+
+### Añadido
+
+- **Las cuatro transformaciones del contrato firmado**, verificadas contra DuckDB y no
+  solo en el árbol: `tachar` da `'***'`, `generalizar` da la columna que declara la
+  política, `ultimos_n` conserva los `n` de la fila, y `hash_estable` da 12 hex.
+- **Las cuatro preservan NULL.** Lo exigen dos contratos: `policy.yaml` dice que el
+  NULL de `last_name_2` significa «este sistema de nombres no tiene segundo apellido»
+  —es un DATO— y `resultset-equality.md` decide que NULL y cadena vacía son distintos.
+  Una máscara que inventara un valor daría respuestas de referencia falsas en la fase 8.
+- **`mask/pipeline.py`**, la costura de los cuatro anillos. Sin ella `mask/` era código
+  muerto: el contrato de capas impide que `cost/screen.py` importe el enmascarador.
+
+### Corregido · dos fugas reales
+
+- **`SELECT first_name AS n FROM dim_customer ORDER BY n` se ACEPTABA.** `qualify()`
+  expande el alias de salida en `GROUP BY` y `HAVING` pero **no en `ORDER BY`**, y
+  `Scope.columns` de sqlglot excluye esas referencias. Era una **búsqueda binaria sobre
+  un valor enmascarado**: se ordena, se mira el extremo, se acota. Cerrada la CLASE, no
+  el caso.
+- **`HAVING count(*) <= N` devolvía los grupos de UNA persona.** La comprobación era
+  «rechaza si el literal está bajo `K_MIN`», correcta para una igualdad y falsa para un
+  techo: `<= 1000` devolvía todos los grupos pequeños del almacén. Acotar por arriba el
+  tamaño de grupo *es* la consulta de k-anonimato al revés.
+
+### Medido
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-PII-LEAK` *(axioma)* | == 0 fugas, 3 superficies | **0 en 177 comprobaciones · 3** | `make pii-suite` |
+
+Se mide **ejecutando contra el dataset dos veces** —como `admin`, que lo ve todo, y
+como el rol restringido— y exigiendo que ningún valor real aparezca en la salida del
+segundo. Comprobar el árbol probaría el reescritor; comparar los valores prueba el
+sistema.
+
+### Límite declarado
+
+**La pimienta del hash llega al motor.** Vive en un `CREATE TEMP MACRO` que se instala
+al abrir la conexión, así que **no** aparece en el registro de auditoría y **sí** en los
+logs del motor, una vez por conexión en vez de una por consulta. Es una reducción, no
+una eliminación (`threat-model.md §4.2.1`). Y el enmascarado es determinista con
+pimienta fija: se pierde la resistencia a correlacionar dos sesiones, a cambio de que
+los resultsets sean comparables entre ejecuciones — sin eso, ninguna pregunta del banco
+de 60 que toque una columna enmascarada podría medirse.
+
+## [0.3.0] · fase 3 · 2026-09-02 · **cerrada**
+
+El anillo de coste. Estuvo semanas en `-rc` con `make done MILESTONE=3` en **ROJO** por
+mutación, y esa entrada se mantuvo mientras tanto: una fase que no cierra también deja
+evidencia. Cierra hoy, cuando la mutación cruza sus dos suelos:
+**`G-MUT-GUARD` 85,46 %** (desde 50,73) y **`G-MUTATION` 71,60 %** (desde 66,62).
 
 ### Añadido
 

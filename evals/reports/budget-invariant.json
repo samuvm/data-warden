@@ -2,7 +2,7 @@
   "metas": {
     "G-BUDGET-ESCAPE": {
       "adicionales": {
-        "rechazo por reloj de una consulta cara sobre 3 GB (ms)": 1.18
+        "rechazo por reloj de una consulta cara sobre 3 GB (ms)": 1.335
       },
       "command": "pytest tests/property/test_budget_invariant.py && pytest tests/integration/test_budget_wallclock.py",
       "detail": {

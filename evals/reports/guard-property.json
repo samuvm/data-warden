@@ -9,7 +9,7 @@
         "examples_per_property": 5000,
         "nota": "El presupuesto de ejemplos vive en el módulo de test y no en el perfil de Hypothesis: un axioma que se pudiera rebajar con una variable de entorno no sería un axioma.",
         "properties_failed": 0,
-        "properties_passed": 11,
+        "properties_passed": 19,
         "suite": "tests/property"
       },
       "value": 0

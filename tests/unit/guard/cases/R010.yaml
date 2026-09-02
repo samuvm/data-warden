@@ -36,6 +36,7 @@ reject:
     posicion: statement
     sujeto: "Delete"
     reintentable: false
+    menciona_posicion: true
     por_que: "Con rol admin: ni el rol más alto escribe, porque el sistema no escribe."
   - id: R010-R2
     rol: analyst
@@ -45,6 +46,7 @@ reject:
     posicion: cte
     sujeto: "Delete"
     reintentable: false
+    menciona_posicion: true
     por_que: "LA CTE QUE ESCONDE UNA ESCRITURA, del cuaderno de evasiones."
   - id: R010-R3
     rol: analyst
@@ -54,6 +56,7 @@ reject:
     posicion: statement
     sujeto: "Update"
     reintentable: false
+    menciona_posicion: true
     por_que: "Escritura directa."
   - id: R010-R4
     rol: analyst
@@ -63,6 +66,7 @@ reject:
     posicion: statement
     sujeto: "Create"
     reintentable: false
+    menciona_posicion: true
     por_que: "Materializar el resultado es escribir, aunque lo que se lea sea legítimo."
   - id: R010-R5
     rol: analyst
@@ -72,6 +76,7 @@ reject:
     posicion: statement
     sujeto: "Drop"
     reintentable: false
+    menciona_posicion: true
     por_que: >-
       MAYÚSCULAS RARAS. Para el árbol es el mismo `Drop`: no hay nada que
       normalizar, que es la diferencia entera con una lista de palabras.

@@ -3,15 +3,15 @@
     "G-WRITE-BLOCK": {
       "adicionales": {
         "casos de holdout superados": 15,
-        "mutantes de AST evaluados": 3276
+        "mutantes de AST evaluados": 3388
       },
       "command": "make attack-mut",
       "detail": {
         "escapes": [],
-        "from_attacks": 2724,
+        "from_attacks": 2836,
         "from_legitimate": 552,
         "invariant_violations": [],
-        "mutants_total": 3276,
+        "mutants_total": 3388,
         "rounds": 2,
         "seeds": [
           20260902,
