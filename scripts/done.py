@@ -167,6 +167,7 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (2, "bench_guard.py", "G-GUARD-P95"),
     (3, "check_budget_invariant.py", "G-BUDGET-ESCAPE"),
     (3, "cost_calibration.py", "G-COST-CALIB"),
+    (4, "pii_suite.py", "G-PII-LEAK · axioma, tres superficies contra el dataset"),
     (5, "check_audit_coverage.py", "G-AUDIT-COV · axioma, ninguna invocación sin registro"),
     (5, "check_audit_tamper.py", "G-AUDIT-TAMPER · >= 1.000 mutaciones de byte"),
 )

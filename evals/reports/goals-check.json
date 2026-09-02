@@ -152,6 +152,16 @@
     },
     {
       "axiom": true,
+      "blocking_from": 4,
+      "id": "G-PII-LEAK",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": true,
       "blocking_from": 5,
       "id": "G-AUDIT-COV",
       "measured": 100.0,
@@ -174,7 +184,6 @@
   "milestone": 5,
   "passed": false,
   "problems": [
-    "G-MUT-GUARD · 61.87 >= 85 es falso",
-    "G-PII-LEAK bloquea desde la fase 4 y NO tiene medida en evals/reports/pii-leak.json. Se mide con: make pii-suite. Una meta bloqueante sin medida es un fallo, nunca un aprobado."
+    "G-MUT-GUARD · 61.87 >= 85 es falso"
   ]
 }

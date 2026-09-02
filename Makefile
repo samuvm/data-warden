@@ -174,9 +174,10 @@ attack-holdout:
 guard-property:
 	$(UV) python scripts/check_guard_property.py
 
+# G-PII-LEAK, y es un AXIOMA. Se EJECUTA contra el dataset: la fuga se mide con datos
+# delante, no razonando sobre el arbol.
 pii-suite:
-	@echo "FASE 4: la suite de fuga necesita mask/, que todavía no existe."
-	@exit 1
+	$(UV) python scripts/pii_suite.py
 
 mcp-conformance test-parity:
 	@echo "FASE 7 y 9: no hay servidor MCP ni segundo motor todavía."
