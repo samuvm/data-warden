@@ -1,0 +1,60 @@
+rule_id: R004
+nombre: "Solo relaciones del catálogo generado"
+familias: [tabla_fuera_de_ambito, funcion_de_tabla, columna_inexistente]
+por_que: >-
+  Una función de tabla no nombra una tabla: nombra un lector. sqlglot la representa
+  como un `Table` cuyo contenido NO es un identificador, y esa diferencia
+  ESTRUCTURAL la distingue de una tabla sin necesidad de ninguna lista de funciones
+  prohibidas. Lo que para el ataque es la ausencia en la allowlist.
+accept:
+  - id: R004-A1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer"
+    por_que: "Una tabla del catálogo."
+  - id: R004-A2
+    rol: analyst
+    sql: |
+      SELECT a.payment_intent_id
+      FROM fact_payment_attempt a
+      JOIN dim_card c ON c.card_sk = a.card_sk
+    por_que: "Dos tablas del catálogo, con alias."
+  - id: R004-A3
+    rol: analyst
+    sql: |
+      WITH aprobados AS (SELECT payment_intent_id FROM fact_payment_attempt WHERE auth_status = 'approved')
+      SELECT payment_intent_id FROM aprobados
+    por_que: "Una CTE no es una tabla del catálogo y no tiene por qué estarlo."
+  - id: R004-A4
+    rol: analyst
+    sql: "SELECT auth_status FROM v_attempt_dedup"
+    por_que: "Una vista del catálogo es una relación del catálogo."
+reject:
+  - id: R004-R1
+    rol: analyst
+    sql: "SELECT customer_sk FROM tabla_que_no_existe"
+    rule_id: R004
+    code: relation_out_of_scope
+    por_que: "La tabla no está en el catálogo generado."
+  - id: R004-R2
+    rol: analyst
+    sql: "SELECT * FROM read_parquet('/etc/shadow.parquet')"
+    rule_id: R004
+    code: relation_out_of_scope
+    por_que: "Una función de tabla que lee un fichero del servidor."
+  - id: R004-R3
+    rol: admin
+    sql: "SELECT customer_sk FROM dim_customer WHERE columna_inventada = 1"
+    rule_id: R004
+    code: relation_out_of_scope
+    por_que: >-
+      La columna no existe. Se detecta al cualificar y no en el motor, que es donde
+      ya no hay mensaje accionable que dar. Rol admin: no es cuestión de permisos.
+  - id: R004-R4
+    rol: analyst
+    sql: |
+      SELECT customer_sk FROM dim_customer
+      UNION ALL
+      SELECT 1 FROM otra_base.dim_customer
+    rule_id: R004
+    code: relation_out_of_scope
+    por_que: "La evasión por UNION contra una tabla fuera de ámbito, del cuaderno."

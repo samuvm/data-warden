@@ -1,0 +1,58 @@
+rule_id: R002
+nombre: "El guard es una allowlist de nodos"
+familias: [nodo_desconocido, construccion_no_analitica]
+por_que: >-
+  Una denylist de construcciones peligrosas se queda corta el día que DuckDB añade
+  una extensión, sin que nadie toque este repositorio. Una allowlist se queda corta
+  de más, y ese fallo se puede vivir: alguien lee el rechazo y se añade la
+  construcción como una decisión, con su caso.
+accept:
+  - id: R002-A1
+    rol: analyst
+    sql: "SELECT count(*) AS n FROM dim_customer WHERE country_code = 'ES'"
+    por_que: "Agregado, predicado y literal: todo en la allowlist."
+  - id: R002-A2
+    rol: analyst
+    sql: |
+      SELECT c.country_code,
+             CASE WHEN c.income_tier = 'high' THEN 1 ELSE 0 END AS alto
+      FROM dim_customer c
+    por_que: "CASE, comparación y literales."
+  - id: R002-A3
+    rol: analyst
+    sql: |
+      SELECT a.geo_country,
+             row_number() OVER (PARTITION BY a.geo_country ORDER BY a.event_date) AS rn
+      FROM fact_payment_attempt a
+    por_que: "Ventana, partición y orden: la fase 8 exige quince preguntas así."
+  - id: R002-A4
+    rol: analyst
+    sql: "SELECT CAST(amount_minor AS DOUBLE) AS importe FROM fact_payment_attempt"
+    por_que: "Sin CAST no se puede escribir la mitad de las consultas del almacén."
+reject:
+  - id: R002-R1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer TABLESAMPLE(1 PERCENT)"
+    rule_id: R002
+    code: node_not_allowed
+    por_que: "Un muestreo devuelve filas distintas cada vez: nada es reproducible."
+  - id: R002-R2
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY ROLLUP(country_code)"
+    rule_id: R002
+    code: node_not_allowed
+    por_que: >-
+      ROLLUP genera filas de subtotal con NULL en la clave de grupo. Son grupos que
+      nadie pidió y que la comprobación de cardinalidad no ve.
+  - id: R002-R3
+    rol: analyst
+    sql: "SELECT list_transform([1, 2], x -> x + 1) AS v FROM dim_customer"
+    rule_id: R002
+    code: node_not_allowed
+    por_que: "Una lambda es código dentro de la consulta. El guard no razona sobre código."
+  - id: R002-R4
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY GROUPING SETS ((country_code))"
+    rule_id: R002
+    code: node_not_allowed
+    por_que: "Mismo motivo que ROLLUP, escrito de otra forma."

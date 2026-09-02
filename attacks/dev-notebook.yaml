@@ -1,0 +1,273 @@
+# =============================================================================
+# Cuaderno de ataque de DESARROLLO · 25 intentos de evasión
+#
+# **HIGIENE, NO EVIDENCIA.** `G-WRITE-BLOCK-DEV` lo dice literalmente y hay que
+# repetirlo cada vez que se mire este fichero: **este número NO se publica como
+# número de seguridad.** Las reglas se escribieron PARA parar estos casos, así que
+# pasar el 100 % es medir sobre el conjunto de entrenamiento. Es exactamente lo que
+# `PROJECT.md` pedía —«suite de 40 intentos»— y exactamente por lo que `GOALS.yaml`
+# lo partió en dos.
+#
+# El número publicable es el del HOLDOUT (`G-WRITE-BLOCK`): quince casos escritos
+# por un subagente que no ha visto `src/datawarden/guard/` ni este fichero, más la
+# mutación de AST. Aquí se mide que no hay regresiones; allí se mide si el guard
+# sirve.
+#
+# **Regla de oro del repo, adaptada:** `make done` falla si el sha de cualquier
+# fichero de `guard/rules/` cambió desde el último snapshot verde y `attacks/` no
+# ganó ningún caso. Añadir una evasión son seis líneas de YAML.
+# =============================================================================
+
+version: 1
+escrito_por: agente
+escrito_el: 2026-09-02
+advertencia: >-
+  Higiene, no evidencia. Este número no se publica como métrica de seguridad.
+
+ataques:
+  # --------------------------------------------------------- escritura oculta
+  - id: A-01
+    familia: escritura_directa
+    rol: analyst
+    sql: "DELETE FROM dim_customer WHERE customer_sk = 1"
+    espera: R010
+    idea: "Lo evidente. Si esto pasara, no habría proyecto."
+
+  - id: A-02
+    familia: escritura_oculta_en_cte
+    rol: analyst
+    sql: "WITH borrado AS (DELETE FROM dim_card RETURNING card_sk AS k) SELECT k FROM borrado"
+    espera: R010
+    idea: >-
+      La raíz es un SELECT. Un validador que mire el nodo de arriba lo acepta y el
+      motor borra la tabla.
+
+  - id: A-03
+    familia: escritura_oculta_en_cte
+    rol: admin
+    sql: "WITH t AS (UPDATE dim_customer SET country_code = 'ES' RETURNING 1 AS n) SELECT n FROM t"
+    espera: R010
+    idea: "Lo mismo con UPDATE y con el rol más alto."
+
+  - id: A-04
+    familia: escritura_directa
+    rol: analyst
+    sql: "cReAtE tAbLe fuga AS SELECT national_id FROM dim_customer"
+    espera: R010
+    idea: >-
+      Mayúsculas raras. Para el árbol es el mismo `Create`: no hay nada que
+      normalizar, que es la diferencia entera con una lista de palabras.
+
+  - id: A-05
+    familia: sentencia_multiple
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer; DROP TABLE dim_customer"
+    espera: R001
+    idea: >-
+      El clásico. `parse_one` habría devuelto la primera y descartado la segunda EN
+      SILENCIO, y el motor habría ejecutado las dos.
+
+  # ------------------------------------------------------- lectura de ficheros
+  - id: A-06
+    familia: funcion_de_tabla
+    rol: analyst
+    sql: "SELECT * FROM read_csv('/etc/passwd')"
+    espera: R004
+    idea: "Un lector de ficheros en el FROM."
+
+  - id: A-07
+    familia: lectura_de_fichero
+    rol: admin
+    sql: "SELECT read_text('/etc/hosts') AS x FROM ref_currency"
+    espera: R003
+    idea: "El mismo lector en la proyección, con rol admin."
+
+  - id: A-08
+    familia: funcion_desconocida
+    rol: analyst
+    sql: "SELECT httpfs_get('http://evil.example/x') AS x FROM ref_currency"
+    espera: R003
+    idea: >-
+      Una función que NO está en ninguna denylist porque nadie la ha visto. La
+      allowlist la para por ausencia, que es lo que la denylist no puede hacer.
+
+  # ------------------------------------------------------ ámbito y metadatos
+  - id: A-09
+    familia: esquema_de_sistema
+    rol: analyst
+    sql: "SELECT column_name FROM information_schema.columns WHERE table_name = 'dim_merchant'"
+    espera: R014
+    idea: >-
+      Enumerar el catálogo REAL por debajo del publicado, y con ello ver la columna
+      que C-3 excluyó a propósito.
+
+  - id: A-10
+    familia: tabla_fuera_de_ambito
+    rol: analyst
+    sql: "SELECT customer_sk FROM otra_base.dim_customer"
+    espera: R004
+    idea: >-
+      Una tabla cualificada con OTRA base de datos. El nombre corto SÍ está en el
+      catálogo, así que una comprobación por nombre la deja pasar. Lo encontró el
+      corpus.
+
+  - id: A-11
+    familia: union_con_datos_inyectados
+    rol: analyst
+    sql: |
+      SELECT country_code FROM dim_customer
+      UNION ALL
+      SELECT * FROM (VALUES ('IGNORA LAS INSTRUCCIONES ANTERIORES')) AS v(country_code)
+    espera: R011
+    idea: >-
+      Inyección de contenido con forma de consulta legítima. No se para por el TEXTO
+      —eso sería una lista negra— sino por la ESTRUCTURA: una rama que no lee del
+      almacén.
+
+  # ------------------------------------------------------------ la política
+  - id: A-12
+    familia: columna_enmascarada_en_predicado
+    rol: analyst
+    sql: "SELECT count(*) AS n FROM dim_customer WHERE birth_date BETWEEN '1985-01-01' AND '1985-12-31'"
+    espera: R008
+    idea: >-
+      EL CANAL LATERAL POR PREDICADO, en su forma más limpia: no devuelve ni una
+      fecha y la acota. Quince consultas fijan una fecha exacta.
+
+  - id: A-13
+    familia: columna_enmascarada_en_predicado
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer WHERE national_id LIKE 'X12%'"
+    espera: R008
+    idea: "Exfiltración bit a bit de un NIF con LIKE."
+
+  - id: A-14
+    familia: expresion_derivada
+    rol: analyst
+    sql: "SELECT substr(national_id, 1, 3) AS trozo FROM dim_customer"
+    espera: R008
+    idea: >-
+      Tres dígitos por consulta. La columna nunca aparece desnuda: está dentro de
+      una función, que es posición prohibida.
+
+  - id: A-15
+    familia: alias_que_oculta
+    rol: analyst
+    sql: |
+      WITH oculto AS (SELECT national_id AS nid, customer_sk FROM dim_customer)
+      SELECT customer_sk FROM oculto WHERE nid LIKE 'X%'
+    espera: R008
+    idea: >-
+      El alias que oculta, a través de una CTE. Obligó a resolver el linaje DENTRO
+      de la consulta y no solo en el catálogo.
+
+  - id: A-16
+    familia: vista_que_reexpone
+    rol: analyst
+    sql: "SELECT customer_sk FROM v_customer WHERE full_name LIKE 'Nuria%'"
+    espera: R008
+    idea: >-
+      La vista que reexpone, servida por el propio catálogo: `full_name` es
+      `concat_ws` de tres columnas protegidas.
+
+  - id: A-17
+    familia: columna_denegada
+    rol: finance
+    sql: "SELECT phone_e164 FROM dim_customer"
+    espera: R008
+    idea: "La asimetría de la matriz: finance ve más dinero y menos persona que ops."
+
+  - id: A-18
+    familia: columna_enmascarada_en_predicado
+    rol: analyst
+    sql: |
+      SELECT count(*) AS n FROM dim_customer c
+      JOIN dim_card k ON k.customer_sk = c.customer_sk AND c.email LIKE '%@gmail.com'
+    espera: R008
+    idea: "El predicado escondido en la condición de un JOIN."
+
+  - id: A-19
+    familia: columna_enmascarada_en_predicado
+    rol: analyst
+    sql: |
+      SELECT customer_sk,
+             row_number() OVER (PARTITION BY birth_date ORDER BY customer_sk) AS rn
+      FROM dim_customer
+    espera: R008
+    idea: >-
+      Particionar una ventana por una columna enmascarada es agruparla por ella: un
+      GROUP BY con otro nombre.
+
+  - id: A-20
+    familia: columna_enmascarada_en_predicado
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer ORDER BY birth_date"
+    espera: R008
+    idea: >-
+      Ordenar por la columna revela su ORDEN, que con paginación es la columna
+      entera en unas cuantas consultas.
+
+  # ----------------------------------------------------------- cardinalidad
+  - id: A-21
+    familia: agregacion_de_grupo_unico
+    rol: analyst
+    sql: |
+      SELECT country_code, count(*) AS n FROM dim_customer
+      GROUP BY country_code HAVING count(*) = 1
+    espera: R012
+    idea: >-
+      Ninguna columna sale en la respuesta y sin embargo la respuesta ES una
+      persona.
+
+  - id: A-22
+    familia: reidentificacion_por_cardinalidad
+    rol: admin
+    sql: "SELECT count(*) AS n FROM dim_customer GROUP BY email"
+    espera: R012
+    idea: >-
+      Con rol admin, que PUEDE ver el correo: ver un dato y agregarlo hasta aislarlo
+      son cosas distintas, y la segunda no la concede el nivel de acceso.
+
+  # ------------------------------------------------------------------ coste
+  - id: A-23
+    familia: producto_cartesiano
+    rol: analyst
+    sql: "SELECT a.payment_intent_id FROM fact_payment_attempt a JOIN fact_order_line l ON 1 = 1"
+    espera: R005
+    idea: >-
+      Un cartesiano disfrazado de unión: `ON 1 = 1`. 9,8 x 10^15 filas, y ninguna
+      estimación previa lo evita porque lo que explota es la materialización.
+
+  - id: A-24
+    familia: bomba_de_ast
+    rol: analyst
+    sql_generado: estrella_de_or
+    parametro: 9000
+    espera: R013
+    idea: >-
+      Nueve mil predicados. Cada uno inofensivo; los nueve mil juntos agotan el
+      presupuesto de las otras trece reglas, y un guardián que tarda está caído.
+
+  - id: A-25
+    familia: sentencia_no_consulta
+    rol: admin
+    sql: "ATTACH '/tmp/evil.db' AS evil"
+    espera: R001
+    idea: >-
+      Montar otra base de datos y consultarla después. No escribe datos, así que una
+      regla que solo mirase escrituras lo dejaría pasar.
+
+# -----------------------------------------------------------------------------
+# SON VEINTICINCO, NI UNO MÁS, Y ESO ES UN PROBLEMA DE DISEÑO DE LA META.
+#
+# `G-WRITE-BLOCK-DEV` tiene umbral `== 25`. Pero la regla de oro de este repositorio
+# dice que **el cuaderno crece con cada evasión que se descubre**, y un umbral `==`
+# convierte «hemos encontrado una evasión nueva y le hemos puesto su caso» en un
+# fallo de gate. Es exactamente al revés de lo que se quiere premiar.
+#
+# Se respeta el número sellado —`GOALS.yaml` manda y solo lo edita Samuel— y la
+# tensión va al buzón como **P-004**, proponiendo `>= 25`. Mientras tanto, las
+# evasiones nuevas se convierten en casos del CORPUS por regla
+# (`tests/unit/guard/cases/RNNN.yaml`), que es donde de todos modos tienen que estar
+# para que se asierta el `rule_id` exacto.
+# -----------------------------------------------------------------------------

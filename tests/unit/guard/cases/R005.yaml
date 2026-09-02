@@ -1,0 +1,54 @@
+rule_id: R005
+nombre: "Todo JOIN entre relaciones grandes lleva condición"
+familias: [producto_cartesiano]
+por_que: >-
+  `fact_payment_attempt` tiene 66,6 M de filas y `fact_order_line` 146,8 M. El
+  producto son 9,8 x 10^15 filas, y NINGUNA estimación de coste previa lo evita: lo
+  que se escanea es pequeño, lo que explota es la materialización.
+accept:
+  - id: R005-A1
+    rol: analyst
+    sql: |
+      SELECT a.payment_intent_id
+      FROM fact_payment_attempt a
+      JOIN fact_order_line l ON l.payment_intent_id = a.payment_intent_id
+    por_que: "Dos tablas grandes CON condición."
+  - id: R005-A2
+    rol: analyst
+    sql: "SELECT a.currency_code FROM fact_payment_attempt a CROSS JOIN ref_currency r"
+    por_que: >-
+      Cartesiano contra una tabla de REFERENCIA de catorce filas. Es legítimo y
+      frecuente; prohibirlo entero rompería el trabajo normal, y una regla que rompe
+      el trabajo normal se desactiva en tres semanas.
+  - id: R005-A3
+    rol: analyst
+    sql: |
+      SELECT a.payment_intent_id
+      FROM fact_payment_attempt a
+      JOIN dim_card c USING (card_sk)
+    por_que: "`USING` es una condición de unión igual que `ON`."
+  - id: R005-A4
+    rol: analyst
+    sql: "SELECT a.payment_intent_id, d.date_key FROM fact_payment_attempt a, dim_date d WHERE d.date_key = a.event_date"
+    por_que: "La coma con predicado en el WHERE, contra el calendario, que es pequeño."
+reject:
+  - id: R005-R1
+    rol: analyst
+    sql: "SELECT a.payment_intent_id FROM fact_payment_attempt a, fact_order_line l"
+    rule_id: R005
+    code: cartesian_join
+    por_que: "La coma es un JOIN, y es la forma que más se olvida."
+  - id: R005-R2
+    rol: analyst
+    sql: "SELECT a.payment_intent_id FROM fact_payment_attempt a CROSS JOIN fact_order_line l"
+    rule_id: R005
+    code: cartesian_join
+    por_que: "El mismo cartesiano, escrito de forma explícita."
+  - id: R005-R3
+    rol: analyst
+    sql: "SELECT c.customer_sk FROM dim_customer c JOIN dim_card k ON TRUE"
+    rule_id: R005
+    code: cartesian_join
+    por_que: >-
+      Tiene ON, y el ON es `TRUE`: un cartesiano disfrazado de unión. Nueve millones
+      por dieciocho millones de filas.

@@ -1,0 +1,67 @@
+rule_id: R007
+nombre: "Profundidad máxima de anidamiento"
+familias: [anidamiento_excesivo]
+por_que: >-
+  Cada nivel de subconsulta correlacionada multiplica el trabajo del motor por las
+  filas del nivel de arriba, y el estimador de la fase 3 mira bytes escaneados, que
+  no capturan nada de eso. Es la clase de consulta cuyo coste no se puede estimar.
+accept:
+  - id: R007-A1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer"
+    por_que: "Un nivel."
+  - id: R007-A2
+    rol: analyst
+    sql: |
+      SELECT c.customer_sk
+      FROM dim_customer c
+      WHERE c.customer_sk IN (SELECT a.customer_sk FROM fact_payment_attempt a WHERE a.auth_status = 'approved')
+    por_que: "Una subconsulta. La forma más común de todas."
+  - id: R007-A3
+    rol: analyst
+    sql: |
+      WITH aprobados AS (
+        SELECT customer_sk FROM fact_payment_attempt WHERE auth_status = 'approved'
+      ), por_pais AS (
+        SELECT c.country_code, count(*) AS n
+        FROM dim_customer c JOIN aprobados a ON a.customer_sk = c.customer_sk
+        GROUP BY c.country_code
+      )
+      SELECT country_code, n FROM por_pais
+    por_que: "Dos CTE encadenadas: es la forma legible, y no anida de más."
+  - id: R007-A4
+    rol: analyst
+    sql: |
+      SELECT country_code FROM (
+        SELECT country_code FROM (
+          SELECT country_code FROM dim_customer
+        ) AS a
+      ) AS b
+    por_que: "Tres niveles. Feo, y muy por debajo del máximo de ocho."
+reject:
+  # Se GENERAN por el mismo motivo que las bombas de R013: un YAML con once niveles
+  # de paréntesis escritos a mano es ilegible y se corrompe con cualquier reformateo.
+  # Lo que importa es el PARÁMETRO, y aquí se ve.
+  - id: R007-R1
+    rol: analyst
+    sql_generado: "subconsultas_anidadas"
+    parametro: 10
+    rule_id: R007
+    code: nesting_too_deep
+    por_que: "Diez niveles de subconsulta. Ninguna pregunta de negocio se escribe así."
+  - id: R007-R2
+    rol: analyst
+    sql_generado: "subconsultas_anidadas"
+    parametro: 14
+    rule_id: R007
+    code: nesting_too_deep
+    por_que: "El mismo ataque cuatro escalones más arriba."
+  - id: R007-R3
+    rol: admin
+    sql_generado: "subconsultas_anidadas"
+    parametro: 9
+    rule_id: R007
+    code: nesting_too_deep
+    por_que: >-
+      Nueve niveles, con rol ADMIN: la profundidad no es una cuestión de permisos,
+      es una cuestión de que el coste no se puede estimar.

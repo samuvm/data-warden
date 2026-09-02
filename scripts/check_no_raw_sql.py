@@ -18,8 +18,13 @@ from __future__ import annotations
 
 import ast
 import pathlib
+import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from gatelib import record  # noqa: E402
+
 ENGINES = ROOT / "src" / "datawarden" / "engines"
 ALLOWED_PARAM_TYPES = {"ValidatedQuery"}
 
@@ -69,6 +74,13 @@ def check_file(path: pathlib.Path) -> list[str]:
 
 def main() -> int:
     if not ENGINES.exists():
+        record(
+            "arch-checks.json",
+            "G-NO-RAW-SQL",
+            value=0,
+            detail={"engines_present": False, "files": 0},
+            command="python scripts/check_no_raw_sql.py",
+        )
         print(
             f"check_no_raw_sql: {ENGINES.relative_to(ROOT)} no existe todavía "
             "(fase 0). El invariante se comprobará en cuanto haya un motor."
@@ -78,6 +90,13 @@ def main() -> int:
     problems: list[str] = []
     for f in files:
         problems.extend(check_file(f))
+    record(
+        "arch-checks.json",
+        "G-NO-RAW-SQL",
+        value=len(problems),
+        detail={"engines_present": True, "files": len(files), "problems": problems},
+        command="python scripts/check_no_raw_sql.py",
+    )
     if problems:
         print("check_no_raw_sql: FALLO · I-01\n")
         for p in problems:

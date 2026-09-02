@@ -1,0 +1,51 @@
+rule_id: R003
+nombre: "Ninguna función desconocida"
+familias: [funcion_desconocida, funcion_de_motor, lectura_de_fichero]
+por_que: >-
+  `exp.Anonymous` es lo que sqlglot construye cuando no sabe qué es una función.
+  Es decir: exactamente el conjunto de cosas sobre cuyo comportamiento el guard no
+  puede razonar. `CLAUDE.md` lo dice en una línea: `exp.Anonymous` implica rechazo.
+accept:
+  - id: R003-A1
+    rol: analyst
+    sql: "SELECT upper(country_code) AS pais FROM dim_customer"
+    por_que: "`upper` es un nodo propio de sqlglot, no un anónimo."
+  - id: R003-A2
+    rol: analyst
+    sql: "SELECT date_trunc('month', event_date) AS mes, count(*) AS n FROM fact_payment_attempt GROUP BY 1"
+    por_que: "`date_trunc` está en la allowlist corta de anónimos permitidos."
+  - id: R003-A3
+    rol: finance
+    sql: "SELECT round(sum(gross_eur_minor) / 100.0, 2) AS euros FROM fact_settlement_batch"
+    por_que: "Aritmética y redondeo: nodos propios."
+  - id: R003-A4
+    rol: analyst
+    sql: "SELECT coalesce(fx_rate, 1.0) AS tipo FROM fact_payment_attempt"
+    por_que: "`coalesce` es un nodo propio y es imprescindible con esta tabla."
+reject:
+  - id: R003-R1
+    rol: analyst
+    sql: "SELECT glob('/*') AS f FROM dim_customer"
+    rule_id: R003
+    code: function_not_allowed
+    por_que: "Lista el sistema de ficheros del servidor desde una consulta."
+  - id: R003-R2
+    rol: analyst
+    sql: "SELECT mi_udf(customer_sk) AS x FROM dim_customer"
+    rule_id: R003
+    code: function_not_allowed
+    por_que: "Una UDF puede hacer cualquier cosa. El guard no puede razonar sobre ella."
+  - id: R003-R3
+    rol: admin
+    sql: "SELECT getenv('AWS_SECRET_ACCESS_KEY') AS s FROM dim_customer"
+    rule_id: R003
+    code: function_not_allowed
+    por_que: >-
+      Lee el entorno del proceso. Con rol admin, que es el que todo lo ve: el nivel
+      de acceso a DATOS no concede acceso al PROCESO, y son cosas distintas.
+  - id: R003-R4
+    rol: analyst
+    sql: "SELECT read_text('/etc/passwd') AS x FROM dim_customer"
+    rule_id: R003
+    code: function_not_allowed
+    por_que: "Lectura de fichero arbitrario, en la proyección en vez de en el FROM."

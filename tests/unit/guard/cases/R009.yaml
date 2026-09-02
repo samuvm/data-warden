@@ -1,0 +1,77 @@
+rule_id: R009
+nombre: "`SELECT *` no sobrevive al guard"
+familias: [select_estrella]
+por_que: >-
+  Invariante I-10. `qualify()` con el esquema del catálogo expande la estrella, así
+  que casi siempre esta regla comprueba que el trabajo se hizo. Y esa comprobación
+  es la que importa: hay casos en que no expande y devuelve el árbol con la estrella
+  dentro SIN error, y entonces R008 revisaría la política sobre cero columnas.
+accept:
+  - id: R009-A1
+    rol: admin
+    sql: "SELECT * FROM ref_currency"
+    por_que: "La estrella se EXPANDE contra el catálogo: no se rechaza, se resuelve."
+  - id: R009-A2
+    rol: analyst
+    sql: "SELECT count(*) AS n FROM dim_customer"
+    por_que: >-
+      `COUNT(*)` NO es una estrella sin expandir: es un agregado que no nombra
+      ninguna columna. Rechazarlo aquí habría roto la mitad de las consultas
+      legítimas, y por el motivo equivocado. Lo encontró una prueba de humo.
+  - id: R009-A3
+    rol: admin
+    sql: "SELECT * FROM ref_mcc WHERE mcc = '5411'"
+    por_que: "Estrella con predicado, expandida igual."
+  - id: R009-A4
+    rol: analyst
+    sql: "SELECT count(*) AS n, count(DISTINCT customer_sk) AS c FROM fact_payment_attempt"
+    por_que: "Dos agregados, uno con estrella y otro con columna."
+reject:
+  # Los tres primeros son de NIVEL REGLA: se le pasa a R009 un árbol SIN cualificar,
+  # que es el único estado en que una estrella puede seguir ahí. Y eso es
+  # exactamente lo que la regla defiende: el caso en que `qualify()` no expande y
+  # devuelve el árbol con la estrella dentro SIN error. Escribirlos así, en vez de
+  # buscar una consulta que lo provoque de punta a punta, es la forma honesta de
+  # tener tres rechazos que ejercitan la regla de verdad.
+  - id: R009-R0a
+    nivel: regla
+    rol: analyst
+    sql: "SELECT * FROM dim_customer"
+    rule_id: R009
+    code: star_not_expanded
+    por_que: "Una estrella que llega a la fase posterior sin expandir."
+  - id: R009-R0b
+    nivel: regla
+    rol: admin
+    sql: "SELECT d.* FROM dim_customer d"
+    rule_id: R009
+    code: star_not_expanded
+    por_que: "La estrella cualificada con un alias es igual de opaca."
+  - id: R009-R0c
+    nivel: regla
+    rol: analyst
+    sql: "SELECT * FROM dim_customer JOIN dim_card ON dim_card.customer_sk = dim_customer.customer_sk"
+    rule_id: R009
+    code: star_not_expanded
+    por_que: "Con dos relaciones, la estrella esconde el doble."
+  - id: R009-R1
+    rol: analyst
+    sql: "SELECT * FROM dim_customer"
+    rule_id: R008
+    code: column_policy
+    por_que: >-
+      LA ESTRELLA SE EXPANDE Y ENTONCES SE VE LO QUE TRAÍA. Para analyst,
+      `dim_customer` incluye `national_id`, que es `deny`. El rechazo lo da R008 y no
+      R009, y eso es lo correcto: R009 hizo su trabajo, que era expandir.
+  - id: R009-R2
+    rol: ops
+    sql: "SELECT * FROM dim_employee"
+    rule_id: R008
+    code: column_policy
+    por_que: "Igual: la estrella trae `personal_phone`, denegada a ops."
+  - id: R009-R3
+    rol: analyst
+    sql: "SELECT * FROM dim_corporate_group"
+    rule_id: R008
+    code: column_policy
+    por_que: "La estrella trae `payout_iban`. Un IBAN con un nombre domicilia recibos."
