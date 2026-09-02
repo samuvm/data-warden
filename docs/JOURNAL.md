@@ -1042,3 +1042,59 @@ número oscila entre pasadas, y publicar el mejor de todas sería elegir la mues
 **Siguiente.**
 Nada de esto mueve el gate: sigue `make done MILESTONE=2` en verde y la fase 3 construida sin
 cerrar, a la espera de P-005. Lo que sigue es la fase 4, `mask/rewrite.py`.
+
+## 2026-09-02 · publicación · lo que NO se publica, y por qué un `push --force` no borra nada
+
+**Qué se intentó.**
+Sacar del repositorio público el andamio con el que se construye: las instrucciones del agente,
+el buzón de decisiones y el proceso interno. Criterio de Samuel, y es el correcto para un
+repositorio de portafolio: **se publica el sistema, no el escritorio de quien lo montó.**
+
+**Qué falló.**
+
+**1 · UN `push --force` NO BORRA NADA EN GITHUB, y esto se comprobó en vez de suponerlo.** Tras
+purgar los ficheros del historial y forzar el push, el commit anterior seguía devolviendo
+**HTTP 200** por su SHA, y `CLAUDE.md` **se descargaba desde ese árbol huérfano**. Git deja de
+alcanzarlos; GitHub los conserva. La única vía real es **borrar el repositorio y recrearlo**, y
+eso exige alcance `delete_repo`, que el token guardado no tiene. Queda como el único paso
+pendiente de Samuel, con su script.
+
+La lección general: **«lo quité en un commit nuevo» no es lo mismo que «ya no está»**, ni en git
+ni en la plataforma. Son dos borrados distintos y hay que hacer los dos.
+
+**2 · MI PROPIA LIMPIEZA ENTRÓ EN `.snapshots/` Y MODIFICÓ 122 FICHEROS.** Al repuntar las
+referencias de `CLAUDE.md` a `docs/RULES.md` recorrí el árbol con un `rglob` que excluía `.venv`,
+`mutants` y `.git` — **y no `.snapshots/`**, que es precisamente uno de los directorios que las
+reglas declaran intocables. Los puntos de retorno de las fases 0, 1 y 2 dejaron de ser copias
+fieles de lo que se selló.
+
+Se revirtió aplicando la sustitución inversa, que era exacta por ser 1:1, y **se verificó de la
+única forma que vale**: comparando doce ficheros de la instantánea más reciente contra la versión
+en git, byte a byte. 12 de 12 idénticos. Lo que hizo posible el arreglo fue que la operación era
+reversible; con un `sed` con expresión regular no lo habría sido.
+
+**3 · Una ruta absoluta escrita a mano en un script del gate.** `check_contracts.py` llevaba
+`/Users/<usuario>/Documents/day-300/_comun/CONTRACTS`. Además de publicar la disposición de un
+disco ajeno, hacía que el script **solo funcionase en un ordenador del mundo**. Ahora se resuelve
+como `ROOT.parent / "_comun" / "CONTRACTS"` y se reapunta con `DW_COMUN_CONTRACTS`.
+
+**Qué se aprendió.**
+
+- **El criterio de qué se publica.** Se queda lo que permite entender el sistema y dirigir un
+  agente propio: los diecisiete invariantes de `RULES.md` con su comando, el régimen de prueba de
+  cada módulo, los umbrales sellados de `GOALS.yaml`, los contratos de `docs/spec/` y esta
+  bitácora. Se va lo que son instrucciones de UN agente en UNA máquina y el buzón de una persona.
+- **Quitar `CLAUDE.md` no dejó huérfana ninguna información**, y esa fue la comprobación previa,
+  no una suposición: el mapa de zonas ya vivía en `RULES.md §2` y los invariantes en su §1. Las
+  veintidós referencias se repuntaron ahí.
+- **El gate no necesitó ni un cambio**, porque ya estaba escrito para tolerarlo: `goals_check.py`
+  tenía `if not MAILBOX.exists(): return []` y `done.py` ya excluía la constitución de su
+  comprobación de ADR. Un gate que asume que todos sus documentos existen se rompe el día que uno
+  deja de publicarse.
+- Los siete ficheros **siguen en disco**. Salir del control de versiones y desaparecer son cosas
+  distintas, y aquí solo se quería la primera.
+
+**Siguiente.**
+Sigue la fase 4, `mask/rewrite.py`. Y un paso que no es del agente: lanzar
+`~/Documents/respaldo-github-2026-09-02/limpiar-github.sh`, que borra los seis forks y recrea
+`data-warden` para que el historial anterior deje de ser descargable.
