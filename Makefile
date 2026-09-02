@@ -22,20 +22,22 @@ PROFILE ?= dev
         bench bench-guard cost-calibration mutation \
         attack-dev attack-holdout attack-mut pii-suite \
         mcp-conformance test-parity gate-fast gate-full done report clean \
-        dataset dataset-full
+        dataset dataset-full dataset-traps contracts catalog arch-checks goals guard-property \
+        statistics budget-invariant
 
 # -----------------------------------------------------------------------------
 help:
 	@echo "Data Warden · fase 0"
 	@echo ""
 	@echo "  Funciona hoy:"
-	@echo "    lint typecheck imports test-fast test coverage secrets gate-fast"
+	@echo "    lint typecheck imports test-fast test coverage secrets"
+	@echo "    contracts catalog arch-checks goals gate-fast gate-full done"
 	@echo "    dataset dataset-full report clean"
 	@echo ""
 	@echo "  Declarado y todavía sin implementar (falla con su motivo):"
 	@echo "    up down warm test-int eval eval-refresh eval-recovery eval-toolchoice"
 	@echo "    bench bench-guard cost-calibration mutation attack-dev attack-holdout"
-	@echo "    attack-mut pii-suite mcp-conformance test-parity gate-full done"
+	@echo "    attack-mut pii-suite mcp-conformance test-parity"
 
 # --- infraestructura ---------------------------------------------------------
 up down warm:
@@ -71,13 +73,63 @@ test-int:
 	@echo "FASE 0: no hay tests de integración todavía (necesitan el motor y el catálogo)."
 	@exit 1
 
+# `--cov-context=test` NO es opcional: es lo que hace medible "un test por
+# función" (CONSTITUCION §2.6). Sin él, G-COV-FUNC no se puede calcular y el check
+# sale rojo por falta de medida, que es lo correcto.
+# `tests/integration` ENTRA aquí y no en el gate rápido. El motivo es honestidad:
+# tres funciones del catálogo solo se pueden ejercitar contra DuckDB (I-13 prohíbe
+# el motor en tests/unit), así que medir la cobertura sin ellas daría un número que
+# solo se puede cumplir escribiendo tests que no tocan lo que importa.
 coverage:
-	$(UV) pytest tests/unit tests/property tests/contract \
-		--cov --cov-report=term-missing --cov-report=xml
+	$(UV) pytest tests/unit tests/property tests/contract tests/integration \
+		--cov --cov-context=test --cov-report=term-missing \
+		--cov-report=json:evals/reports/coverage-contexts.json
 	$(UV) python scripts/check_gate_config.py
+	$(UV) python scripts/check_function_coverage.py
+	$(UV) python scripts/check_line_coverage.py
 
+# Cero hallazgos NUEVOS. La línea base NO se regenera para silenciar un hallazgo:
+# se resuelve el hallazgo. Los cuatro que hay dentro son falsos positivos
+# auditados uno a uno y anotados en JOURNAL.md el 2026-09-02.
 secrets:
-	$(UV) detect-secrets scan --baseline .secrets.baseline
+	$(UV) python scripts/check_secrets.py
+
+# --- contratos, catálogo y metas ---------------------------------------------
+# Compila los YAML firmados de docs/spec/ a los JSON que consume src/. El dominio
+# no parsea YAML: ver el encabezado de scripts/compile_contracts.py y P-002.
+contracts:
+	$(UV) python scripts/compile_contracts.py
+	$(UV) python scripts/check_contracts.py
+
+# El catálogo se GENERA (I-07). Nunca se escribe a mano.
+catalog:
+	$(UV) warden catalog build
+	$(UV) python scripts/check_catalog_fresh.py
+
+# Las estadísticas salen de los MANIFIESTOS de Iceberg, sin leer una sola fila:
+# contar 66,6 M de filas tarda 0,5 s porque se lee el metadato. Perfil `full`, que es
+# el dataset publicado y el que calibra los presupuestos.
+statistics:
+	$(UV) python -c "import pathlib; from datawarden.catalog import statistics as S; \
+	  st = S.build_from_iceberg(pathlib.Path('datagen/out/full/iceberg'), 'full'); \
+	  pathlib.Path('src/datawarden/catalog/generated/statistics.json').write_text(S.to_json(st)); \
+	  print(f'estadisticas: {len(st.tables)} tablas')"
+
+# Los checks de arquitectura que cuestan milisegundos y entran en el gate B.
+arch-checks:
+	$(UV) python scripts/check_gate_config.py
+	$(UV) python scripts/check_no_raw_sql.py
+	$(UV) python scripts/check_contracts.py
+	$(UV) python scripts/check_catalog_fresh.py
+	$(UV) python scripts/check_resultset_eq.py
+	$(UV) python scripts/check_failclosed.py
+	$(UV) python scripts/check_role_source.py
+	$(UV) python scripts/check_rule_coverage.py
+	$(UV) python scripts/check_rules_registry.py
+	$(UV) python scripts/check_attack_coverage.py
+
+goals:
+	$(UV) python scripts/goals_check.py --milestone $(MILESTONE)
 
 # --- evaluación --------------------------------------------------------------
 eval eval-refresh eval-recovery eval-toolchoice:
@@ -86,33 +138,55 @@ eval eval-refresh eval-recovery eval-toolchoice:
 	@exit 1
 
 # --- rendimiento -------------------------------------------------------------
+# AVISO: D-03 dice UN proyecto encendido cada vez. Un p95 medido con otro
+# proyecto compitiendo por la memoria NO vale y hay que repetirlo.
 bench bench-guard:
-	@echo "FASE 2: el guard no existe todavía, así que no hay p95 que medir."
-	@echo "AVISO cuando exista: D-03 dice UN proyecto encendido cada vez. Un p95"
-	@echo "medido con otro proyecto compitiendo por la memoria NO vale."
-	@exit 1
+	$(UV) python scripts/bench_guard.py
 
 cost-calibration:
-	@echo "FASE 3: el estimador de coste no existe."
-	@exit 1
+	$(UV) python scripts/cost_calibration.py --profile $(PROFILE)
 
+# `G-BUDGET-ESCAPE`: el invariante por contador y el número por reloj.
+budget-invariant:
+	$(UV) python scripts/check_budget_invariant.py
+
+# Lo único que distingue cobertura de verificación. `mutmut run` tarda ~40 s con
+# ocho hijos; el check lee sus resultados y los compara con los dos umbrales.
 mutation:
-	@echo "FASE 3: la mutación se mide cuando hay reglas del guard que mutar."
-	@exit 1
+	$(UV) mutmut run --max-children 8
+	$(UV) python scripts/check_mutation.py
 
 # --- seguridad ---------------------------------------------------------------
-attack-dev attack-mut pii-suite:
-	@echo "FASE 2: el cuaderno de ataque necesita el guard."
-	@exit 1
+# HIGIENE, NO EVIDENCIA. Las reglas se escribieron para parar estos casos: el
+# número de `attack-dev` NO se publica como métrica de seguridad.
+attack-dev:
+	$(UV) python scripts/attack_dev.py
 
+# La otra mitad del número publicable: >= 2.000 mutantes de AST, cero evasiones.
+attack-mut:
+	$(UV) python scripts/attack_mut.py
+
+# La RESERVA. El agente NO la lee: la ejecuta y mira el veredicto.
 attack-holdout:
-	@echo "FASE 2: el holdout lo escribe el subagente qa-adversario, y Q-005 sigue"
-	@echo "PENDIENTE. Recuerda: el agente NO puede leer tests/holdout/."
+	$(UV) python scripts/attack_holdout.py
+
+# El guard, ejercitado por sus propiedades: fail-closed y allowlist.
+guard-property:
+	$(UV) python scripts/check_guard_property.py
+
+pii-suite:
+	@echo "FASE 4: la suite de fuga necesita mask/, que todavía no existe."
 	@exit 1
 
 mcp-conformance test-parity:
 	@echo "FASE 7 y 9: no hay servidor MCP ni segundo motor todavía."
 	@exit 1
+
+# Las nueve trampas del glosario, MEDIDAS. Nace de la corrección G-5 de la firma
+# de Q-004: «una trampa cuyo número no se ha vuelto a medir desde que se escribió
+# es folclore». Hoy salen 7 de 9; las dos que discrepan están en la propuesta P-003.
+dataset-traps:
+	$(UV) python scripts/measure_traps.py --profile $(PROFILE)
 
 # --- el dataset sintético ----------------------------------------------------
 dataset:
@@ -128,22 +202,19 @@ gate-fast: lint typecheck test-fast
 	@echo "gate-fast VERDE"
 
 # gate-full: lo que tiene que pasar para cerrar una fase.
-gate-full:
-	@echo "FASE 0: gate-full exige metas que todavía no son medibles."
+# gate-full: lo que tiene que pasar para cerrar una fase, sin el peso de `done`.
+# No incluye mutación ni snapshot: eso es `done`, y mezclarlos haría que nadie
+# corriera gate-full por lo que tarda.
+gate-full: lint typecheck imports arch-checks test coverage secrets attack-dev attack-mut
 	@echo ""
-	@echo "  G-CATALOG-FRESH  necesita catalog/introspect.py"
-	@echo "  G-COV-LINE       necesita código en los 8 paquetes testables"
-	@echo "  G-COV-FUNC       ídem"
-	@echo "  G-SECRETS        necesita .secrets.baseline"
-	@echo ""
-	@echo "Se implementa al final de la fase 0, cuando haya algo que medir."
-	@echo "Un gate que aprueba porque no encuentra nada es una señal verde falsa."
-	@exit 1
+	@echo "gate-full VERDE"
 
+# La ÚNICA definición de "hecho" (CONSTITUCION §5). Doce condiciones, parando en
+# la primera que falla, y el resultado en .claude/state/gate-status.json, que lo
+# escribe el GATE y no el agente.
 done:
-	@echo "make done es la ÚNICA definición de 'hecho' y todavía no existe."
-	@echo "Requiere gate-full, y gate-full requiere la fase 0 terminada."
-	@exit 1
+	@test -n "$(MILESTONE)" || { echo "falta MILESTONE=N"; exit 2; }
+	$(UV) python scripts/done.py --milestone $(MILESTONE)
 
 # --- varios ------------------------------------------------------------------
 report:
