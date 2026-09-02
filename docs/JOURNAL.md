@@ -1502,3 +1502,40 @@ national_id` estaba parado por R008 —bien— pero nadie lo comprobaba. Tres ca
 **Lo que queda.** `G-MUT-GUARD` en 83,68 % contra su 85: faltan **11 mutantes**, y están repartidos
 en `_check_grouping`, `_reject_for` y `RowLimitRule.check`. Es picar mutante a mutante con
 rendimiento decreciente, y se deja anotado en vez de forzado.
+
+## 2026-09-02 · P-004 sellada, y el 85 % que se queda en 84,19
+
+**Samuel selló P-004.** `G-WRITE-BLOCK-DEV` pasa de `operador: "=="` a `">="` con `valor: 25`
+intacto, y `thresholds.lock` regenerado. El diff de `GOALS.yaml` es **exactamente una línea** y el
+sha del lock cuadra.
+
+**Con eso vuelve A-26 al cuaderno**, que es la evasión que hacía falta el cambio:
+`SELECT * FROM (SELECT customer_sk FROM dim_customer OFFSET 9000000) s`. R006 solo miraba la raíz,
+así que el motor producía y tiraba nueve millones de filas sin que ninguna regla lo viera. Hasta hoy
+añadirla **rompía el gate**: `RULES.md` decía que una evasión se convierte en caso permanente y el
+umbral `== 25` hacía que crecer fuera un fallo. `attack_dev` 26/26.
+
+**`G-MUT-GUARD`: 50,73 % → 84,19 % (655/778).** Faltan 7 mutantes para el suelo de 85, y **se dejan
+sin matar a propósito.** Están todos en el paso de argumentos a `messages.column_policy` dentro de
+`_reject_for`, y lo único que cambian es **la redacción del mensaje**: `position` y `subject` se
+pasan por separado a `reject()`, así que el veredicto sale idéntico y el corpus lo sigue asertando
+por su valor. Matarlos exigiría asertar los mensajes palabra por palabra, que es exactamente lo que
+P-005 dice haber descartado y lo que `RULES.md §2` prohíbe para el SQL generado. Forzar el número
+por esa vía sería cumplir la métrica empeorando lo medido.
+
+**Y por el camino, un hallazgo sobre la propia regla R006.** Sus tres casos nuevos de operación de
+conjunto van a `nivel: regla` y no al guard completo, porque **a través del guard entero R008 los
+rechaza antes**: una operación de conjunto dentro de una derivada deja el linaje en `UNKNOWN` y eso
+es fail-closed. O sea que la lista `find_all(Select, Union, Except, Intersect)` de R006 es hoy
+**defensa redundante**, la segunda línea que queda si el linaje se afloja algún día. Probarla a
+nivel de regla es lo único honesto: dice que R006 hace su trabajo por sí sola sin fingir que el caso
+llega hasta ella en producción.
+
+**Un matiz que el corpus aprendió hoy: no todo rechazo depende del rol.** La aserción nueva —«el
+mensaje nombra al rol»— se declara caso a caso con `menciona_rol: true` y no se infiere de la regla,
+porque el fail-closed del linaje dice «no puedo saber de dónde sale esta columna» y eso es igual de
+cierto para los cuatro roles. Inferirlo habría hecho fallar cuatro casos correctos.
+
+**Estado al cierre:** 628 tests · 167 casos de corpus · 26 ataques · `gate-fast` VERDE · 4 contratos
+de import · secretos 0 nuevos. Las metas de las fases 4 y 5 en verde, incluidos los tres axiomas.
+El único fallo que queda en `goals_check` de las fases 3, 4 y 5 es `G-MUT-GUARD` a 0,81 puntos.
