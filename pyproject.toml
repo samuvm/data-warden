@@ -132,6 +132,13 @@ omit = [
   "src/datawarden/agent/*",
 ]
 
+# `show_contexts` es lo que hace que el informe JSON lleve QUÉ test cubrió cada
+# línea. Sin esto, `--cov-context=test` recoge los contextos y luego no los
+# escribe, y `check_function_coverage.py` no tiene nada que leer: G-COV-FUNC
+# saldría rojo por falta de medida, que es correcto pero inútil.
+[tool.coverage.json]
+show_contexts = true
+
 [tool.coverage.report]
 # `fail_under` NO se pone aquí: lo comprueba el gate contra `[tool.gate]`, que a
 # su vez se verifica contra `GOALS.yaml`. Dos sitios donde bajar un número es un
@@ -169,7 +176,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Un test puede hacer cosas que el código de producción no.
-"tests/**" = ["S105", "S106", "S311"]
 # El generador sortea números pseudoaleatorios a propósito y con semilla fija, y
 # construye SQL por concatenación porque su trabajo ES construir SQL. Nada de eso
 # entra en `src/`, donde S608 sigue activo y donde una consulta se arma sobre un
@@ -179,7 +185,13 @@ ignore = [
 # columnas las hace menos legibles, no más. El signo menos tipográfico de
 # `report.py` es deliberado. En `src/` ambas siguen activas.
 "datagen/**" = ["S311", "S324", "S608", "E741", "E501", "RUF001"]
-"scripts/**" = ["S603", "S607"]
+# `scripts/` y `tests/` CONSTRUYEN SQL a propósito: los bancos de ataque, las
+# bombas de AST y el corpus de mutación son cadenas de SQL que se arman para
+# dárselas al guard. S608 avisa de inyección por concatenación, que es justo lo que
+# aquí se hace queriendo. En `src/` sigue activo, y ahí una consulta se arma sobre
+# un AST validado y jamás por concatenación.
+"scripts/**" = ["S603", "S607", "S608"]
+"tests/**" = ["S105", "S106", "S311", "S608"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -195,9 +207,40 @@ module = ["duckdb.*", "pyiceberg.*", "faker.*", "mutmut.*"]
 ignore_missing_imports = true
 
 [tool.mutmut]
-paths_to_mutate = "src/datawarden/"
-# El guard se mide aparte y con un umbral más alto: es donde vive la seguridad.
-tests_dir = "tests/unit/"
+# mutmut 3.7 renombró las claves: `paths_to_mutate` -> `source_paths` y `tests_dir`
+# (una cadena) -> `pytest_add_cli_args_test_selection` (una lista). Con las viejas ni
+# siquiera arranca: `TypeError: can only concatenate list (not "str") to list`.
+#
+# Se mutan los OCHO paquetes de `[tool.gate].testable` y nada más. Los adaptadores
+# quedan fuera por el mismo motivo que quedan fuera de la cobertura de línea: mutar
+# un adaptador premia envolverlo en tests que no prueban nada.
+source_paths = [
+  "src/datawarden/domain",
+  "src/datawarden/guard",
+  "src/datawarden/mask",
+  "src/datawarden/audit",
+  "src/datawarden/principal",
+  "src/datawarden/cost",
+  "src/datawarden/catalog",
+  "src/datawarden/evalsupport",
+]
+# Unitarios y de contrato. `tests/property` queda FUERA y es una decisión medida:
+# sus propiedades corren 5.000 ejemplos cada una porque `G-FAILCLOSED` es un axioma,
+# y multiplicar eso por tres mil mutantes son horas. Lo que la propiedad cubría y la
+# mutación necesitaba —el camino del `except` del validador— se cubre ahora con un
+# test unitario que fuerza una regla a estallar.
+pytest_add_cli_args_test_selection = ["tests/unit", "tests/contract"]
+
+# mutmut copia el árbol a `mutants/` y corre desde allí, así que lo que los tests
+# lean por ruta tiene que viajar con ellos. `docs/` son unos cientos de kilobytes y
+# lo necesitan los tests de contrato.
+#
+# **`datagen/out/` NO viaja, y por eso `tests/integration` queda fuera**: son 7,1 GB.
+# La consecuencia se declara en el informe: los mutantes de `catalog/build.py` y de
+# `catalog/statistics.py::build_from_iceberg`, que solo la integración ejercita,
+# salen como «sin tests» y cuentan como NO muertos. Es un número peor que el real, y
+# es preferible a inflarlo excluyéndolos.
+also_copy = ["docs", "README.md", "attacks", "thresholds.lock", "models.lock"]
 
 # =============================================================================
 # import-linter: los límites entre capas del mapa de CLAUDE.md, ejecutables.

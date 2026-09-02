@@ -21,6 +21,11 @@ venv/
 .hypothesis/
 .coverage
 coverage.xml
+# 42,8 MB de contextos de cobertura, regenerables con `make coverage`. Los INFORMES
+# de `evals/reports/` sí se versionan —son la evidencia de cada número— pero este es
+# la materia prima de la que salen, no el número.
+evals/reports/coverage-contexts.json
+evals/reports/.duckdb-profile.json
 htmlcov/
 mutants/
 
