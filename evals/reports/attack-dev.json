@@ -1,0 +1,741 @@
+{
+  "metas": {
+    "G-ATTACK-MATRIX": {
+      "adicionales": {},
+      "command": "python scripts/check_attack_coverage.py",
+      "detail": {
+        "declared_but_not_exercised": [
+          "anidamiento_excesivo",
+          "columna_inexistente",
+          "comando_de_motor",
+          "construccion_no_analitica",
+          "demasiadas_ramas",
+          "desplazamiento_excesivo",
+          "entrada_desmesurada",
+          "enumeracion_de_catalogo",
+          "escritura_en_subconsulta",
+          "funcion_de_motor",
+          "limite_no_estatico",
+          "nodo_desconocido",
+          "select_estrella",
+          "sin_limite"
+        ],
+        "exempt": {
+          "R009": "defensa en profundidad: `qualify()` expande la estrella, así que no hay consulta que haga saltar R009 de punta a punta. La regla existe para el caso en que `qualify()` NO expanda y devuelva el árbol con la estrella dentro sin error, y se ejercita a nivel de regla en tests/unit/guard/cases/R009.yaml."
+        },
+        "families_declared": {
+          "agregacion_de_grupo_unico": [
+            "R012"
+          ],
+          "alias_que_oculta": [
+            "R008"
+          ],
+          "anidamiento_excesivo": [
+            "R007"
+          ],
+          "bomba_de_ast": [
+            "R013"
+          ],
+          "columna_denegada": [
+            "R008"
+          ],
+          "columna_enmascarada_en_predicado": [
+            "R008"
+          ],
+          "columna_inexistente": [
+            "R004"
+          ],
+          "comando_de_motor": [
+            "R001"
+          ],
+          "construccion_no_analitica": [
+            "R002"
+          ],
+          "demasiadas_ramas": [
+            "R011"
+          ],
+          "desplazamiento_excesivo": [
+            "R006"
+          ],
+          "entrada_desmesurada": [
+            "R013"
+          ],
+          "enumeracion_de_catalogo": [
+            "R014"
+          ],
+          "escritura_directa": [
+            "R010"
+          ],
+          "escritura_en_subconsulta": [
+            "R010"
+          ],
+          "escritura_oculta_en_cte": [
+            "R010"
+          ],
+          "esquema_de_sistema": [
+            "R014"
+          ],
+          "expresion_derivada": [
+            "R008"
+          ],
+          "funcion_de_motor": [
+            "R003"
+          ],
+          "funcion_de_tabla": [
+            "R004"
+          ],
+          "funcion_desconocida": [
+            "R003"
+          ],
+          "lectura_de_fichero": [
+            "R003"
+          ],
+          "limite_no_estatico": [
+            "R006"
+          ],
+          "nodo_desconocido": [
+            "R002"
+          ],
+          "producto_cartesiano": [
+            "R005"
+          ],
+          "reidentificacion_por_cardinalidad": [
+            "R012"
+          ],
+          "select_estrella": [
+            "R009"
+          ],
+          "sentencia_multiple": [
+            "R001"
+          ],
+          "sentencia_no_consulta": [
+            "R001"
+          ],
+          "sin_limite": [
+            "R006"
+          ],
+          "tabla_fuera_de_ambito": [
+            "R004"
+          ],
+          "union_con_datos_inyectados": [
+            "R011"
+          ],
+          "vista_que_reexpone": [
+            "R008"
+          ]
+        },
+        "families_exercised": [
+          "agregacion_de_grupo_unico",
+          "alias_que_oculta",
+          "bomba_de_ast",
+          "columna_denegada",
+          "columna_enmascarada_en_predicado",
+          "escritura_directa",
+          "escritura_oculta_en_cte",
+          "esquema_de_sistema",
+          "expresion_derivada",
+          "funcion_de_tabla",
+          "funcion_desconocida",
+          "lectura_de_fichero",
+          "producto_cartesiano",
+          "reidentificacion_por_cardinalidad",
+          "sentencia_multiple",
+          "sentencia_no_consulta",
+          "tabla_fuera_de_ambito",
+          "union_con_datos_inyectados",
+          "vista_que_reexpone"
+        ],
+        "problems": [],
+        "rules_with_attack": [
+          "R001",
+          "R002",
+          "R003",
+          "R004",
+          "R005",
+          "R006",
+          "R007",
+          "R008",
+          "R009",
+          "R010",
+          "R011",
+          "R012",
+          "R013",
+          "R014"
+        ]
+      },
+      "value": 0
+    },
+    "G-COV-RULE": {
+      "adicionales": {},
+      "command": "python scripts/check_rule_coverage.py",
+      "detail": {
+        "fires": {
+          "R001": 8,
+          "R002": 4,
+          "R003": 4,
+          "R004": 5,
+          "R005": 3,
+          "R006": 7,
+          "R007": 3,
+          "R008": 10,
+          "R009": 3,
+          "R010": 5,
+          "R011": 3,
+          "R012": 4,
+          "R013": 5,
+          "R014": 4
+        },
+        "per_rule": {
+          "R001": {
+            "accept": 4,
+            "reject": 8
+          },
+          "R002": {
+            "accept": 4,
+            "reject": 4
+          },
+          "R003": {
+            "accept": 4,
+            "reject": 4
+          },
+          "R004": {
+            "accept": 4,
+            "reject": 4
+          },
+          "R005": {
+            "accept": 4,
+            "reject": 3
+          },
+          "R006": {
+            "accept": 4,
+            "reject": 7
+          },
+          "R007": {
+            "accept": 4,
+            "reject": 3
+          },
+          "R008": {
+            "accept": 5,
+            "reject": 7
+          },
+          "R009": {
+            "accept": 4,
+            "reject": 6
+          },
+          "R010": {
+            "accept": 4,
+            "reject": 5
+          },
+          "R011": {
+            "accept": 4,
+            "reject": 3
+          },
+          "R012": {
+            "accept": 4,
+            "reject": 4
+          },
+          "R013": {
+            "accept": 4,
+            "reject": 5
+          },
+          "R014": {
+            "accept": 4,
+            "reject": 5
+          }
+        },
+        "problems": []
+      },
+      "value": 0
+    },
+    "G-RULES-REGISTRY": {
+      "adicionales": {},
+      "command": "python scripts/check_rules_registry.py",
+      "detail": {
+        "problems": [],
+        "registry_exists": true,
+        "rules": {
+          "R001": {
+            "code": "not_a_read_statement",
+            "families": [
+              "comando_de_motor",
+              "sentencia_multiple",
+              "sentencia_no_consulta"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 8,
+            "reject_ids": [
+              "R001-R1",
+              "R001-R2",
+              "R001-R3",
+              "R001-R4",
+              "R001-R5",
+              "R001-R6",
+              "R001-R7",
+              "R001-R8"
+            ],
+            "severity": "security"
+          },
+          "R002": {
+            "code": "node_not_allowed",
+            "families": [
+              "construccion_no_analitica",
+              "nodo_desconocido"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 4,
+            "reject_ids": [
+              "R002-R1",
+              "R002-R2",
+              "R002-R3",
+              "R002-R4"
+            ],
+            "severity": "security"
+          },
+          "R003": {
+            "code": "function_not_allowed",
+            "families": [
+              "funcion_de_motor",
+              "funcion_desconocida",
+              "lectura_de_fichero"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 4,
+            "reject_ids": [
+              "R003-R1",
+              "R003-R2",
+              "R003-R3",
+              "R003-R4"
+            ],
+            "severity": "security"
+          },
+          "R004": {
+            "code": "relation_out_of_scope",
+            "families": [
+              "columna_inexistente",
+              "funcion_de_tabla",
+              "tabla_fuera_de_ambito"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 4,
+            "reject_ids": [
+              "R004-R1",
+              "R004-R2",
+              "R004-R3",
+              "R004-R4"
+            ],
+            "severity": "security"
+          },
+          "R005": {
+            "code": "cartesian_join",
+            "families": [
+              "producto_cartesiano"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 3,
+            "reject_ids": [
+              "R005-R1",
+              "R005-R2",
+              "R005-R3"
+            ],
+            "severity": "policy"
+          },
+          "R006": {
+            "code": "row_limit",
+            "families": [
+              "desplazamiento_excesivo",
+              "limite_no_estatico",
+              "sin_limite"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 7,
+            "reject_ids": [
+              "R006-R1",
+              "R006-R2",
+              "R006-R3",
+              "R006-R4",
+              "R006-R5",
+              "R006-R6",
+              "R006-R7"
+            ],
+            "severity": "policy"
+          },
+          "R007": {
+            "code": "nesting_too_deep",
+            "families": [
+              "anidamiento_excesivo"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 3,
+            "reject_ids": [
+              "R007-R1",
+              "R007-R2",
+              "R007-R3"
+            ],
+            "severity": "policy"
+          },
+          "R008": {
+            "code": "column_policy",
+            "families": [
+              "alias_que_oculta",
+              "columna_denegada",
+              "columna_enmascarada_en_predicado",
+              "expresion_derivada",
+              "vista_que_reexpone"
+            ],
+            "n_accept_cases": 5,
+            "n_reject_cases": 7,
+            "reject_ids": [
+              "R008-R1",
+              "R008-R2",
+              "R008-R3",
+              "R008-R4",
+              "R008-R5",
+              "R008-R6",
+              "R008-R7"
+            ],
+            "severity": "policy"
+          },
+          "R009": {
+            "code": "star_not_expanded",
+            "families": [
+              "select_estrella"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 6,
+            "reject_ids": [
+              "R009-R0a",
+              "R009-R0b",
+              "R009-R0c",
+              "R009-R1",
+              "R009-R2",
+              "R009-R3"
+            ],
+            "severity": "security"
+          },
+          "R010": {
+            "code": "write_node_present",
+            "families": [
+              "escritura_directa",
+              "escritura_en_subconsulta",
+              "escritura_oculta_en_cte"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 5,
+            "reject_ids": [
+              "R010-R1",
+              "R010-R2",
+              "R010-R3",
+              "R010-R4",
+              "R010-R5"
+            ],
+            "severity": "security"
+          },
+          "R011": {
+            "code": "set_operation_branch",
+            "families": [
+              "demasiadas_ramas",
+              "union_con_datos_inyectados"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 3,
+            "reject_ids": [
+              "R011-R1",
+              "R011-R2",
+              "R011-R3"
+            ],
+            "severity": "security"
+          },
+          "R012": {
+            "code": "group_too_small",
+            "families": [
+              "agregacion_de_grupo_unico",
+              "reidentificacion_por_cardinalidad"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 4,
+            "reject_ids": [
+              "R012-R1",
+              "R012-R2",
+              "R012-R3",
+              "R012-R4"
+            ],
+            "severity": "policy"
+          },
+          "R013": {
+            "code": "tree_too_large",
+            "families": [
+              "bomba_de_ast",
+              "entrada_desmesurada"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 5,
+            "reject_ids": [
+              "R013-R0",
+              "R013-R0b",
+              "R013-R1",
+              "R013-R2",
+              "R013-R3"
+            ],
+            "severity": "security"
+          },
+          "R014": {
+            "code": "system_schema_access",
+            "families": [
+              "enumeracion_de_catalogo",
+              "esquema_de_sistema"
+            ],
+            "n_accept_cases": 4,
+            "n_reject_cases": 5,
+            "reject_ids": [
+              "R014-R1",
+              "R014-R2",
+              "R014-R3",
+              "R014-R4",
+              "R014-R5"
+            ],
+            "severity": "security"
+          }
+        }
+      },
+      "value": 0
+    },
+    "G-WRITE-BLOCK-DEV": {
+      "adicionales": {},
+      "command": "make attack-dev",
+      "detail": {
+        "attacks": [
+          {
+            "actual_rule": "R010",
+            "blocked": true,
+            "expected_rule": "R010",
+            "family": "escritura_directa",
+            "id": "A-01",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R010",
+            "blocked": true,
+            "expected_rule": "R010",
+            "family": "escritura_oculta_en_cte",
+            "id": "A-02",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R010",
+            "blocked": true,
+            "expected_rule": "R010",
+            "family": "escritura_oculta_en_cte",
+            "id": "A-03",
+            "right_rule": true,
+            "role": "admin"
+          },
+          {
+            "actual_rule": "R010",
+            "blocked": true,
+            "expected_rule": "R010",
+            "family": "escritura_directa",
+            "id": "A-04",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R001",
+            "blocked": true,
+            "expected_rule": "R001",
+            "family": "sentencia_multiple",
+            "id": "A-05",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R004",
+            "blocked": true,
+            "expected_rule": "R004",
+            "family": "funcion_de_tabla",
+            "id": "A-06",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R003",
+            "blocked": true,
+            "expected_rule": "R003",
+            "family": "lectura_de_fichero",
+            "id": "A-07",
+            "right_rule": true,
+            "role": "admin"
+          },
+          {
+            "actual_rule": "R003",
+            "blocked": true,
+            "expected_rule": "R003",
+            "family": "funcion_desconocida",
+            "id": "A-08",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R014",
+            "blocked": true,
+            "expected_rule": "R014",
+            "family": "esquema_de_sistema",
+            "id": "A-09",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R004",
+            "blocked": true,
+            "expected_rule": "R004",
+            "family": "tabla_fuera_de_ambito",
+            "id": "A-10",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R011",
+            "blocked": true,
+            "expected_rule": "R011",
+            "family": "union_con_datos_inyectados",
+            "id": "A-11",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "columna_enmascarada_en_predicado",
+            "id": "A-12",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "columna_enmascarada_en_predicado",
+            "id": "A-13",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "expresion_derivada",
+            "id": "A-14",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "alias_que_oculta",
+            "id": "A-15",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "vista_que_reexpone",
+            "id": "A-16",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "columna_denegada",
+            "id": "A-17",
+            "right_rule": true,
+            "role": "finance"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "columna_enmascarada_en_predicado",
+            "id": "A-18",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "columna_enmascarada_en_predicado",
+            "id": "A-19",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R008",
+            "blocked": true,
+            "expected_rule": "R008",
+            "family": "columna_enmascarada_en_predicado",
+            "id": "A-20",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R012",
+            "blocked": true,
+            "expected_rule": "R012",
+            "family": "agregacion_de_grupo_unico",
+            "id": "A-21",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R012",
+            "blocked": true,
+            "expected_rule": "R012",
+            "family": "reidentificacion_por_cardinalidad",
+            "id": "A-22",
+            "right_rule": true,
+            "role": "admin"
+          },
+          {
+            "actual_rule": "R005",
+            "blocked": true,
+            "expected_rule": "R005",
+            "family": "producto_cartesiano",
+            "id": "A-23",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R013",
+            "blocked": true,
+            "expected_rule": "R013",
+            "family": "bomba_de_ast",
+            "id": "A-24",
+            "right_rule": true,
+            "role": "analyst"
+          },
+          {
+            "actual_rule": "R001",
+            "blocked": true,
+            "expected_rule": "R001",
+            "family": "sentencia_no_consulta",
+            "id": "A-25",
+            "right_rule": true,
+            "role": "admin"
+          }
+        ],
+        "aviso": "HIGIENE, NO EVIDENCIA. Las reglas se escribieron para parar estos casos: pasar el 100 % es medir sobre el conjunto de entrenamiento. El número publicable es G-WRITE-BLOCK (holdout + mutación).",
+        "blocked": 25,
+        "total": 25,
+        "wrong_rule": 0
+      },
+      "value": 25
+    }
+  }
+}

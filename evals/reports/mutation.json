@@ -1,0 +1,227 @@
+{
+  "metas": {
+    "G-MUT-GUARD": {
+      "adicionales": {},
+      "command": "make mutation",
+      "detail": {
+        "floor": 85.0,
+        "killed": 452,
+        "scope": "src/datawarden/guard/rules",
+        "total": 891
+      },
+      "value": 50.73
+    },
+    "G-MUTATION": {
+      "adicionales": {},
+      "command": "make mutation",
+      "detail": {
+        "como_se_cuenta": "muertos / (muertos + supervivientes + sospechosos + timeouts + sin tests). «Sin tests» cuenta como NO muerto a propósito: es el hueco que la meta existe para encontrar.",
+        "floor": 70.0,
+        "killed": 1583,
+        "limite_declarado": "tests/property y tests/integration quedan fuera de la pasada. La propiedad corre 5.000 ejemplos por axioma y multiplicarlo por 3.238 mutantes son horas; la integración necesita los 7,1 GB del dataset, que mutmut no copia a su árbol de trabajo. Los mutantes que solo esas suites matan salen como «sin tests» y bajan el número: es un número peor que el real, y es preferible a inflarlo.",
+        "per_module": {
+          "datawarden.catalog.build": {
+            "killed": 0,
+            "no tests": 35,
+            "score": 0.0,
+            "total": 35
+          },
+          "datawarden.catalog.introspect": {
+            "killed": 104,
+            "no tests": 76,
+            "score": 49.06,
+            "survived": 32,
+            "total": 212
+          },
+          "datawarden.catalog.lineage": {
+            "killed": 173,
+            "score": 71.49,
+            "survived": 67,
+            "timeout": 2,
+            "total": 242
+          },
+          "datawarden.catalog.statistics": {
+            "killed": 71,
+            "no tests": 115,
+            "score": 34.8,
+            "survived": 18,
+            "total": 204
+          },
+          "datawarden.catalog.types": {
+            "killed": 59,
+            "score": 71.08,
+            "survived": 24,
+            "total": 83
+          },
+          "datawarden.cost.budget": {
+            "killed": 89,
+            "score": 76.07,
+            "survived": 28,
+            "total": 117
+          },
+          "datawarden.cost.estimator": {
+            "killed": 203,
+            "score": 85.29,
+            "survived": 35,
+            "total": 238
+          },
+          "datawarden.cost.screen": {
+            "killed": 47,
+            "score": 94.0,
+            "survived": 3,
+            "total": 50
+          },
+          "datawarden.domain.types": {
+            "killed": 4,
+            "score": 57.14,
+            "survived": 3,
+            "total": 7
+          },
+          "datawarden.evalsupport.mutate": {
+            "killed": 95,
+            "score": 60.9,
+            "survived": 61,
+            "total": 156
+          },
+          "datawarden.evalsupport.resultset_equality": {
+            "killed": 276,
+            "score": 87.62,
+            "survived": 39,
+            "total": 315
+          },
+          "datawarden.guard.context": {
+            "killed": 56,
+            "score": 51.38,
+            "survived": 53,
+            "total": 109
+          },
+          "datawarden.guard.position": {
+            "killed": 24,
+            "score": 88.89,
+            "survived": 3,
+            "total": 27
+          },
+          "datawarden.guard.query_lineage": {
+            "killed": 41,
+            "score": 74.55,
+            "survived": 14,
+            "total": 55
+          },
+          "datawarden.guard.rule": {
+            "killed": 15,
+            "score": 68.18,
+            "survived": 7,
+            "total": 22
+          },
+          "datawarden.guard.rules.r001_single_read_statement": {
+            "killed": 26,
+            "score": 43.33,
+            "survived": 32,
+            "suspicious": 2,
+            "total": 60
+          },
+          "datawarden.guard.rules.r002_node_allowlist": {
+            "killed": 17,
+            "score": 54.84,
+            "survived": 14,
+            "total": 31
+          },
+          "datawarden.guard.rules.r003_function_allowlist": {
+            "killed": 17,
+            "score": 41.46,
+            "survived": 24,
+            "total": 41
+          },
+          "datawarden.guard.rules.r004_catalog_scope": {
+            "killed": 45,
+            "score": 51.14,
+            "survived": 43,
+            "total": 88
+          },
+          "datawarden.guard.rules.r005_join_predicate": {
+            "killed": 36,
+            "score": 54.55,
+            "survived": 30,
+            "total": 66
+          },
+          "datawarden.guard.rules.r006_row_limit": {
+            "killed": 91,
+            "score": 53.85,
+            "survived": 78,
+            "total": 169
+          },
+          "datawarden.guard.rules.r007_nesting_depth": {
+            "killed": 28,
+            "score": 70.0,
+            "survived": 12,
+            "total": 40
+          },
+          "datawarden.guard.rules.r008_column_policy": {
+            "killed": 54,
+            "no tests": 22,
+            "score": 44.26,
+            "survived": 46,
+            "total": 122
+          },
+          "datawarden.guard.rules.r009_star_expansion": {
+            "killed": 17,
+            "score": 51.52,
+            "survived": 16,
+            "total": 33
+          },
+          "datawarden.guard.rules.r010_no_write_node": {
+            "killed": 13,
+            "score": 32.5,
+            "survived": 27,
+            "total": 40
+          },
+          "datawarden.guard.rules.r011_set_operation_scope": {
+            "killed": 33,
+            "score": 52.38,
+            "survived": 30,
+            "total": 63
+          },
+          "datawarden.guard.rules.r012_group_cardinality": {
+            "killed": 48,
+            "score": 56.47,
+            "survived": 37,
+            "total": 85
+          },
+          "datawarden.guard.rules.r013_tree_size": {
+            "killed": 13,
+            "score": 56.52,
+            "survived": 10,
+            "total": 23
+          },
+          "datawarden.guard.rules.r014_system_schema": {
+            "killed": 14,
+            "score": 46.67,
+            "survived": 16,
+            "total": 30
+          },
+          "datawarden.guard.validator": {
+            "killed": 191,
+            "score": 65.64,
+            "survived": 100,
+            "total": 291
+          },
+          "datawarden.principal.budgets": {
+            "killed": 37,
+            "score": 55.22,
+            "survived": 30,
+            "total": 67
+          },
+          "datawarden.principal.policy": {
+            "killed": 98,
+            "score": 67.12,
+            "survived": 48,
+            "total": 146
+          }
+        },
+        "scope": "el resto de los paquetes de [tool.gate].testable",
+        "total": 2376
+      },
+      "value": 66.62
+    }
+  }
+}

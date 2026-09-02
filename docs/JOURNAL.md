@@ -764,3 +764,211 @@ Fase VERDE de `resultset_equality`: implementar `compare()` hasta los 14 en verd
 `docs/spec/resultset-equality.md`. Lo único que sigue esperando a Samuel es firmar los dos contratos de
 `docs/spec/` (BORRADOR → FIRMADO) y las ocho decisiones globales de `_comun/`, ninguna de las cuales bloquea
 la fase 0 ni la 1.
+
+## 2026-09-02 · fases 0, 1 y 2 · el guard en pie, un SIGSEGV y dos números que eran folclore
+
+**Qué se intentó.**
+Sesión larga y autorizada por Samuel («comprueba al completo el proyecto y avanza todo lo posible;
+si son varias fases completas mejor»). Cerrar la fase 0, cerrar la 1 y construir la 2 entera: el
+guard, sus catorce reglas, el corpus, las propiedades, el cuaderno de ataque, la mutación de AST y
+la reserva del subagente `qa-adversario`.
+
+**Qué falló, y esto es lo que vale la pena leer.**
+
+**1 · `x UNION SELECT 1` MATA EL PROCESO.** Lo encontró la propiedad de fail-closed con 5.000
+entradas casi-SQL. La raíz es un `Union` perfectamente legal y la rama izquierda no es una
+consulta; al llegar a `qualify()`, el `sqlglot[c]` compilado con mypyc revienta con **SIGSEGV**.
+Un segfault es la peor forma posible de romper el fail-closed porque **no lo atrapa ningún
+`except`**: el guard no rechaza, el proceso muere. Se cierra en R001 comprobando antes de
+cualificar lo que de todos modos es verdad —una rama de un UNION es una consulta— y queda como
+caso permanente del corpus (R001-R6/R7/R8). El límite honesto va al modelo de amenaza: una caída
+nativa dentro de una extensión compilada no se puede capturar en proceso.
+
+**2 · La CTE que renombra una columna protegida se colaba.**
+`WITH c AS (SELECT birth_date AS b, customer_sk FROM dim_customer) SELECT customer_sk FROM c WHERE b > '1990-01-01'`
+pasaba el guard. El linaje del CATÁLOGO no ayuda: `c` no es una relación del catálogo, es una que
+la propia consulta acaba de inventar. Obligó a escribir `guard/query_lineage.py`, que resuelve el
+linaje DENTRO de la consulta bajando por el árbol de ámbitos de sqlglot. Un alias no cambia de qué
+columna sale un dato.
+
+**3 · La exclusión C-3 tenía una puerta trasera con nombre de vista.** Lo encontró el subagente
+`qa-adversario` mientras escribía la reserva, que es exactamente para lo que existe:
+`dim_merchant.traffic_weight` salía con `published: false`, como C-3 manda, y
+`v_merchant_current.traffic_weight` —la MISMA columna a través de la vista— salía con
+`published: true`. Ahora la exclusión se propaga por linaje.
+
+**4 · sqlglot conserva los comentarios y los vuelve a emitir.** `SELECT /*+ hint */ a FROM t`
+re-serializado seguía llevando texto del atacante hasta el motor, y hay motores que leen hints ahí.
+`ValidatedQuery.sql()` emite con `comments=False`.
+
+**5 · Dos de las nueve trampas del glosario no reproducen su número.** Lo pidió Samuel en la
+corrección G-5 de Q-004 —«una trampa cuyo número no se ha vuelto a medir es folclore»— y al
+medirlas salió que el SCD tipo 2 infla un **31,94 %** y no un 53 %, y que los clientes que nunca
+compraron son el **6,205 %** y no el 4,3 %. En el segundo caso el error no está en el glosario:
+está en el generador, que publica `never_paid_share` con el valor del OBJETIVO y no con el medido.
+Las otras siete reproducen, cuatro de ellas con tres decimales. Propuesta **P-003**, y
+`make dataset-traps` se queda en rojo hasta que Samuel decida: ajustar la tolerancia hasta que
+pasen sería convertir el script en decoración.
+
+**6 · La reserva sale 14/15, y el caso que falla necesita la fase 3.** H-14 ataca por el
+presupuesto —un agregado sin poda sobre los 66,6 M de intentos— y el anillo de coste todavía no
+existe. Es la respuesta correcta del holdout: se arregla el SISTEMA, no el caso.
+
+**Números.** Todos medidos, con su comando y su artefacto en `evals/reports/`.
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-CATALOG-FRESH` | == 0 | **0** · 32 relaciones, 428 columnas | `python scripts/check_catalog_fresh.py` |
+| `G-CONTRACTS-FROZEN` | == 0, 4 propios | **0 · 4** | `python scripts/check_contracts.py` |
+| `G-RESULTSET-EQ` | >= 12, 0 en rojo | **59 · 0** | `pytest tests/unit/evalsupport` |
+| `G-COV-FUNC` | == 0 sin test | **0 de 77** | `make coverage` |
+| `G-COV-LINE` | >= 90 / >= 95 | **99,21 % / 96,43 %** (guard) | `make coverage` |
+| `G-SECRETS` | == 0 nuevos | **0** · 4 en línea base, auditados | `make secrets` |
+| `G-WRITE-BLOCK-DEV` | == 25 | **28/28 por la regla CORRECTA** | `make attack-dev` |
+| `G-WRITE-BLOCK` · mutación | >= 2.000 mutantes | **3.497 · cero evasiones** | `make attack-mut` |
+| `G-WRITE-BLOCK` · holdout | == 15 | **14/15 · Wilson [0,70 - 0,99]** | `make attack-holdout` |
+| `G-FAILCLOSED` | >= 5.000 entradas, 0 excepciones | **20.000 · 0** | `make guard-property` |
+| `G-GUARD-P95` | p95 <= 25 ms | **p95 0,756 ms · p99 1,109 · máx 3,691** | `make bench-guard` |
+| `G-NO-RAW-SQL` | == 0 | **0** | `python scripts/check_no_raw_sql.py` |
+
+Latencia medida en **arm64 · Darwin 25.6.0**, protocolo del `GOALS.yaml`: corpus de 300, 50
+calentamientos, 500 medidas, primera descartada. D-03: un solo proyecto encendido.
+
+Corpus del guard: **119 casos** en catorce ficheros YAML, cada rechazo asertando el `rule_id`
+exacto. 25 (ahora 28) ataques en el cuaderno de desarrollo, **higiene y no evidencia**.
+
+**Decisiones.**
+- **El protocolo de regla se congeló antes de la primera regla**, con dos fases: las reglas que
+  deciden QUÉ CLASE DE COSA es el árbol corren antes de `qualify()`, y las que razonan sobre
+  columnas después. Cualificar un `DROP TABLE` no significa nada.
+- **El orden del registro es de ESPECIFICIDAD, no alfabético.** R010 antes que R001 para que una
+  CTE con un `DELETE` no reciba «solo se admite SELECT»; R014 antes que R004 para no decir «esa
+  tabla no existe» sobre una tabla que existe; **R008 antes que R012** porque las dos rechazan
+  `PARTITION BY birth_date` y solo R008 sabe ofrecer `age_band`. Este último lo detectó el cuaderno
+  de ataque, no una revisión.
+- **`Any` y `All` salen de la allowlist.** Un nombre de función generado al azar cayó en `all`,
+  sqlglot lo parseó como el cuantificador y el guard aceptó algo que ni siquiera es SQL válido para
+  DuckDB. Los cuantificadores solo hacen falta para `x = ANY (subconsulta)`, y para eso está `IN`.
+- **`Var` ENTRA en la allowlist**, como decisión y con su caso: sin él no se puede escribir
+  `date_trunc('month', x)` y todas las preguntas del banco llevan periodo.
+- **El dominio no parsea YAML.** `scripts/compile_contracts.py` traduce los contratos firmados a
+  JSON y `src/` lee solo JSON con la biblioteca estándar. Dos motivos: `PyYAML` es transitiva
+  (propuesta **P-002**) y el guard tiene 25 ms de presupuesto.
+- **Los siete cambios de Q-003 y las cinco correcciones de Q-004 aplicados**, y los dos contratos
+  pasan a `FIRMADO`. `budgets.yaml` nace del cambio C-7.
+- **TDD, dicho con precisión.** Los 14 casos de `resultset_equality` y los 21 de `domain/types`
+  se escribieron en ROJO y se verificó que fallaban POR ASERCIÓN antes de implementar. El resto de
+  la sesión —las precisiones P-1..P-6, el catálogo, el linaje— es test-after, que es lo que la zona
+  admite. **Rojo y verde ocurrieron en la misma sesión continua, no en turnos separados**: el
+  mecanismo que los separa (`tdd-guard.sh`) no existe porque D-09 no está instalado, y Samuel
+  autorizó expresamente avanzar sin parar entre fases. Se dice aquí en vez de presentarlo como algo
+  que no fue.
+
+**Siguiente.**
+La fase 3: `cost/estimator.py` sobre metadatos de Iceberg y `cost/budget.py`. No es solo la
+siguiente del plan: es lo que el caso H-14 de la reserva está pidiendo, y hasta que exista,
+`make done MILESTONE=2` sale en rojo por el holdout, que es lo correcto.
+
+## 2026-09-02 · fase 3 · el anillo de coste, un cero que era catastrófico y la mutación que mide prosa
+
+**Qué se intentó.**
+Construir la fase 3 entera —`cost/estimator.py` sobre metadatos de Iceberg y
+`cost/budget.py`— y cerrarla. La empujó la propia reserva: el caso H-14 del holdout ataca por el
+PRESUPUESTO y salía 14/15 porque ese anillo no existía. Es la respuesta correcta de un holdout:
+se arregla el sistema, no el caso.
+
+**Qué falló.**
+
+**1 · EL ESTIMADOR COBRABA CERO POR UNA TABLA DE 4,1 GB.** Es el peor fallo de toda la sesión.
+`_partition_value` usaba el `repr` del `Record` de pyiceberg, así que las claves de partición se
+guardaban como `Record[19967]` en vez de `2024-09-01`. Ningún literal de un `WHERE event_date =
+DATE '...'` casaba jamás, la poda devolvía el conjunto VACÍO, y el estimador daba **cero bytes**
+para `fact_payment_attempt`. `G-BUDGET-ESCAPE` es un AXIOMA —cero consultas caras llegan al
+motor— y habría dejado pasar **cualquier consulta con un predicado de fecha**. Subestimar a cero
+es la peor dirección posible.
+
+Lo encontró `G-COST-CALIB`: el p95 se disparó a 50 y el detalle decía `partitions_kept: 0`.
+`GOALS.yaml` dice que sin esa meta `G-BUDGET-ESCAPE` sería «trivialmente cierto y a la vez
+inútil». No era una frase retórica: era exactamente lo que estaba pasando.
+
+Dos arreglos, no uno: la clave se genera como fecha ISO, **y una intersección vacía deja de
+tomarse por buena** —si la poda no casa con ninguna partición, no se poda—. El segundo importa
+más que el primero: es el que hace que el siguiente fallo de formato sobreestime en vez de
+subestimar. Con tres tests de regresión, dos unitarios y uno contra los manifiestos reales.
+
+**2 · R006 solo miraba la raíz.** La mutación de AST encontró una evasión REAL:
+`SELECT * FROM (SELECT ... OFFSET 9000000) s`. La regla comprobaba el `OFFSET` del nodo de
+arriba, así que envolver la consulta en una subconsulta lo escondía y el motor producía y tiraba
+nueve millones de filas. Caso permanente en el corpus, y la regla ahora recorre todo el árbol.
+
+**3 · `total_bytes_read` de DuckDB no sirve para calibrar.** Lo contamina la caché del sistema
+operativo: medido, un escaneo de la tabla ENTERA reportó 987 kB, **menos** que el de un solo día
+lanzado antes. Un número que baja cuando el trabajo sube no calibra nada. El «real» se calcula con
+las mismas columnas que el estimador y la fracción de ficheros que el motor dice haber abierto
+(`Scanning Files: 1/730`), así que el cociente mide exactamente **poda del motor / poda del
+estimador**. El límite —que los tamaños de columna no se validan porque los toman los dos del
+mismo sitio— está declarado en el artefacto.
+
+**4 · La mutación no llega, y el motivo está medido.**
+
+| Intento | Qué cambió | `G-MUT-GUARD` | `G-MUTATION` |
+|---|---|---|---|
+| 1 | primera pasada, 3.238 mutantes, `mutmut run` | 38,61 % | 64,00 % |
+| 2 | R013 con casos que llegan a su cuerpo; tests de `screen()` | 40,18 % | 66,04 % |
+| 3 | el corpus asierta `position`, `subject` y el contrato del rechazo | **50,73 %** | **66,62 %** |
+
+Los dos primeros saltos son huecos REALES que la meta destapó y que ya están tapados:
+
+- **R013 estaba «probada» por casos que paraban otro mecanismo.** Sus tres casos de rechazo
+  generaban SQL tan largo que el corte por LONGITUD DE ENTRADA los rechazaba antes de parsear, así
+  que el cuerpo de la regla —el que cuenta nodos— no se ejecutaba nunca. Ahora hay un generador
+  denso: 5.005 nodos en 5.029 caracteres, y dos casos pegados al borde por los dos lados.
+- **El corpus solo miraba el `rule_id`.** `position=None` y `subject=None` sobrevivían en casi
+  todas las reglas. Ahora se asierta que todo rechazo dice DÓNDE del árbol está el problema, SOBRE
+  QUÉ objeto habla, que el mensaje lo nombra y que la sugerencia nombra la alternativa publicada.
+  Eso obligó además a que los rechazos que NO vienen de una regla —parseo, cualificación, timeout,
+  fallo interno— nombren también su objeto, que es una mejora del sistema y no del test.
+- **`cost/screen.py` tenía cincuenta mutantes y cero muertos**: cobertura de línea del 100 % y
+  ningún test unitario. Es literalmente la diferencia que `G-MUTATION` existe para señalar.
+
+Y ahí se acaba lo que la meta puede enseñar. **Sobre una muestra de 80 supervivientes de
+`guard/rules`, el 55 % son mutaciones que solo cambian el TEXTO de un literal**, y casi todo el
+45 % restante solo altera cómo se compone ese texto. Matarlos exige asertar los mensajes palabra
+por palabra, que es la misma fragilidad que `docs/RULES.md §2` prohíbe para el SQL generado, y
+congelaría justo la parte que más debe poder mejorar: el mensaje accionable es lo que
+`G-RECOVERY` medirá en la fase 6. Propuesta **P-005**, que **no pide bajar ningún umbral**: pide
+sacar los textos del alcance de la medida.
+
+**Números.**
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-BUDGET-ESCAPE` | 0 escapes, rechazo ≤ 200 ms sobre 3 GB | **0 · 1,2 ms** sobre 4,1 GB | `make budget-invariant` |
+| `G-COST-CALIB` | p95(real/est.) ≤ 1,5 · 0 casos > 3 | **1,077 · 0**, n = 60 | `make cost-calibration` |
+| `G-WRITE-BLOCK` · holdout | 15 | **15/15 · Wilson [0,80 – 1,00]** | `make attack-holdout` |
+| `G-MUT-GUARD` | ≥ 85 % | **50,73 %** (452/891) | `make mutation` |
+| `G-MUTATION` | ≥ 70 % | **66,62 %** (1.583/2.376) | `make mutation` |
+
+Las estadísticas salen de los manifiestos de Iceberg en **0,5 s sin leer una sola fila**: contar
+66.590.551 filas es leer un metadato. Esa es la propiedad que hace posible un estimador
+preventivo.
+
+**Decisiones.**
+- **El «real» de la calibración se define por la fracción de ficheros del motor**, no por sus
+  bytes leídos. Y el límite —que valida la PODA y no los tamaños de columna— va escrito en el
+  artefacto, no en la cabeza de nadie.
+- **Una intersección vacía en la poda se trata como «no sé»**, no como «cero». Ante la duda, se
+  cobra de más: sobreestimar cuesta que alguien acote su pregunta; subestimar cuesta el axioma.
+- **Una tabla que las estadísticas no conocen vale 1 GB**, no cero. Es un castigo deliberado.
+- **`tests/property` y `tests/integration` quedan fuera de la pasada de mutación**, con su motivo:
+  5.000 ejemplos por axioma multiplicados por 3.238 mutantes son horas, y la integración necesita
+  7,1 GB que mutmut no copia. Los mutantes que solo esas suites matan salen como «sin tests» y
+  BAJAN el número. Es un número peor que el real, y es preferible a inflarlo.
+- **La configuración de mutmut 3.7 cambió de nombres** (`paths_to_mutate` → `source_paths`,
+  `tests_dir` → `pytest_add_cli_args_test_selection`) y con las viejas ni siquiera arranca.
+
+**Siguiente.**
+`make done MILESTONE=3` sale ROJO en el paso 5, y es el resultado correcto: la fase 3 está
+construida y medida, y no cierra hasta que se decida P-005. Lo que sigue, sin depender de eso: la
+fase 4 (`mask/rewrite.py`, enmascarado reescribiendo el AST) y la 5 (`audit/chain.py` y el
+`AuditedExecutor`), que tocan directorios disjuntos y no dependen de la mutación.

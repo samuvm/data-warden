@@ -1,0 +1,227 @@
+[
+  {
+    "actual_rule": "R010",
+    "blocked": true,
+    "expected_rule": "R010",
+    "family": "escritura_directa",
+    "id": "A-01",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R010",
+    "blocked": true,
+    "expected_rule": "R010",
+    "family": "escritura_oculta_en_cte",
+    "id": "A-02",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R010",
+    "blocked": true,
+    "expected_rule": "R010",
+    "family": "escritura_oculta_en_cte",
+    "id": "A-03",
+    "right_rule": true,
+    "role": "admin"
+  },
+  {
+    "actual_rule": "R010",
+    "blocked": true,
+    "expected_rule": "R010",
+    "family": "escritura_directa",
+    "id": "A-04",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R001",
+    "blocked": true,
+    "expected_rule": "R001",
+    "family": "sentencia_multiple",
+    "id": "A-05",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R004",
+    "blocked": true,
+    "expected_rule": "R004",
+    "family": "funcion_de_tabla",
+    "id": "A-06",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R003",
+    "blocked": true,
+    "expected_rule": "R003",
+    "family": "lectura_de_fichero",
+    "id": "A-07",
+    "right_rule": true,
+    "role": "admin"
+  },
+  {
+    "actual_rule": "R003",
+    "blocked": true,
+    "expected_rule": "R003",
+    "family": "funcion_desconocida",
+    "id": "A-08",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R014",
+    "blocked": true,
+    "expected_rule": "R014",
+    "family": "esquema_de_sistema",
+    "id": "A-09",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R004",
+    "blocked": true,
+    "expected_rule": "R004",
+    "family": "tabla_fuera_de_ambito",
+    "id": "A-10",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R011",
+    "blocked": true,
+    "expected_rule": "R011",
+    "family": "union_con_datos_inyectados",
+    "id": "A-11",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "columna_enmascarada_en_predicado",
+    "id": "A-12",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "columna_enmascarada_en_predicado",
+    "id": "A-13",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "expresion_derivada",
+    "id": "A-14",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "alias_que_oculta",
+    "id": "A-15",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "vista_que_reexpone",
+    "id": "A-16",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "columna_denegada",
+    "id": "A-17",
+    "right_rule": true,
+    "role": "finance"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "columna_enmascarada_en_predicado",
+    "id": "A-18",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "columna_enmascarada_en_predicado",
+    "id": "A-19",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R008",
+    "blocked": true,
+    "expected_rule": "R008",
+    "family": "columna_enmascarada_en_predicado",
+    "id": "A-20",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R012",
+    "blocked": true,
+    "expected_rule": "R012",
+    "family": "agregacion_de_grupo_unico",
+    "id": "A-21",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R012",
+    "blocked": true,
+    "expected_rule": "R012",
+    "family": "reidentificacion_por_cardinalidad",
+    "id": "A-22",
+    "right_rule": true,
+    "role": "admin"
+  },
+  {
+    "actual_rule": "R005",
+    "blocked": true,
+    "expected_rule": "R005",
+    "family": "producto_cartesiano",
+    "id": "A-23",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R013",
+    "blocked": true,
+    "expected_rule": "R013",
+    "family": "bomba_de_ast",
+    "id": "A-24",
+    "right_rule": true,
+    "role": "analyst"
+  },
+  {
+    "actual_rule": "R001",
+    "blocked": true,
+    "expected_rule": "R001",
+    "family": "sentencia_no_consulta",
+    "id": "A-25",
+    "right_rule": true,
+    "role": "admin"
+  }
+]

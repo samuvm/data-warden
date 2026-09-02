@@ -1,0 +1,76 @@
+{
+  "check": "G-CATALOG-FRESH",
+  "check_contracts": {
+    "copies_verified": 3,
+    "divergences": 0,
+    "own_contracts": 4,
+    "problems": []
+  },
+  "columns": 428,
+  "divergences": 0,
+  "lineage_unresolved": [
+    "v_group_ultimate_parent.group_sk",
+    "v_group_ultimate_parent.ultimate_group_sk",
+    "v_group_ultimate_parent.hops_to_ultimate",
+    "v_money_flow.hops_to_ultimate"
+  ],
+  "metas": {
+    "G-CATALOG-FRESH": {
+      "adicionales": {},
+      "command": "python scripts/check_catalog_fresh.py",
+      "detail": {
+        "columns": 428,
+        "lineage_unresolved": [
+          "v_group_ultimate_parent.group_sk",
+          "v_group_ultimate_parent.ultimate_group_sk",
+          "v_group_ultimate_parent.hops_to_ultimate",
+          "v_money_flow.hops_to_ultimate"
+        ],
+        "policy_columns": 40,
+        "problems": [],
+        "tables": 32,
+        "unpublished_columns": 2
+      },
+      "value": 0
+    },
+    "G-CONTRACTS-FROZEN": {
+      "adicionales": {
+        "claves de docs/spec/policy.yaml ausentes del catálogo generado": 0,
+        "contratos propios válidos en docs/spec/": 4,
+        "divergencias byte a byte entre docs/CONTRACTS/ y _comun/CONTRACTS/": 0
+      },
+      "command": "python scripts/check_contracts.py",
+      "detail": {
+        "copies_verified": 3,
+        "own_contracts": 4,
+        "problems": []
+      },
+      "value": 0
+    },
+    "G-NO-RAW-SQL": {
+      "adicionales": {},
+      "command": "python scripts/check_no_raw_sql.py",
+      "detail": {
+        "engines_present": true,
+        "files": 3,
+        "problems": []
+      },
+      "value": 0
+    },
+    "G-RESULTSET-EQ": {
+      "adicionales": {
+        "casos en rojo": 0
+      },
+      "command": "pytest tests/unit/evalsupport -q",
+      "detail": {
+        "exit_code": 0,
+        "suite": "tests/unit/evalsupport"
+      },
+      "value": 82
+    }
+  },
+  "policy_columns": 40,
+  "problems": [],
+  "tables": 32,
+  "unpublished_columns": 1
+}
