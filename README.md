@@ -94,12 +94,16 @@ duckdb datagen/out/dev/cierzo-dev.duckdb
 
 Sobre **MacBook Pro M4 Max · macOS 26.5 · arm64**. Los artefactos, en `evals/reports/`.
 
+Cada fila sale del JSON que deja su comando, y **se reescribe cuando se vuelve a
+medir**: la latencia, por ejemplo, oscila entre 0,80 y 0,89 ms de p95 entre ejecuciones.
+Publicar el mejor número de todas las pasadas sería elegir la muestra después de verla.
+
 | Qué se mide | Umbral | Medido | Comando |
 |---|---|---|---|
 | Bloqueo de evasiones · **reserva** | 15/15 | **15/15** · Wilson 95 % [0,80 – 1,00] | `make attack-holdout` |
 | Bloqueo de evasiones · **mutación de AST** | ≥ 2.000 mutantes | **3.497** · cero evasiones | `make attack-mut` |
 | Fail-closed del guard | ≥ 5.000 entradas, 0 excepciones | **20.000 · 0** | `make guard-property` |
-| Latencia del guard | p95 ≤ 25 ms | **p95 0,81 ms** · p99 1,1 · máx 3,7 | `make bench-guard` |
+| Latencia del guard | p95 ≤ 25 ms | **p95 0,89 ms** · p99 1,4 · máx 4,4 | `make bench-guard` |
 | Consultas caras que llegan al motor | 0 | **0** · rechazo de 4,1 GB en **1,2 ms** | `make budget-invariant` |
 | Calibración del estimador | p95(real/est.) ≤ 1,5 | **1,077** · 0 casos > 3, n = 60 | `make cost-calibration` |
 | Cobertura de línea · global / `guard/` | ≥ 90 % / ≥ 95 % | **98,0 % / 96,5 %** | `make coverage` |
