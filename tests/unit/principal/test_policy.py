@@ -16,6 +16,8 @@ el canal lateral por predicado.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from datawarden.domain.types import Position, Role
@@ -300,3 +302,241 @@ def test_una_columna_desconocida_devuelve_una_politica_por_defecto(
     por_defecto: ColumnPolicy = policy.column("fact_payment_attempt.amount_minor")
     assert por_defecto.levels[Role.ADMIN] is Level.ALLOW
     assert por_defecto.generalized is None
+
+
+# =============================================================================
+# Añadido el 2026-09-02. `principal.policy` tenía 48 mutantes vivos de 146
+# (67,12 %) y 46 de ellos vivían en `policy_from_dict`. Los tests de arriba
+# prueban la IDEA —`mask` es una escala de posición en el árbol— y son los que
+# importan; lo que nadie asertaba era el PARSEO. Y en una política de acceso el
+# parseo no es fontanería: **cada valor por defecto es una decisión de seguridad
+# tomada para el caso en que el contrato venga incompleto**, y la dirección de
+# esos defectos es lo único que separa «fallar cerrado» de «fallar abierto».
+# =============================================================================
+
+
+def _payload(**cambios: object) -> dict[str, object]:
+    """Copia honda del fixture, para que un test no contamine al siguiente."""
+    p = json.loads(json.dumps(_FIXTURE))
+    p.update(cambios)
+    return p
+
+
+# --------------------------------------------- los defectos, uno por uno ---
+
+
+def test_sin_default_level_declarado_la_politica_es_allow() -> None:
+    """Y es correcto, aunque suene al revés.
+
+    `default_level` gobierna las columnas SIN fila en la política, y esas son las
+    ~40.000 columnas anodinas del almacén. Si el defecto fuera `deny`, el sistema
+    bloquearía todo lo que nadie clasificó y se desactivaría en tres semanas —que
+    es el fallo que `docs/spec/policy.yaml` nombra con todas sus letras—. Lo que
+    protege no es este defecto: es que las columnas sensibles SÍ tienen fila.
+    """
+    p = _payload()
+    del p["default_level"]
+
+    assert policy_from_dict(p).default_level is Level.ALLOW
+
+
+def test_una_columna_se_publica_en_el_catalogo_salvo_que_se_diga_lo_contrario() -> None:
+    """`published_in_catalog` por defecto `True`; `admin_exception` por defecto
+    `False`. Las dos direcciones son deliberadas y son opuestas.
+
+    Publicar de más solo revela un NOMBRE de columna, y el nombre ya está en el
+    esquema. Conceder una excepción de admin de más revela DATOS. Ante la duda se
+    publica el nombre y no se concede el privilegio.
+    """
+    p = _payload()
+    for spec in p["columns"].values():
+        spec.pop("published_in_catalog", None)
+        spec.pop("admin_exception", None)
+
+    politica = policy_from_dict(p)
+    columna = politica.column("dim_customer.birth_date")
+
+    assert columna.published_in_catalog is True
+    assert columna.admin_exception is False
+
+
+@pytest.mark.parametrize("campo", ["data_type", "generalized", "transformation", "keep_last_n"])
+def test_los_campos_descriptivos_ausentes_quedan_en_none_y_no_en_cadena_vacia(
+    campo: str,
+) -> None:
+    """`None` significa «no declarado» y `''` significaría «declarado vacío».
+
+    La fase 4 va a ramificar sobre `transformation`: con `None` no hay
+    transformación y hay que rechazar o tachar; con `''` habría una transformación
+    llamada «» y el reescritor la buscaría en su tabla.
+    """
+    p = _payload()
+    del p["columns"]["dim_customer.birth_date"][campo]
+
+    assert getattr(policy_from_dict(p).column("dim_customer.birth_date"), campo) is None
+
+
+def test_una_columna_sin_derived_from_no_deriva_de_nada() -> None:
+    """Tupla vacía, no `None`: `derivation_violations()` la recorre sin comprobar."""
+    p = _payload()
+    del p["columns"]["dim_customer.birth_date"]["derived_from"]
+
+    assert policy_from_dict(p).column("dim_customer.birth_date").derived_from == ()
+
+
+def test_sin_declararlo_el_enmascarado_no_se_da_por_determinista() -> None:
+    """Defecto `False`, y esta dirección sí es la conservadora.
+
+    `deterministic_masking: True` es una PROMESA: que el mismo valor produce el
+    mismo hash entre ejecuciones, que es lo que permite escribir las respuestas de
+    referencia del banco de 60 sobre columnas enmascaradas. Darla por hecha porque
+    falta una línea del contrato es prometer lo que nadie firmó.
+    """
+    p = _payload()
+    del p["deterministic_masking"]
+    del p["pepper_from"]
+
+    politica = policy_from_dict(p)
+
+    assert politica.deterministic_masking is False
+    assert politica.pepper_from == ""
+
+
+def test_una_politica_sin_firma_se_carga_pero_lo_declara() -> None:
+    """No revienta —el compilador puede producirla— pero no finge estar firmada."""
+    p = _payload()
+    del p["signed_by"]
+    del p["source_sha256"]
+
+    politica = policy_from_dict(p)
+
+    assert politica.signed_by is None
+    assert politica.source_sha256 == ""
+
+
+# ------------------------------------------------------- normalizaciones ---
+
+
+def test_el_nombre_de_la_columna_se_normaliza_al_cargar_y_no_al_consultar() -> None:
+    """El contrato lo escribe un humano; el índice vive en minúsculas.
+
+    Si la normalización solo estuviera en la consulta, una fila escrita
+    `DIM_CUSTOMER.Birth_Date` crearía una entrada que ninguna consulta encuentra:
+    la columna quedaría con la política POR DEFECTO, o sea `allow`, y una columna
+    sensible pasaría a ser visible por un error de mayúsculas.
+    """
+    p = _payload()
+    spec = p["columns"].pop("dim_customer.birth_date")
+    p["columns"]["DIM_Customer.Birth_Date"] = spec
+
+    politica = policy_from_dict(p)
+
+    assert politica.level_for("dim_customer.birth_date", Role.ANALYST) is Level.MASK
+    assert "dim_customer.birth_date" in politica.columns
+
+
+def test_las_fuentes_de_una_derivada_tambien_se_normalizan() -> None:
+    """Sin esto, `derivation_violations()` no encontraría su propia fuente y una
+    columna derivada de una protegida saldría limpia."""
+    p = _payload()
+    p["columns"]["dim_customer.age_band"]["derived_from"] = ["DIM_CUSTOMER.BIRTH_DATE"]
+
+    columna = policy_from_dict(p).column("dim_customer.age_band")
+
+    assert columna.derived_from == ("dim_customer.birth_date",)
+
+
+def test_las_columnas_excluidas_del_catalogo_se_normalizan() -> None:
+    p = _payload(excluded_from_catalog=["DIM_MERCHANT.Traffic_Weight"])
+
+    assert "dim_merchant.traffic_weight" in policy_from_dict(p).excluded_from_catalog
+
+
+# ------------------------------------------------- posiciones prohibidas ---
+
+
+def test_una_posicion_prohibida_que_no_se_reconoce_se_ignora_en_vez_de_reventar() -> None:
+    """El filtro `if p in _POSITION_ALIASES` es deliberado y conviene verlo.
+
+    Una posición inventada en el contrato NO tumba la carga: se ignora. Es la
+    decisión correcta —el contrato puede nombrar una posición de una versión
+    futura— pero deja una arista: **una posición mal escrita deja de estar
+    prohibida en silencio.** Lo que la tapa es el test de las OCHO posiciones de
+    arriba, que falla si la lista se queda corta.
+    """
+    p = _payload(forbidden_positions_in_mask=["where", "no_existe_esta_posicion"])
+
+    politica = policy_from_dict(p)
+
+    assert len(politica.forbidden_positions_in_mask) == 1
+
+
+def test_sin_lista_de_posiciones_no_hay_ninguna_prohibida() -> None:
+    """Y por eso la lista de ocho es parte del contrato firmado, no un defecto
+    del código: aquí el defecto es el conjunto vacío, que es permisivo."""
+    p = _payload()
+    del p["forbidden_positions_in_mask"]
+
+    assert policy_from_dict(p).forbidden_positions_in_mask == frozenset()
+
+
+# ------------------------------------------------- el índice de restringidas ---
+
+
+def test_el_indice_de_restringidas_incluye_mask_y_deny_pero_no_allow() -> None:
+    """`is not Level.ALLOW`, no `is Level.DENY`.
+
+    Es la comparación que decide qué columnas vigila el guard para un rol. Si
+    mirara solo `deny`, las columnas `mask` saldrían del índice y el canal lateral
+    por predicado —`WHERE birth_date = ...`, que no muestra el dato pero lo
+    adivina— quedaría abierto para el rol que más consulta.
+    """
+    politica = policy_from_dict(_FIXTURE)
+
+    restringidas = politica.restricted_columns(Role.ANALYST)
+
+    # `birth_date` es `mask` para analyst: tiene que estar.
+    assert "dim_customer.birth_date" in restringidas
+    # `age_band` es su alternativa publicada y es `allow`: no puede estar.
+    assert "dim_customer.age_band" not in restringidas
+
+
+def test_cada_rol_tiene_su_propio_indice_de_restringidas() -> None:
+    """La política no es una jerarquía: `finance` no ve lo que `analyst` no ve."""
+    politica = policy_from_dict(_FIXTURE)
+
+    por_rol = {rol: politica.restricted_columns(rol) for rol in Role}
+
+    assert set(por_rol) == set(Role)
+    # `birth_date` es `deny` para finance y `mask` para analyst: restringida en
+    # ambos, pero por motivos distintos y con permisos distintos.
+    assert "dim_customer.birth_date" in por_rol[Role.FINANCE]
+    assert "dim_customer.birth_date" in por_rol[Role.ANALYST]
+
+
+@pytest.mark.parametrize("rol", ["admin", "analyst", "finance", "ops"])
+def test_falta_el_nivel_de_un_rol_en_una_columna_y_la_carga_falla(rol: str) -> None:
+    """Los cuatro niveles son obligatorios en cada fila.
+
+    Un `spec["levels"].get(rol, "allow")` sería el peor mutante de este módulo:
+    una fila a la que le faltara un rol quedaría permitida para él, en silencio, y
+    la columna protegida se vería. Se recorre `Role` y se indexa, no se pregunta.
+    """
+    p = _payload()
+    del p["columns"]["dim_customer.birth_date"]["levels"][rol]
+
+    with pytest.raises(KeyError):
+        policy_from_dict(p)
+
+
+def test_una_politica_sin_columnas_no_se_puede_cargar() -> None:
+    """`payload["columns"]` se indexa, no se pide con defecto.
+
+    Una política vacía es sintácticamente válida y semánticamente catastrófica:
+    ninguna columna restringida, todo `allow`, y el guard en verde.
+    """
+    p = _payload()
+    del p["columns"]
+
+    with pytest.raises(KeyError):
+        policy_from_dict(p)
