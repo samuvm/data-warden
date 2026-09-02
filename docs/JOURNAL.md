@@ -1098,3 +1098,250 @@ como `ROOT.parent / "_comun" / "CONTRACTS"` y se reapunta con `DW_COMUN_CONTRACT
 Sigue la fase 4, `mask/rewrite.py`. Y un paso que no es del agente: lanzar
 `~/Documents/respaldo-github-2026-09-02/limpiar-github.sh`, que borra los seis forks y recrea
 `data-warden` para que el historial anterior deje de ser descargable.
+
+## 2026-09-02 · buzón · las cuatro propuestas resueltas, y una aritmética que corrige al que la aprobó
+
+**Qué se hizo.**
+Samuel respondió las cuatro propuestas pendientes escribiendo su veredicto debajo de cada
+`Estado: PENDIENTE`, en prosa libre. Primer encargo del turno: **normalizar el buzón**, es decir,
+llevar esas cuatro respuestas al formato canónico que el propio fichero usa para las diez
+preguntas ya respondidas. Ninguna entrada queda hoy en `PENDIENTE` salvo la plantilla del final.
+
+| # | Veredicto | Quién la ejecuta |
+|---|---|---|
+| P-002 | APROBADA tal cual | el agente · `uv add --dev pyyaml==6.0.3` |
+| P-003 | APROBADA **+ una condición** | el agente · glosario, `measure_traps.py`, `datagen/` |
+| P-004 | APROBADA · `==` → `>=`, valor 25 intacto | **Samuel** · `GOALS.yaml` + `thresholds.lock` |
+| P-005 | APROBADA **EN PARTE**, recortada | el agente lo estructural · Samuel si toca `GOALS.yaml` |
+
+**Lo que el turno descubrió, y va contra lo que decía `STATE.md`.**
+`STATE.md` afirmaba que P-005 era «lo ÚNICO que impide cerrar la fase 3». Es falso, y la
+aritmética lo dice sin margen. **Las dos metas de mutación tienen alcances DISJUNTOS**, y está
+escrito en `GOALS.yaml`: `G-MUT-GUARD` mide `guard/rules` (891 mutantes) y `G-MUTATION` se llama
+literalmente «Suelo de mutación en **el resto** de paquetes testable» (2.376). `891 + 2.376 =
+3.267`, que es el total exacto de la pasada: no hay solapamiento.
+
+P-005 saca de la medida el texto de los mensajes de `guard/rules`. Luego **no puede mover
+`G-MUTATION` ni un punto**. Y el propio Samuel había calculado que tampoco basta para
+`G-MUT-GUARD`: sacar el 55 % de los supervivientes deja `452/650 = 69,5 %` frente a un umbral de
+85. **Conclusión corregida: P-005 no resuelve ninguna de las dos metas, no «una de dos».** Cada
+uno había encontrado la mitad del problema; juntas dicen que la fase 3 pide tests reales por
+partida doble. Queda anotado en el propio buzón como nota del agente bajo P-005, sin tocar el
+veredicto.
+
+**P-002 · hecha.** `pyyaml==6.0.3` declarada en `[dependency-groups].dev` con su motivo escrito
+al lado: cinco scripts del gate la usan, entraba como transitiva de `langgraph` y de
+`detect-secrets`, y `src/` no importa YAML en ninguna parte porque parsear YAML dentro del camino
+crítico de `G-GUARD-P95` sería tiempo tirado en el peor sitio posible.
+
+**P-003 · hecha, y la condición era la parte que valía.**
+Los dos números corregidos en `docs/spec/glossary.yaml` —contrato FIRMADO, editado **solo** bajo
+la autorización expresa y anotado como `correccion_medida:`—: el SCD tipo 2 pasa de +53 % a
+**+32 %** y los clientes que nunca compraron de 4,3 % a **6,2 %**. En `datagen/` se parte el campo
+que mentía: donde había un solo `never_paid_share` que publicaba el OBJETIVO con nombre de medida
+ahora hay tres, cada uno llamado por lo que es —`never_paid_target`, `never_paid_drawn`,
+`never_paid_zero_attempts`— y **ninguno de los tres es el 6,2 % del glosario**, que solo se puede
+contar contra los hechos y por eso lo cuenta `measure_traps.py` y no el generador. El informe de
+`datagen/` dejó de imprimir un número que no había medido.
+
+La condición de Samuel: fuera las nueve tolerancias puestas a ojo —±6 sobre un 24 %, ±12 sobre un
+60 %, ±1 sobre un 4,3 %—, y **una sola regla declarada, `TOLERANCE_REL = 0.20`, aplicada a las
+nueve por igual**. Tenía razón en el diagnóstico —«una tolerancia por trampa es el mando con el
+que se pone verde el script sin tocar el dato»— y el resultado es mejor de lo que pedía: la regla
+única es **más estricta que la tolerancia a mano en 6 de las 9**, y aun así **`make dataset-traps`
+sale VERDE en los dos perfiles** (`dev` y `full`) con **cero excepciones**. El margen más ajustado
+sobra por 0,07 puntos. El script llevaba en rojo desde que se escribió.
+
+Un detalle que se cazó al escribirlo: la primera versión del informe de `datagen/` publicaba el
+6,205 % escrito a mano. Eso es exactamente el pecado que P-003 corrige, así que la fila dice dónde
+se mide el número en vez de repetirlo.
+
+**Trabajo de mutación, sin esperar a nadie.** `G-MUTATION` necesita 81 mutantes muertos más
+(1.583 de 2.376; hacen falta 1.664). Escritos los tests de los tres módulos que lo hunden:
+
+* **`catalog/build.py` · 35 mutantes, 0 muertos, 0,00 %: el peor módulo del proyecto, y el único
+  con «sin tests».** 17 tests nuevos, ni uno toca DuckDB (I-13): `introspect_duckdb` se sustituye
+  por un espía que registra con qué se le llamó. Lo que se fija es que las tres claves de
+  contrato —`excluded_from_catalog`, `deprecated`, `reason`— son comportamiento y no detalle, y
+  que un contrato incompleto **falla ruidosamente en vez de degradar a `{}`**: un `.get(clave, [])`
+  ahí generaría un catálogo que publica las columnas que la política excluye, en silencio y en
+  verde.
+* **`catalog/statistics.py` · 34,80 %.** Los bordes que faltaban: el `or` que rescata un coste de
+  cero, el `.lower()` del índice de columnas, los `int()` que normalizan lo que llega del JSON, y
+  **`bool` colándose por ser subclase de `int`** —`True` con transformación `identity` habría dado
+  `1970-01-02`, que es la misma clase de conversión silenciosa que produjo el bug del `Record`—.
+* **`catalog/introspect.py` · 49,06 %.** Normalización de tipos y de claves de contrato, desempate
+  del orden cuando dos columnas comparten `ordinal`, y sobre todo **la regresión de C-3 fijada por
+  fin**: que una vista no abra una puerta trasera a una columna excluida, ni siquiera renombrándola
+  con un alias. El agujero lo encontró el `qa-adversario` en la fase 2 y hasta hoy no tenía test.
+
+85 tests en `tests/unit/catalog/`, todos en verde, lint y formato limpios.
+
+**Lo que queda de Samuel, y son 3 minutos.** P-004 no la puede ejecutar el agente: `GOALS.yaml` y
+`thresholds.lock` están en la lista de ficheros prohibidos. Cambiar `operador: "=="` por `">="` en
+`G-WRITE-BLOCK-DEV` (valor 25 intacto) y regenerar el lock. Hasta entonces el caso del `OFFSET`
+escondido en subconsulta —una evasión real, encontrada por mutación de AST— no puede volver al
+cuaderno sin romper el gate.
+
+## 2026-09-02 · mutación · el corpus asertaba que había rechazo, no cuál, y eso escondía un bug
+
+**Qué se hizo.** El trabajo de mutación que P-005 no puede hacer sola, y los números salieron los
+que la aritmética decía.
+
+| Meta | Antes | Después | Suelo |
+|---|---|---|---|
+| `G-MUTATION` | 66,62 % (1.583/2.376) | **70,92 % (1.958/2.761)** | 70 · **CRUZADO** |
+| `G-MUT-GUARD` | 50,73 % (452/891) | **61,87 % (550/889)** | 85 · sigue rojo |
+
+El denominador de `G-MUTATION` creció de 2.376 a 2.761 porque el paquete `audit/` de la fase 5
+entra en el alcance con 385 mutantes nuevos — **y la meta subió igual**, de 70,62 % a 70,92 %.
+Escribir la fase 5 con tests unitarios contra `:memory:` en vez de dejarla en integración es
+exactamente lo que evitó que el trabajo nuevo tumbara la meta recién cruzada.
+
+**Lo que movió `G-MUTATION`: tres módulos que la cobertura de línea daba por buenos.**
+`catalog/build.py` estaba al **0,00 % con cero tests** y la cobertura de línea de `catalog/` al
+99,23 % al mismo tiempo — la tesis del proyecto ocurriéndole al proyecto—. Pasó a 80 % con
+diecisiete tests que no tocan DuckDB: `introspect_duckdb` se sustituye por un espía. Lo que fijan
+no es fontanería: las tres claves de contrato (`excluded_from_catalog`, `deprecated`, `reason`) son
+comportamiento, y un `.get(clave, [])` ahí generaría un catálogo que publica las columnas que la
+política excluye, en silencio y en verde. `statistics` e `introspect` subieron con los bordes que
+nadie asertaba —el `or` que rescata un coste de cero, el `bool` colándose por ser subclase de
+`int`— y `principal/policy.py` y `budgets.py` fijan por fin sus valores por defecto, que en una
+política de acceso no son fontanería sino decisiones de seguridad tomadas para cuando el contrato
+llega incompleto.
+
+**Lo que movió el guard, y el hallazgo del día.** El censo de mutantes —reproducido con los propios
+operadores de mutmut, no estimado— dijo dónde estaba el dinero: **las aserciones del corpus eran de
+EXISTENCIA, no de VALOR.** `test_rule_cases.py` comprobaba `position is not UNKNOWN` y `subject`
+truthy, así que un mutante que devolviera `Position.WHERE` donde la verdad era `GROUP_BY` sobrevivía
+intacto, y `retryable` no se asertaba en ningún sitio. Cuatro columnas nuevas en el YAML —`posicion`,
+`sujeto`, `reintentable`, `alternativa`— y veinticinco líneas en el runner mataron 98 mutantes sin
+escribir un solo test nuevo. Es exactamente lo que Samuel dijo al recortar P-005: *«una tabla de
+posición que devuelve la etiqueta equivocada es un bug, no prosa»*.
+
+**Y al volcar los 68 valores para revisarlos uno a uno apareció un bug de verdad en R005.**
+
+```
+subject = ' x fact_order_line'
+message = the join between a subquery and fact_order_line has no ON condition...
+```
+
+No hay ninguna subconsulta: la izquierda es `fact_payment_attempt`, una tabla. La causa es que
+**sqlglot 30 renombró la clave del argumento de `from` a `from_`**, así que
+`select.args.get("from")` devolvía `None` SIEMPRE. Dos consecuencias que ningún test veía:
+
+1. **El mensaje mentía en su mitad izquierda**, y `G-RECOVERY` lo habría pagado en la fase 6 sin
+   que nadie supiera por qué: se le dice al modelo que arregle una subconsulta que no existe.
+2. **La exención de relación pequeña estaba muerta en un lado.** `_is_small(left)` nunca era cierta,
+   así que un `FROM ref_fx_rate_daily JOIN fact_payment_attempt` se rechazaba pese a que
+   multiplicar por catorce filas es lo que `SMALL_RELATION_PREFIXES` declara normal. Falso
+   positivo, o sea la dirección segura — pero un guard que bloquea trabajo legítimo se desactiva en
+   tres semanas, y eso lo dice el propio `policy.yaml`.
+
+Arreglado buscando el `exp.From` **por clase de nodo entre los argumentos directos**, que es el
+mismo principio que R010 ya declaraba en su docstring para los nodos de escritura: la clase es
+estable, el nombre de la clave es un detalle de versión. Un `args.get("from_")` habría arreglado el
+síntoma y dejado la trampa para la siguiente actualización.
+
+**El segundo agujero, y era más grave que el número.** R008 tenía **22 mutantes marcados «sin
+tests»**: ningún test EJECUTABA su rama `_reject_unknown`, que es el fail-closed del linaje —«si el
+guard no puede seguir de dónde sale una columna, no puede afirmar que sea segura»— y sostiene la
+mitad de `G-PII-LEAK`. Ahora tiene cuatro casos: CTE con `UNION`, derivada con `UNION ALL`, alias a
+través de un `UNION`, e `INTERSECT`. El tercero es el que prueba que el fail-closed es de verdad:
+`country_code` es `allow` para analyst, no hay nada que proteger, **y se rechaza igual**, porque la
+regla no es «esta columna es peligrosa» sino «no puedo AFIRMAR que sea segura».
+
+Los cuatro casos van al corpus por regla y **no** a `attacks/`: con `G-WRITE-BLOCK-DEV` en `== 25`,
+hacer crecer el cuaderno rompe el gate. Es la tensión que P-004 resuelve y que sigue esperando tres
+minutos de Samuel.
+
+## 2026-09-02 · fase 5 · la cadena de auditoría, y un `[]` que es evidencia
+
+**Qué se construyó.** El núcleo de la fase 5, con TDD y rojo antes que verde:
+`audit/chain.py` (puro), `audit/store.py` (SQLite en WAL, append-only por trigger) y
+`audit/executor.py`, el `AuditedExecutor`. **44 tests, todos unitarios, todos verdes.**
+
+**Todo contra `:memory:`, y no por comodidad.** `pyproject.toml` deja `tests/integration` fuera de
+la selección de mutmut, así que cualquier mutante de `store.py` que solo cubriera un test de
+integración saldría «sin tests» y contaría como VIVO. Con `G-MUTATION` recién cruzado por seis
+décimas, escribir el almacén y probarlo solo en integración lo habría vuelto a tumbar. A
+integración va únicamente lo que EXIGE un fichero real: los sidecars del WAL y la reapertura.
+
+**Tres decisiones que merecen quedar escritas.**
+
+**1 · `AuditRecord` no lleva campo `hash`.** El contrato define el hash como el de «el registro SIN
+el campo hash», así que el tipo ES el registro sin él y `link()` lo devuelve. Guardarlo dentro
+obligaría a construir el objeto con un hueco para rellenarlo después, que es la clase de estado a
+medias por donde se cuela un registro sin hashear.
+
+**2 · `tables` y `columns_masked` se emiten SIEMPRE, aunque vayan vacías.** Aquí el test tenía razón
+y la implementación no, y se corrigió el código. En un registro de auditoría `"columns_masked": []`
+es **evidencia** —dice que no se enmascaró nada— mientras que el campo ausente es **ambigüedad**: no
+distingue «no había nada que enmascarar» de «lo escribió una versión que aún no llevaba el campo».
+El contrato llama a ese campo «la evidencia de que el enmascarado ocurrió, no la promesa», y una
+evidencia que a veces no está no es evidencia.
+
+**3 · `prev_hash_bytes` son los 32 bytes crudos, no los 64 caracteres del hex.** El contrato nombra
+los bytes DEL hash, no los de su representación. Para la seguridad da igual —`prev_hash` viaja
+además dentro del JCS— pero para la interoperabilidad no, que es justo el miedo que el contrato
+declara. Va fijado con un **vector dorado**: el JSON canónico completo escrito a mano en el test.
+Si ese test falla algún día, no se actualiza el número: se investiga, porque cambiarlo invalida
+toda cadena escrita hasta entonces.
+
+**Las trampas que el diseño previo evitó, y las tres eran reales.** `check_role_source.py` prohíbe
+`payload["role"]` fuera de `principal/`, así que el almacén recorre una tupla de nombres de columna
+en vez de indexar por literal —y de paso eso hace imposible que la lista de escribir y la de leer
+divergan—. `isoformat()` produce `+00:00` y **no** casa el `pattern: "Z$"` del contrato, mientras
+que `utcnow()` está deprecada y la suite corre con `filterwarnings = ["error"]`: se formatea a mano.
+Y el `except` del ejecutor **escribe el registro y relanza con un `raise` desnudo**: tragarse la
+excepción convertiría un fallo del motor en un éxito silencioso, con el llamante recibiendo un
+resultset vacío indistinguible de «no hay filas».
+
+**I-06 dejó de ser prosa.** «`AuditedExecutor` es el único camino a `Engine.execute()`» estaba
+escrito en `RULES.md` y no lo comprobaba nada: el contrato de capas no puede expresarlo, porque
+colocar `engines` abajo dejaría que `guard` o `cost` lo importaran sin romper ninguna capa. Ahora
+hay un contrato `forbidden` que enumera los diez paquetes que NO pueden tocarlo. **4 contratos de
+import, 0 rotos.** El día que alguien importe el motor desde el CLI para «una consulta rápida», el
+paso 1 de `make done` sale rojo antes de que ese atajo exista.
+
+**Lo que la fase 5 verifica por CONTADOR y no por lectura de código.** «Lo rechazado no llega al
+motor» no se prueba mirando el flujo: se mira si el contador de proceso de `engines/base.py` se
+movió. `executions() - antes == len([registros con status EXECUTED])` es una medida; «el código no
+llama a execute» es una lectura.
+
+**Y las dos metas de la fase 5 quedaron MEDIDAS Y EN VERDE.**
+
+| Meta | Medido | Umbral |
+|---|---|---|
+| `G-AUDIT-COV` (axioma) | 100 % · 0 invocaciones sin registro · **4 estados auditados** | == 100 |
+| `G-AUDIT-TAMPER` | 100 % · **1.299 mutaciones de byte inyectadas y detectadas** | >= 1.000 |
+
+Las dos propiedades llevan los nombres de fichero que `GOALS.yaml` fija y que no son negociables, y
+las etiquetas de sus umbrales adicionales se copiaron **letra a letra** del contrato: `goals_check`
+las compara por igualdad exacta de cadena, y una tilde de más produce «falta el umbral adicional»,
+que se diagnostica fatal porque el número medido es correcto.
+
+**La propiedad de manipulación encontró un defecto de diseño, no un fallo de test.** Recorriendo el
+registro byte a byte apareció **una sola fuga**: alterar `schema_version` no se detectaba. La causa
+era que la versión se inyectaba desde una constante del módulo en vez de ser un campo del registro.
+Y el hueco era lo de menos: **el día que la versión subiera a 2, todo registro escrito bajo la 1
+habría dejado de verificar**, porque se le habría inyectado una versión que no era la suya. El
+contrato mete `schema_version` en el hash precisamente para que una cadena que mezcla versiones SE
+PUEDA verificar, y eso solo funciona si cada registro recuerda la suya. Ahora es un campo, con su
+columna en el almacén.
+
+**Los tres subcomandos existen y se probaron de punta a punta contra un fichero real**, no contra
+`:memory:`. La secuencia completa: el trigger para la escritura normal; el atacante que borra el
+trigger consigue escribir; `warden audit verify` lo caza **nombrando el `seq`** y sale con 1;
+`reconcile --strict` también. Y `anchor` emite la punta con su nota: *un anclaje no impide reescribir
+la cadena, impide hacerlo sin que se note.*
+
+**Cobertura de `audit/`: 100 % de línea en los tres módulos**, `G-COV-FUNC` en 102 funciones
+públicas todas con test. `make gate-fast` VERDE con 544 tests, 4 contratos de import, 0 rotos.
+
+**Dónde queda la fase 5.** `goals_check --milestone 5` deja exactamente dos fallos, y los dos son los
+correctos: `G-MUT-GUARD` en 61,87 % contra su 85, y **`G-PII-LEAK` sin medida porque la fase 4 no
+existe todavía** — una meta bloqueante sin medida es un fallo, nunca un aprobado. Lo propio de la
+fase 5 está medido y en verde.
+
+**Lo que queda:** el refactor de P-005 para `G-MUT-GUARD`, y la fase 4 entera.

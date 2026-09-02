@@ -177,7 +177,7 @@
           "R005": 3,
           "R006": 7,
           "R007": 3,
-          "R008": 10,
+          "R008": 14,
           "R009": 3,
           "R010": 5,
           "R011": 3,
@@ -216,7 +216,7 @@
           },
           "R008": {
             "accept": 5,
-            "reject": 7
+            "reject": 11
           },
           "R009": {
             "accept": 4,
@@ -383,15 +383,19 @@
               "vista_que_reexpone"
             ],
             "n_accept_cases": 5,
-            "n_reject_cases": 7,
+            "n_reject_cases": 11,
             "reject_ids": [
               "R008-R1",
+              "R008-R10",
+              "R008-R11",
               "R008-R2",
               "R008-R3",
               "R008-R4",
               "R008-R5",
               "R008-R6",
-              "R008-R7"
+              "R008-R7",
+              "R008-R8",
+              "R008-R9"
             ],
             "severity": "policy"
           },
