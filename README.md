@@ -305,7 +305,8 @@ El proyecto se construye bajo reglas ejecutables, no bajo buenas intenciones:
 - **[`docs/GOALS.yaml`](docs/GOALS.yaml)** — cada meta con su umbral y su comando,
   sellada por `thresholds.lock`. Ocho de ellas son **axiomas**: su umbral no admite
   propuesta de rebaja, y pedirla es en sí misma un fallo de gate.
-- **[`docs/PLAN.md`](docs/PLAN.md)** — once fases, cada una con su criterio de cierre.
+- **[`docs/RULES.md`](docs/RULES.md)** — los diecisiete invariantes, cada uno con el
+  comando que lo verifica, y el régimen de prueba de cada módulo.
 - **`make done MILESTONE=N`** — trece pasos, salida `0` o nada. **Es la única
   definición de «hecho»** que existe en este repositorio. Deja un snapshot como punto
   de retorno.

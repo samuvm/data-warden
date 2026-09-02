@@ -1,6 +1,6 @@
 """Configuración compartida de la suite.
 
-Los tres perfiles de Hypothesis que `CLAUDE.md` declara se registran AQUÍ. Sin
+Los tres perfiles de Hypothesis que `docs/RULES.md` declara se registran AQUÍ. Sin
 esto, `--hypothesis-profile=dev` no falla con un mensaje claro: revienta la
 ejecución entera con un INTERNALERROR, que es la peor forma de descubrir una
 configuración ausente porque no se parece a un fallo de test.

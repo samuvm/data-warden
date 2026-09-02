@@ -1,6 +1,6 @@
 """El puerto del motor. **Acepta un `ValidatedQuery`, jamás un `str`** (I-02).
 
-Es el primer invariante de `CLAUDE.md` y lo comprueba `scripts/check_no_raw_sql.py`
+Es el invariante I-01 de `docs/RULES.md` y lo comprueba `scripts/check_no_raw_sql.py`
 sobre el AST de este paquete. La diferencia no es estilística: si el motor aceptara
 texto, existiría un camino por el que una consulta llega a la base de datos sin
 haber pasado por el guard, y entonces los cinco anillos serían decorativos.

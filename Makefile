@@ -53,7 +53,7 @@ lint:
 typecheck:
 	$(UV) mypy src/
 
-# Los límites entre capas del mapa de CLAUDE.md, ejecutables. Sin esto, "el
+# Los límites entre capas del mapa de docs/RULES.md, ejecutables. Sin esto, "el
 # dominio no depende del transporte" es una frase del README.
 imports:
 	$(UV) lint-imports
@@ -61,7 +61,7 @@ imports:
 # --- pruebas -----------------------------------------------------------------
 # `-p no:randomly` no hace falta; lo que sí importa es que NUNCA aparezcan aquí
 # `-k`, `--deselect`, `-x`, `--no-cov`, `skip` ni `xfail`: están prohibidos por
-# CLAUDE.md porque son las cuatro formas de esquivar la suite sin que se note.
+# docs/RULES.md porque son las cuatro formas de esquivar la suite sin que se note.
 test-fast:
 	$(UV) pytest tests/unit tests/property -m "not slow and not integration" \
 		-p no:cacheprovider --hypothesis-profile=dev

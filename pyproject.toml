@@ -243,7 +243,7 @@ pytest_add_cli_args_test_selection = ["tests/unit", "tests/contract"]
 also_copy = ["docs", "README.md", "attacks", "thresholds.lock", "models.lock"]
 
 # =============================================================================
-# import-linter: los límites entre capas del mapa de CLAUDE.md, ejecutables.
+# import-linter: los límites entre capas del mapa de docs/RULES.md, ejecutables.
 #
 # Sin esto, "el dominio no depende del transporte" es una frase del README. Con
 # esto, es un test que se rompe el día que alguien importe `mcp` desde `domain`.

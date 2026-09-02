@@ -35,6 +35,25 @@ mutants/
 # Estado que escribe el gate, no una persona
 .claude/state/*.json
 
+# ---------------------------------------------------------------------------
+# NO SE PUBLICA: instrucciones del agente, buzon y proceso interno.
+#
+# Lo que se publica es el SISTEMA y sus reglas duras —`docs/RULES.md` tiene los
+# invariantes y el mapa de regimenes por modulo, `docs/GOALS.yaml` los umbrales,
+# `docs/spec/` los contratos—, que es lo que alguien necesita para entender esto y
+# para dirigir a su propio agente. Lo que queda fuera es distinto: son las
+# instrucciones de NUESTRO agente, con rutas de este disco, y el buzon de decisiones
+# de una persona concreta. Ni educa a nadie ni deberia estar en un repositorio
+# publico. Los ficheros siguen aqui, en local; simplemente no se versionan.
+# ---------------------------------------------------------------------------
+CLAUDE.md
+.claude/
+docs/CONSTITUCION.md
+docs/PARA-SAMUEL.md
+docs/BORRADOR-RESPUESTAS-Q003-Q010.md
+docs/DECISIONES-GLOBALES-APLICADAS.md
+docs/PLAN.md
+
 # Sistema
 .DS_Store
 *.duckdb

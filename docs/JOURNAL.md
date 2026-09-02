@@ -972,3 +972,73 @@ preventivo.
 construida y medida, y no cierra hasta que se decida P-005. Lo que sigue, sin depender de eso: la
 fase 4 (`mask/rewrite.py`, enmascarado reescribiendo el AST) y la 5 (`audit/chain.py` y el
 `AuditedExecutor`), que tocan directorios disjuntos y no dependen de la mutación.
+
+## 2026-09-02 · publicación · el repositorio sale a GitHub, y un historial que hubo que reescribir antes
+
+**Qué se intentó.**
+Cerrar la sesión de construcción con commits, poner el README a la altura de lo que ya existe y
+publicar en `github.com/samuvm/data-warden`. Trabajo de empaquetado, no de código: el gate no se
+movió y ningún número cambió por esto.
+
+**Qué falló.**
+
+**1 · LOS COMMITS LLEVABAN COAUTORÍA DE LA HERRAMIENTA.** Los tres primeros salieron con
+`Co-Authored-By: Claude Opus 5` y un trailer `Claude-Session:`, añadidos por un ajuste por defecto
+del entorno que nadie había mirado. Samuel lo cortó a mitad de la tanda: **es una regla dura de los
+cinco proyectos** —ni autor, ni coautor, ni trailers—, porque son repositorios de portafolio y la
+autoría del historial es suya. Se rehicieron los tres.
+
+Pero quedaban **cinco commits anteriores**, de sesiones previas, con exactamente lo mismo. Eso ya
+no era rehacer trabajo sin publicar: era **reescribir historia**, que es de las cosas que este
+proyecto prohíbe hacer por cuenta propia. Se preguntó y se paró.
+
+**Y había una razón para preguntarlo ANTES del primer push, no después:** GitHub conserva los
+commits huérfanos accesibles por su SHA aunque luego se fuerce otra historia encima. Publicar y
+corregir después no habría corregido nada; solo lo habría escondido de la vista.
+
+Autorizado, se reescribieron los 18 commits con un filtro de mensaje. **La comprobación que
+importa no es que el filtro corriera, sino que no tocó nada más:** el árbol de `main` es
+`0270740c4e54b819ba27956cbc4fb8e1c3475421` antes y después, byte a byte. 18 commits, cero trailers
+de atribución. Queda una aparición de la palabra en un asunto, y es el nombre del fichero
+`CLAUDE.md`: eso es una referencia a un fichero del repositorio, no una autoría.
+
+**2 · EL README DESCRIBÍA UN PROYECTO QUE YA NO EXISTÍA.** Decía que `src/datawarden/` era «hoy un
+esqueleto vacío» y que los dos contratos estaban «en BORRADOR». Las dos cosas habían dejado de ser
+ciertas tres fases antes: hay 5.812 líneas de código, 427 tests, catorce reglas y cuatro contratos
+firmados. **Un README caducado es peor que uno corto**, porque el lector no sabe cuál de las dos
+mitades creerse, y este además pedía que se le creyeran once números medidos.
+
+**3 · Y al escribir el nuevo me pasé de largo.** Marqué siete contratos como «firmados» cuando solo
+lo están cuatro: `resultset-equality.md`, `rejection.schema.json` y `audit-record.schema.json` son
+contratos propios en vigor que **nadie ha firmado**. La distinción tiene consecuencia mecánica —un
+contrato firmado lleva el `sha256` de su texto y `tests/contract/test_signed_contracts.py` falla si
+alguien lo edita sin volver a firmarlo—, así que ponerles la misma casilla verde era exactamente el
+tipo de exageración que el resto del documento evita. Corregido antes de publicar.
+
+**4 · El p95 del guard se movió al remedirlo.** `make gate-fast` volvió a medir y dio 0,892 ms
+frente a los 0,802 anteriores, con el p99 en 1,364 y el máximo en 4,361. El umbral son 25 ms, así
+que no cambia ninguna decisión — pero el README publicaba `0,81 · 1,1 · 3,7` cuando **su propio
+artefacto ya decía otra cosa**. Se corrigió a lo que hay y se añadió la frase que faltaba: el
+número oscila entre pasadas, y publicar el mejor de todas sería elegir la muestra después de verla.
+
+**Qué se aprendió.**
+
+- **La rama pasa a llamarse `main`**, por coherencia con el remoto y con citebound. Ningún fichero
+  versionado dependía del nombre anterior; se comprobó antes de renombrar.
+- **`datagen/out/` no subió**, verificado contra la API y no por confianza en `.gitignore`: la ruta
+  devuelve 404 en el repositorio publicado. Se versiona el generador y su semilla, nunca los 7,5 GB.
+- La línea de base de `detect-secrets` creció en cinco entradas, y las cinco son el mismo falso
+  positivo: **el `sha256` con el que se firman los contratos es, para un detector de entropía,
+  indistinguible de una clave.** Es el caso para el que existe una baseline —declarar lo revisado,
+  no apagar la herramienta—, y `G-SECRETS` es un axioma: si esto se «resolviera» silenciando la
+  comprobación, la meta dejaría de medir nada.
+- Limpieza del perfil de GitHub, que es contexto de por qué queda algo pendiente: un repositorio
+  propio pasó a privado, pero **los seis forks siguen públicos y no por descuido**. GitHub responde
+  literalmente `Public forks can't be made private`, así que borrarlos es la única vía, y el token
+  disponible tiene alcance `repo, workflow` — `DELETE` devuelve 403. Los seis quedan clonados con su
+  historial completo en `~/Documents/respaldo-github-2026-09-02/`, con un script preparado. **Es
+  trabajo de Samuel, no del agente, y se dice en vez de darlo por hecho.**
+
+**Siguiente.**
+Nada de esto mueve el gate: sigue `make done MILESTONE=2` en verde y la fase 3 construida sin
+cerrar, a la espera de P-005. Lo que sigue es la fase 4, `mask/rewrite.py`.
