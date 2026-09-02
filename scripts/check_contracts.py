@@ -24,6 +24,7 @@ mitades parecen correctas por separado.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -36,7 +37,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from gatelib import record  # noqa: E402
 
-COMUN = pathlib.Path("/Users/samuelviciana/Documents/day-300/_comun/CONTRACTS")
+#: Origen de las copias literales. Se resuelve RELATIVO al repositorio —el directorio
+#: compartido es hermano suyo— y se puede reapuntar con `DW_COMUN_CONTRACTS`. Antes era
+#: una ruta absoluta escrita a mano, que ademas de no funcionar en ninguna otra maquina
+#: publicaba la disposicion del disco de quien la escribio.
+COMUN = pathlib.Path(os.environ.get("DW_COMUN_CONTRACTS", ROOT.parent / "_comun" / "CONTRACTS"))
 CONTRACTS = ROOT / "docs" / "CONTRACTS"
 SPEC = ROOT / "docs" / "spec"
 REPORT = ROOT / "evals" / "reports" / "arch-checks.json"

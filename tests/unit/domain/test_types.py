@@ -14,7 +14,7 @@ Se prueban las cuatro cosas que un tipo congelado tiene que garantizar y que un
 2. Que el rol NO PUEDE VENIR de datos no autenticados (I-05), y que eso es
    verdad en el TIPO: `RoleSource` no tiene un valor para «lo dijo el cliente».
 3. Que `ValidatedQuery` re-serializa el AST y nunca guarda la cadena de entrada
-   (I-02), que es el primer invariante de `CLAUDE.md`.
+   (I-02), que es el invariante I-02 de `docs/RULES.md`.
 4. Que los tipos son inmutables de verdad: un `ValidatedQuery` que se pudiera
    mutar entre la validación y la ejecución convierte los cinco anillos en
    decoración.

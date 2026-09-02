@@ -40,7 +40,7 @@ THRESHOLDS = ROOT / "thresholds.lock"
 
 PY = sys.executable
 
-#: Formas de esquivar la suite. Prohibidas por `CLAUDE.md` y por el mecanismo 3 de
+#: Formas de esquivar la suite. Prohibidas por `docs/RULES.md` y por el mecanismo 3 de
 #: anti-gaming: son las cuatro maneras de no correr un test sin que se note.
 FORBIDDEN_IN_TESTS = (
     (re.compile(r"@pytest\.mark\.skip\b"), "@pytest.mark.skip"),

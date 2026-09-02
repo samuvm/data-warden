@@ -1,7 +1,7 @@
 """`validate()`. **No propaga una excepción NUNCA** (I-04) y no ejecuta nada.
 
 El único `except Exception` de todo el guard vive aquí, y siempre termina en un
-rechazo. La razón está en `CLAUDE.md`: *fail-closed*. Un guard que revienta con una
+rechazo. La razón está en `docs/RULES.md`: *fail-closed*. Un guard que revienta con una
 entrada rara no está «fallando»: está devolviendo el control a quien llamó, y quien
 llamó no sabe si la consulta era segura. Que un fallo interno sea un RECHAZO y no
 una excepción es lo que hace que la propiedad de `G-FAILCLOSED` —cinco mil entradas

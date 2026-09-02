@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """`Engine.execute()` acepta un `ValidatedQuery`, jamás un `str`.
 
-ES EL INVARIANTE I-01 Y EL PRIMERO DE `CLAUDE.md`: lo que se ejecuta es
+ES EL INVARIANTE I-01 DE `docs/RULES.md`: lo que se ejecuta es
 `ast.sql(dialect=...)` del árbol YA VALIDADO, nunca la cadena que entró.
 
 La diferencia no es estilística. Si el motor acepta texto, existe un camino por

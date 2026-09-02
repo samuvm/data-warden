@@ -5,7 +5,7 @@ que no sabe traducir a un nodo propio: una extensión de DuckDB, una UDF, o
 `read_csv('/etc/passwd')`. Es decir, **es exactamente el conjunto de cosas cuyo
 comportamiento este guard no puede razonar**, y por eso se rechaza por defecto.
 
-`CLAUDE.md` lo dice en una línea: *`exp.Anonymous` ⇒ rechazo*. La allowlist de
+`docs/RULES.md` lo dice en una línea: *`exp.Anonymous` ⇒ rechazo*. La allowlist de
 `ALLOWED_ANONYMOUS` es corta a propósito y cada entrada es una decisión: una
 función que se añade porque «hacía falta para una consulta» es cómo una allowlist se
 convierte en una denylist con más pasos.

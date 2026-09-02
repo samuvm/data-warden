@@ -1,6 +1,6 @@
 """Data Warden · acceso conversacional a un lakehouse con cinco anillos de control.
 
-El mapa de zonas está en `CLAUDE.md` y no es decorativo: cada paquete tiene una
+El mapa de zonas está en `docs/RULES.md` §2 y no es decorativo: cada paquete tiene una
 regla de test distinta porque se prueba de forma distinta.
 
   domain/                       tipos congelados y puros. TDD obligatorio, 90 %
