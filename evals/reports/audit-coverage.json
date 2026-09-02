@@ -1,0 +1,19 @@
+{
+  "metas": {
+    "G-AUDIT-COV": {
+      "adicionales": {
+        "estados auditados (rejected_by_guard, rejected_by_budget, executed, error)": 4,
+        "invocaciones de run_query sin registro": 0
+      },
+      "command": "pytest tests/property/test_audit_coverage.py --hypothesis-profile=gate && warden audit reconcile --strict",
+      "detail": {
+        "como_se_mide": "n_registros == n_invocaciones y n_execute == n_registros[status=executed]. La segunda igualdad se mide con el CONTADOR de proceso de engines.base, no leyendo el flujo de control: «el código llama a append» es una lectura, «el motor se movió tantas veces como registros ejecutados hay» es una medida.",
+        "property_suite": "tests/property/test_audit_coverage.py",
+        "reconcile_strict": true,
+        "tests_failed": 0,
+        "tests_passed": 4
+      },
+      "value": 100.0
+    }
+  }
+}

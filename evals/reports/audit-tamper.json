@@ -1,0 +1,18 @@
+{
+  "metas": {
+    "G-AUDIT-TAMPER": {
+      "adicionales": {
+        "mutaciones de byte inyectadas": 1299
+      },
+      "command": "pytest tests/property/test_audit_chain.py --hypothesis-profile=gate",
+      "detail": {
+        "como_se_mide": "Se recorre el JSON canónico de un registro del MEDIO de la cadena byte a byte y se altera cada posición. Detectar es una de dos cosas y las dos cuentan: que el registro alterado ya no se pueda reconstruir, o que verify() lo delate.",
+        "limite_declarado": "NO se prueba resistencia frente a quien puede reescribir la cadena ENTERA, porque no la hay: el hash encadenado detecta a quien no puede rehacer todo lo posterior. Reescribir la PUNTA no lo detecta nada, y por eso existe `warden audit anchor`. Está en docs/threat-model.md §4.1.",
+        "property_suite": "tests/property/test_audit_chain.py",
+        "tests_failed": 0,
+        "tests_passed": 4
+      },
+      "value": 100.0
+    }
+  }
+}
