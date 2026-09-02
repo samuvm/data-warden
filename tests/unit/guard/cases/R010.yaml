@@ -1,0 +1,62 @@
+rule_id: R010
+nombre: "Ninguna escritura, en ninguna parte del árbol"
+familias: [escritura_directa, escritura_oculta_en_cte, escritura_en_subconsulta]
+por_que: >-
+  Corre ANTES que R001 a propósito. `WITH x AS (DELETE ... RETURNING 1) SELECT * FROM x`
+  tiene un `Select` en la raíz: un validador que mire solo el nodo de arriba lo
+  acepta y el motor borra la tabla. Si las dos reglas fueran una, el mensaje diría
+  «solo se admite SELECT» sobre una consulta que empieza por SELECT.
+accept:
+  - id: R010-A1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer"
+    por_que: "Leer."
+  - id: R010-A2
+    rol: analyst
+    sql: |
+      WITH activos AS (SELECT customer_sk FROM dim_customer WHERE kyc_status = 'verified')
+      SELECT count(*) AS n FROM activos
+    por_que: "Una CTE que solo lee es lo normal y no se toca."
+  - id: R010-A3
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer WHERE country_code IN (SELECT country_code FROM ref_country)"
+    por_que: "Una subconsulta que solo lee."
+  - id: R010-A4
+    rol: analyst
+    sql: "SELECT 'update' AS accion, customer_sk FROM dim_customer"
+    por_que: >-
+      LA PALABRA `update` DENTRO DE UN LITERAL. Una lista negra de palabras habría
+      rechazado esto; un árbol ve un literal de texto y sigue.
+reject:
+  - id: R010-R1
+    rol: admin
+    sql: "DELETE FROM dim_customer"
+    rule_id: R010
+    code: write_node_present
+    por_que: "Con rol admin: ni el rol más alto escribe, porque el sistema no escribe."
+  - id: R010-R2
+    rol: analyst
+    sql: "WITH x AS (DELETE FROM dim_customer RETURNING 1 AS uno) SELECT uno FROM x"
+    rule_id: R010
+    code: write_node_present
+    por_que: "LA CTE QUE ESCONDE UNA ESCRITURA, del cuaderno de evasiones."
+  - id: R010-R3
+    rol: analyst
+    sql: "UPDATE dim_customer SET country_code = 'ES'"
+    rule_id: R010
+    code: write_node_present
+    por_que: "Escritura directa."
+  - id: R010-R4
+    rol: analyst
+    sql: "CREATE TABLE t AS SELECT customer_sk FROM dim_customer"
+    rule_id: R010
+    code: write_node_present
+    por_que: "Materializar el resultado es escribir, aunque lo que se lea sea legítimo."
+  - id: R010-R5
+    rol: analyst
+    sql: "DrOp TaBlE dim_customer"
+    rule_id: R010
+    code: write_node_present
+    por_que: >-
+      MAYÚSCULAS RARAS. Para el árbol es el mismo `Drop`: no hay nada que
+      normalizar, que es la diferencia entera con una lista de palabras.

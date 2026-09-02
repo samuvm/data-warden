@@ -1,0 +1,61 @@
+rule_id: R014
+nombre: "Nada de esquemas de sistema"
+familias: [esquema_de_sistema, enumeracion_de_catalogo]
+por_que: >-
+  La política excluye `dim_merchant.traffic_weight` del catálogo publicado (C-3), y
+  el motor sí sabe que existe. Leer el catálogo REAL por debajo del catálogo
+  publicado convierte una decisión de negocio en una sugerencia.
+accept:
+  - id: R014-A1
+    rol: analyst
+    sql: "SELECT merchant_id, category FROM dim_merchant WHERE is_current"
+    por_que: "La tabla de verdad, con las columnas publicadas."
+  - id: R014-A2
+    rol: analyst
+    sql: "SELECT mcc, mcc_description FROM ref_mcc"
+    por_que: "Una tabla de referencia. Es metadato de NEGOCIO, no del motor."
+  - id: R014-A3
+    rol: analyst
+    sql: "SELECT site_label, country_code FROM dim_merchant_site"
+    por_que: "Otra tabla del catálogo, con nombre que no tiene nada que ver con el motor."
+  - id: R014-A4
+    rol: analyst
+    sql: "SELECT currency_code, minor_units FROM ref_currency"
+    por_que: "El forinto húngaro tiene CERO `minor_units`, y eso es negocio, no motor."
+reject:
+  - id: R014-R1
+    rol: analyst
+    sql: "SELECT column_name FROM information_schema.columns"
+    rule_id: R014
+    code: system_schema_access
+    por_que: "Enumera TODAS las columnas, incluidas las que C-3 excluyó del catálogo."
+  - id: R014-R2
+    rol: admin
+    sql: "SELECT table_name FROM information_schema.tables"
+    rule_id: R014
+    code: system_schema_access
+    por_que: >-
+      Con rol ADMIN. Admin ve todos los DATOS; los metadatos del motor no son datos,
+      y el catálogo publicado es la única descripción que este servidor sirve.
+  - id: R014-R3
+    rol: analyst
+    sql: "SELECT * FROM duckdb_settings"
+    rule_id: R014
+    code: system_schema_access
+    por_que: "La configuración del motor: rutas, extensiones cargadas, límites."
+  - id: R014-R4
+    rol: analyst
+    sql: "SELECT name FROM sqlite_master"
+    rule_id: R014
+    code: system_schema_access
+    por_que: "El mismo ataque con el vocabulario de otro motor."
+  - id: R014-R5
+    rol: admin
+    sql: "SELECT table_name FROM dim_merchant_site"
+    rule_id: R004
+    code: relation_out_of_scope
+    por_que: >-
+      Una columna que NO existe con un nombre que SUENA a metadato. Se rechaza por
+      R004 y no por R014, y el caso está aquí precisamente para fijarlo: la regla
+      mira relaciones, no nombres que suenen. Un rechazo por la regla equivocada es
+      un acierto por casualidad.

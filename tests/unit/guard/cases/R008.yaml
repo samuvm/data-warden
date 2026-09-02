@@ -1,0 +1,93 @@
+rule_id: R008
+nombre: "Rol, columna y POSICIÓN en el árbol"
+familias:
+  [columna_denegada, columna_enmascarada_en_predicado, expresion_derivada, alias_que_oculta, vista_que_reexpone]
+por_que: >-
+  Los tres niveles de la política NO son una escala de confianza: son una escala de
+  POSICIÓN. Si puedes FILTRAR por una columna, la reconstruyes a base de preguntas
+  aunque nunca veas su valor: el rango de fechas de nacimiento entre 1930 y 2010 son
+  29.220 días, así que quince consultas con distinto literal fijan una fecha exacta.
+accept:
+  - id: R008-A1
+    rol: analyst
+    sql: "SELECT birth_date FROM dim_customer"
+    por_que: >-
+      `mask` en PROYECCIÓN DIRECTA es legal: la columna sale enmascarada. Aceptar
+      esto es lo que hace usable el sistema; lo que se cierra es la posición.
+  - id: R008-A2
+    rol: analyst
+    sql: "SELECT age_band, count(*) AS n FROM dim_customer WHERE age_band = '35-39' GROUP BY age_band"
+    por_que: "La alternativa PUBLICADA de `birth_date`, en la posición prohibida para ella."
+  - id: R008-A3
+    rol: ops
+    sql: "SELECT phone_e164 FROM dim_customer WHERE customer_id = 'CUS-1'"
+    por_que: >-
+      La asimetría que demuestra que la matriz no es una jerarquía: ops llama por
+      teléfono todos los días y finance no llama a nadie nunca.
+  - id: R008-A4
+    rol: admin
+    sql: "SELECT national_id, birth_date FROM dim_customer WHERE national_id = 'X'"
+    por_que: >-
+      Admin lo ve todo y sin enmascarar, a propósito: un DPO que no puede exportar
+      el expediente completo no puede cumplir la ley. El control sobre él es el NO
+      REPUDIO de la auditoría, no la máscara.
+  - id: R008-A5
+    rol: analyst
+    sql: "SELECT email_domain, count(*) AS n FROM dim_customer GROUP BY email_domain"
+    por_que: "El dominio del correo es lo que de verdad quería quien pidió los correos."
+reject:
+  - id: R008-R1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer WHERE birth_date > '1990-01-01'"
+    rule_id: R008
+    code: column_policy
+    por_que: "EL CANAL LATERAL POR PREDICADO. No devuelve la fecha y filtra por ella."
+  - id: R008-R2
+    rol: analyst
+    sql: "SELECT national_id FROM dim_customer"
+    rule_id: R008
+    code: column_policy
+    por_que: "`deny` está prohibida incluso en proyección directa."
+  - id: R008-R3
+    rol: analyst
+    sql: "SELECT concat(first_name, ' ', last_name_1) AS nombre FROM dim_customer"
+    rule_id: R008
+    code: column_policy
+    por_que: >-
+      LA EXPRESIÓN DERIVADA que `PROJECT.md` describe. Dentro de una función es
+      posición prohibida para una columna enmascarada, aunque la función esté en la
+      proyección.
+  - id: R008-R4
+    rol: analyst
+    sql: |
+      WITH c AS (SELECT birth_date AS b, customer_sk FROM dim_customer)
+      SELECT customer_sk FROM c WHERE b > '1990-01-01'
+    rule_id: R008
+    code: column_policy
+    por_que: >-
+      EL ALIAS QUE OCULTA. En el WHERE no pone `birth_date`, pone `b`. Lo encontró
+      una prueba de humo, no una revisión, y obligó a resolver el linaje DENTRO de
+      la consulta y no solo en el catálogo.
+  - id: R008-R5
+    rol: analyst
+    sql: "SELECT customer_sk FROM v_customer WHERE full_name LIKE 'Juan%'"
+    rule_id: R008
+    code: column_policy
+    por_que: >-
+      LA VISTA QUE REEXPONE. `v_customer.full_name` es `concat_ws` de tres columnas
+      protegidas, servido por el propio catálogo.
+  - id: R008-R6
+    rol: finance
+    sql: "SELECT customer_sk FROM dim_customer WHERE phone_e164 = '+34600000000'"
+    rule_id: R008
+    code: column_policy
+    por_que: "La otra mitad de la asimetría: finance no ve el teléfono en ninguna posición."
+  - id: R008-R7
+    rol: analyst
+    sql: |
+      SELECT count(*) AS n
+      FROM dim_customer c
+      JOIN dim_card k ON k.customer_sk = c.customer_sk AND c.birth_date > '1990-01-01'
+    rule_id: R008
+    code: column_policy
+    por_que: "El mismo predicado, escondido en la condición de un JOIN."

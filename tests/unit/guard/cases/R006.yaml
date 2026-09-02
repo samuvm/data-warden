@@ -1,0 +1,77 @@
+rule_id: R006
+nombre: "El tope de filas es del dominio"
+familias: [sin_limite, limite_no_estatico, desplazamiento_excesivo]
+por_que: >-
+  I-12: si cada engine aplicara su propio límite, DuckDB y Athena devolverían
+  resultados distintos para el mismo rol, y el criterio de aceptación nº 5 fallaría
+  por el límite y no por la abstracción de motor.
+accept:
+  - id: R006-A1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer"
+    por_que: "Sin LIMIT: se INYECTA el del rol. No se rechaza, se completa."
+  - id: R006-A2
+    rol: ops
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10"
+    por_que: "Un límite por debajo del tope del rol se respeta tal cual."
+  - id: R006-A3
+    rol: ops
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 999999"
+    por_que: >-
+      Muy por encima del tope de ops (2.000): se RECORTA en vez de rechazarse, y el
+      resultset lo declara con `truncated`. Rechazar aquí sería fricción sin ganancia.
+  - id: R006-A4
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 100 OFFSET 200"
+    por_que: "Un desplazamiento pequeño es paginación normal."
+reject:
+  - id: R006-R1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT (SELECT count(*) FROM dim_card)"
+    rule_id: R006
+    code: row_limit
+    por_que: "Un tope que depende de los datos no es un tope."
+  - id: R006-R2
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT -1"
+    rule_id: R006
+    code: row_limit
+    por_que: "Cada motor hace una cosa distinta con un límite negativo."
+  - id: R006-R3
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 5000000"
+    rule_id: R006
+    code: row_limit
+    por_que: >-
+      Cinco millones de filas producidas para tirarlas. El coste es el de
+      devolverlas y no aparece en el LIMIT.
+  - id: R006-R4
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer LIMIT 0"
+    rule_id: R006
+    code: row_limit
+    por_que: "Pedir cero filas es preguntar por la forma, y la forma está en el catálogo."
+  - id: R006-R5
+    rol: analyst
+    sql: "SELECT customer_sk FROM (SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 9000000) AS s"
+    rule_id: R006
+    code: row_limit
+    por_que: >-
+      **CASO PERMANENTE DE UNA EVASIÓN REAL.** La encontró la mutación de AST: la
+      regla miraba el `OFFSET` de la RAÍZ, y envolver la consulta en una subconsulta
+      lo escondía. Nueve millones de filas producidas para tirarlas, sin que ninguna
+      regla lo viera. La regla estaba bien escrita para el caso que alguien pensó.
+  - id: R006-R6
+    rol: analyst
+    sql: |
+      WITH m AS (SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 9000000)
+      SELECT customer_sk FROM m
+    rule_id: R006
+    code: row_limit
+    por_que: "La misma evasión con una CTE, que es como la produjo el mutador."
+  - id: R006-R7
+    rol: analyst
+    sql: "SELECT customer_sk FROM (SELECT customer_sk FROM dim_customer LIMIT -3) AS s"
+    rule_id: R006
+    code: row_limit
+    por_que: "Y un límite negativo escondido a la misma profundidad."

@@ -1,0 +1,89 @@
+rule_id: R013
+nombre: "El árbol cabe en el presupuesto del guard"
+familias: [bomba_de_ast, entrada_desmesurada]
+por_que: >-
+  Corre la PRIMERA de las catorce, y no por importancia sino por aritmética: todas
+  las demás recorren el árbol. Si el árbol puede ser arbitrariamente grande, el coste
+  del guard también, y `G-GUARD-P95` deja de poder cumplirse POR CONSTRUCCIÓN. Un
+  guardián que tarda diez segundos en decidir no es lento: está caído.
+accept:
+  - id: R013-A1
+    rol: analyst
+    sql: "SELECT customer_sk FROM dim_customer"
+    por_que: "Doce nodos."
+  - id: R013-A2
+    rol: analyst
+    sql: |
+      SELECT c.country_code, c.age_band, c.income_tier, count(*) AS n,
+             count(DISTINCT c.customer_sk) AS clientes
+      FROM dim_customer c
+      JOIN dim_card k ON k.customer_sk = c.customer_sk
+      WHERE c.kyc_status = 'verified' AND c.country_code IN ('ES', 'FR', 'DE', 'IT')
+      GROUP BY c.country_code, c.age_band, c.income_tier
+      ORDER BY n DESC
+    por_que: "Una consulta analítica de verdad, con join, filtros y tres claves de grupo."
+  - id: R013-A0
+    rol: analyst
+    sql_generado: "suma_de_literales"
+    parametro: 1990
+    por_que: >-
+      3.981 nodos: justo POR DEBAJO del máximo de 4.000, y se acepta. Sin este caso,
+      un mutante que cambiara el límite a la baja pasaría inadvertido: los casos de
+      rechazo solo prueban un lado del borde.
+  - id: R013-A3
+    rol: analyst
+    sql: |
+      SELECT a.geo_country,
+             row_number() OVER (PARTITION BY a.geo_country ORDER BY a.event_date DESC) AS rn,
+             a.payment_intent_id
+      FROM fact_payment_attempt a
+      WHERE a.auth_status = 'approved' AND NOT a.is_test
+    por_que: "Con ventana. Sigue muy por debajo del máximo."
+reject:
+  - id: R013-R0
+    rol: analyst
+    sql_generado: "suma_de_literales"
+    parametro: 2500
+    rule_id: R013
+    code: tree_too_large
+    por_que: >-
+      **CINCO MIL NODOS EN CINCO MIL CARACTERES**, y este caso existe porque la
+      MUTACIÓN destapó que faltaba. Los otros dos casos generan SQL tan largo que el
+      corte por LONGITUD DE ENTRADA lo rechaza antes de parsear, así que el cuerpo
+      de la regla —el que cuenta nodos— no se ejecutaba nunca: R013 estaba
+      «probada» por casos que paraban otro mecanismo. Sus mutantes sobrevivían casi
+      todos y ese era el síntoma.
+  - id: R013-R0b
+    rol: admin
+    sql_generado: "suma_de_literales"
+    parametro: 2001
+    rule_id: R013
+    code: tree_too_large
+    por_que: >-
+      Justo por encima del límite: 4.003 nodos contra un máximo de 4.000. Un caso
+      pegado al borde es lo que mata un mutante que cambia `>` por `>=`.
+  - id: R013-R1
+    rol: analyst
+    sql_generado: "estrella_de_or"
+    parametro: 3000
+    rule_id: R013
+    code: tree_too_large
+    por_que: >-
+      Tres mil predicados `OR`. Rechazado por LONGITUD DE ENTRADA antes de parsear,
+      que es el otro mecanismo de R013 y también hay que probarlo.
+  - id: R013-R2
+    rol: analyst
+    sql_generado: "estrella_de_or"
+    parametro: 8000
+    rule_id: R013
+    code: tree_too_large
+    por_que: "El mismo ataque, más grande."
+  - id: R013-R3
+    rol: analyst
+    sql_generado: "cadena_de_concat"
+    parametro: 6000
+    rule_id: R013
+    code: tree_too_large
+    por_que: >-
+      La misma bomba con otra forma: una expresión, no un predicado. La regla mira
+      el TAMAÑO del árbol, no qué construcción lo hizo grande.

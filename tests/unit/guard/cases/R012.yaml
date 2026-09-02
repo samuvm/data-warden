@@ -1,0 +1,56 @@
+rule_id: R012
+nombre: "Agregación de grupo único y reidentificación por cardinalidad"
+familias: [agregacion_de_grupo_unico, reidentificacion_por_cardinalidad]
+por_que: >-
+  `docs/RULES.md §7`, error 7. `HAVING count(*) = 1` devuelve, cohorte a cohorte, los
+  grupos de una sola persona: ninguna columna sale en la respuesta y sin embargo la
+  respuesta ES una persona. Pedir explícitamente los grupos de tamaño uno es pedir
+  individuos con forma de agregado.
+accept:
+  - id: R012-A1
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code"
+    por_que: "Agrupar por país: cada grupo cubre miles de personas."
+  - id: R012-A2
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) > 100"
+    por_que: "Un HAVING que pide grupos GRANDES es lo contrario del ataque."
+  - id: R012-A3
+    rol: analyst
+    sql: "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band HAVING count(*) >= 50"
+    por_que: "La columna generalizada, y un suelo de cohorte por encima de k."
+  - id: R012-A4
+    rol: analyst
+    sql: "SELECT count(*) AS n FROM dim_customer GROUP BY customer_id"
+    por_que: >-
+      `customer_id` es un PSEUDÓNIMO estable y la política firmada dice que sirve
+      «para todo lo que un análisis necesita: agrupar, contar y unir». Aceptarlo es
+      respetar lo que Samuel firmó, no un descuido.
+reject:
+  - id: R012-R1
+    rol: analyst
+    sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) = 1"
+    rule_id: R012
+    code: group_too_small
+    por_que: "País a país, las cohortes de UNA persona."
+  - id: R012-R2
+    rol: analyst
+    sql: "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band HAVING count(*) < 3"
+    rule_id: R012
+    code: group_too_small
+    por_que: "El mismo ataque con `<` en vez de `=`, y por debajo de k."
+  - id: R012-R3
+    rol: admin
+    sql: "SELECT count(*) AS n FROM dim_customer GROUP BY national_id"
+    rule_id: R012
+    code: group_too_small
+    por_que: >-
+      Agrupar por el NIF hace que cada grupo sea una persona. Con rol ADMIN, que
+      puede VER la columna: ver un dato y agregarlo hasta aislarlo son cosas
+      distintas, y la segunda no la concede el nivel de acceso.
+  - id: R012-R4
+    rol: admin
+    sql: "SELECT count(*) AS n FROM dim_customer GROUP BY email"
+    rule_id: R012
+    code: group_too_small
+    por_que: "Un correo identifica a una persona igual que un NIF."
