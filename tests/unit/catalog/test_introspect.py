@@ -205,3 +205,180 @@ def test_una_tabla_se_serializa_con_sus_columnas() -> None:
     payload = tabla.to_dict()
     assert payload["kind"] == "table"
     assert [c["name"] for c in payload["columns"]] == ["a"]
+
+
+# =============================================================================
+# Añadido el 2026-09-02 para cerrar el hueco de `G-MUTATION`: `catalog.introspect`
+# tenía 108 mutantes vivos de 212 (49,06 %) con la cobertura de línea al 99 %. Los
+# tests de arriba fijan el COMPORTAMIENTO feliz; lo que faltaba era el borde —la
+# normalización de las claves, el desempate del orden y, sobre todo, la
+# propagación por linaje que cerró la puerta trasera de C-3—.
+# =============================================================================
+
+
+# --------------------------------------------------- normalización de tipos ---
+
+
+@pytest.mark.parametrize(
+    "escrito",
+    ["varchar", "VarChar", "  VARCHAR  ", "\tvarchar\n"],
+    ids=["minusculas", "mezclado", "con_espacios", "con_tabuladores"],
+)
+def test_la_familia_no_depende_de_como_escriba_el_motor_el_tipo(escrito: str) -> None:
+    """`.strip().upper()` es comportamiento, no aseo.
+
+    DuckDB devuelve `VARCHAR`, Athena devuelve `string` y un `information_schema`
+    ajeno puede devolver cualquiera de las dos con espacios. Una familia que
+    dependiera de eso haría que la MISMA columna cambiara de familia al cambiar de
+    motor, y `G-ENGINE-PARITY` de la fase 9 existe justamente para que no pase.
+    """
+    assert family_of(escrito) == family_of("VARCHAR")
+
+
+def test_un_tipo_con_precision_conserva_su_familia() -> None:
+    """`DECIMAL(18,2)` es un decimal: la tabla casa por PREFIJO, no por igualdad."""
+    assert family_of("DECIMAL(18,2)") == family_of("DECIMAL")
+    assert family_of("VARCHAR(64)") == family_of("VARCHAR")
+
+
+# ------------------------------------------- normalización de los contratos ---
+
+
+@pytest.mark.parametrize(
+    "clave",
+    [
+        "dim_merchant.traffic_weight",
+        "DIM_MERCHANT.TRAFFIC_WEIGHT",
+        "  dim_merchant.traffic_weight  ",
+    ],
+    ids=["tal_cual", "mayusculas", "con_espacios"],
+)
+def test_la_exclusion_no_depende_de_como_se_escriba_en_el_contrato(clave: str) -> None:
+    """El contrato lo escribe un humano y `policy.yaml` está FIRMADO.
+
+    Si la exclusión distinguiera mayúsculas, una fila escrita con otra caja
+    dejaría de excluir y la columna se publicaría. El fallo sería silencioso: el
+    catálogo saldría con `published: true` y nadie miraría.
+    """
+    schema = _esquema(excluded_columns=[clave])
+    assert schema.table("dim_merchant").column("traffic_weight").published is False
+
+
+def test_la_marca_de_obsoleta_no_depende_de_la_caja_del_contrato() -> None:
+    schema = _esquema(deprecated_columns={"DIM_CUSTOMER.EMAIL": "usa email_domain"})
+    columna = schema.table("dim_customer").column("email")
+    assert columna.deprecated is True
+    assert columna.deprecated_reason == "usa email_domain"
+
+
+# ------------------------------------------------------------- orden estable ---
+
+
+def test_dos_columnas_con_el_mismo_ordinal_desempatan_por_nombre() -> None:
+    """El desempate no es cosmético: sin él el orden lo decide el motor.
+
+    `information_schema` puede entregar dos columnas con el mismo `ordinal` (pasa
+    con vistas construidas por unión). Si el orden dependiera de cuál llegó antes,
+    el sha256 de `schema.json` cambiaría entre ejecuciones sin que el esquema
+    hubiera cambiado, y `G-CATALOG-FRESH` fallaría sin motivo real.
+    """
+    filas = (
+        ColumnRow("t", "view", "zeta", "INTEGER", False, 1),
+        ColumnRow("t", "view", "alfa", "INTEGER", False, 1),
+    )
+    nombres = tuple(c.name for c in build_schema(filas, dialect="duckdb").table("t").columns)
+    invertido = tuple(
+        c.name for c in build_schema(filas[::-1], dialect="duckdb").table("t").columns
+    )
+
+    assert nombres == ("alfa", "zeta")
+    assert nombres == invertido
+
+
+# ---------------------------------------------------------------- linaje ---
+
+
+def test_una_columna_sin_vista_deriva_de_si_misma() -> None:
+    """El valor por defecto de `derives_from` no puede ser la tupla vacía.
+
+    Con `()` el `any()` de `_is_published` no recorrería nada y una columna
+    excluida a través de su fuente se publicaría. El defecto correcto es ella
+    misma, que es lo que hace que la regla se lea igual para tablas y vistas.
+    """
+    columna = _esquema().table("dim_customer").column("email")
+    assert columna.derives_from == ("dim_customer.email",)
+
+
+def test_una_vista_no_abre_una_puerta_trasera_a_una_columna_excluida() -> None:
+    """**REGRESIÓN · la encontró el subagente `qa-adversario` en la fase 2.**
+
+    `dim_merchant.traffic_weight` salía con `published: false`, como C-3 manda, y
+    `v_merchant_current.traffic_weight` —la MISMA columna a través de la vista—
+    salía con `published: true`. La exclusión del anillo 1 tenía una puerta
+    trasera con nombre de vista, y bastaba `CREATE VIEW` para cruzarla.
+
+    Propagar por linaje es lo único que la cierra sin depender de que alguien se
+    acuerde de excluir también la vista, y la siguiente, y la de dentro de seis
+    semanas.
+    """
+    filas = (
+        ColumnRow("dim_merchant", "table", "merchant_sk", "INTEGER", False, 1),
+        ColumnRow("dim_merchant", "table", "traffic_weight", "DOUBLE", True, 2),
+        ColumnRow("v_merchant", "view", "merchant_sk", "INTEGER", False, 1),
+        ColumnRow("v_merchant", "view", "traffic_weight", "DOUBLE", True, 2),
+    )
+    schema = build_schema(
+        filas,
+        dialect="duckdb",
+        excluded_columns=["dim_merchant.traffic_weight"],
+        view_sql={"v_merchant": "SELECT merchant_sk, traffic_weight FROM dim_merchant"},
+    )
+
+    assert schema.table("dim_merchant").column("traffic_weight").published is False
+    assert schema.table("v_merchant").column("traffic_weight").published is False
+    # Y la vecina, que no está excluida, sigue publicándose: la propagación no es
+    # un apagón que oculte la vista entera.
+    assert schema.table("v_merchant").column("merchant_sk").published is True
+
+
+def test_un_alias_en_la_vista_tampoco_abre_la_puerta() -> None:
+    """Renombrar la columna en la vista es la variante obvia del mismo ataque."""
+    filas = (
+        ColumnRow("dim_merchant", "table", "traffic_weight", "DOUBLE", True, 1),
+        ColumnRow("v_merchant", "view", "peso", "DOUBLE", True, 1),
+    )
+    schema = build_schema(
+        filas,
+        dialect="duckdb",
+        excluded_columns=["dim_merchant.traffic_weight"],
+        view_sql={"v_merchant": "SELECT traffic_weight AS peso FROM dim_merchant"},
+    )
+
+    assert schema.table("v_merchant").column("peso").published is False
+
+
+# -------------------------------------------------------- unknown_columns ---
+
+
+def test_una_referencia_sin_punto_se_denuncia_en_vez_de_colarse() -> None:
+    """`partition('.')` deja la columna vacía; una tabla sin columna no existe.
+
+    Una clave mal escrita en `policy.yaml` —`birth_date` en vez de
+    `dim_customer.birth_date`— tiene que salir denunciada. Si se colara, la
+    política protegería una columna que el catálogo no conoce y nadie ejercitaría
+    nunca esa fila.
+    """
+    assert unknown_columns(_esquema(), ["birth_date"]) == ["birth_date"]
+
+
+def test_una_tabla_que_no_existe_se_denuncia_entera() -> None:
+    assert unknown_columns(_esquema(), ["no_existe.columna"]) == ["no_existe.columna"]
+
+
+def test_las_referencias_se_denuncian_en_el_orden_en_que_llegaron() -> None:
+    """El informe de I-07 lo lee un humano: un orden aleatorio lo hace inútil."""
+    faltan = unknown_columns(
+        _esquema(),
+        ["z.z", "dim_customer.email", "a.a", "dim_customer.no_existe"],
+    )
+    assert faltan == ["z.z", "a.a", "dim_customer.no_existe"]

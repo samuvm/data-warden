@@ -9,6 +9,8 @@ presupuesto» dicho tres veces: el blando pide confirmación, el duro no ejecuta
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from datawarden.domain.types import Role
@@ -122,3 +124,123 @@ def test_falta_un_rol_y_se_dice_cual() -> None:
     incompleto["roles"] = {k: v for k, v in _FIXTURE["roles"].items() if k != "finance"}  # type: ignore[union-attr]
     with pytest.raises(ValueError, match="finance"):
         budgets_from_dict(incompleto)
+
+
+# =============================================================================
+# Añadido el 2026-09-02. `principal.budgets` tenía 30 mutantes vivos de 67
+# (55,22 %) y 25 de ellos estaban en `budgets_from_dict`. Los tests de arriba
+# prueban las DECISIONES —blando, duro, `max_rows`— y son los correctos; lo que
+# nadie asertaba era el PARSEO, que es donde un presupuesto se afloja sin que
+# ninguna decisión cambie de forma: un `int()` que se cae, un valor por defecto
+# que se invierte, un campo obligatorio que pasa a opcional.
+# =============================================================================
+
+
+def test_los_tres_numeros_del_presupuesto_se_convierten_a_entero() -> None:
+    """JSON no distingue `1` de `1.0`, y un `float` en los bytes es un límite
+    que compara mal en los bordes.
+
+    `budgets.yaml` lo firma un humano y lo compila un script. Los `int()` de
+    `budgets_from_dict` son la frontera donde eso se normaliza, y son la razón de
+    que `test_el_limite_duro_es_inclusivo` signifique algo.
+    """
+    payload = json.loads(json.dumps(_FIXTURE))
+    payload["roles"]["analyst"].update(
+        {"soft_bytes": 300_000_000.0, "hard_bytes": "600000000", "max_rows": 50_000.0}
+    )
+
+    presupuesto = budgets_from_dict(payload).budgets[Role.ANALYST]
+
+    assert presupuesto.soft_bytes == 300_000_000
+    assert presupuesto.hard_bytes == 600_000_000
+    assert presupuesto.max_rows == 50_000
+    assert isinstance(presupuesto.soft_bytes, int)
+    assert isinstance(presupuesto.hard_bytes, int)
+    assert isinstance(presupuesto.max_rows, int)
+
+
+@pytest.mark.parametrize("campo", ["soft_bytes", "hard_bytes", "max_rows"])
+def test_los_tres_numeros_son_obligatorios_y_no_tienen_defecto(campo: str) -> None:
+    """Ninguno puede degradar a un valor por defecto, y menos a cero o a infinito.
+
+    Un `row.get("hard_bytes", 0)` rechazaría todo —molesto pero seguro— y un
+    `row.get("hard_bytes", sys.maxsize)` ejecutaría todo, que es exactamente el
+    agujero que `G-BUDGET-ESCAPE` existe para cerrar. La única respuesta correcta
+    a un presupuesto incompleto es no cargarlo.
+    """
+    payload = json.loads(json.dumps(_FIXTURE))
+    del payload["roles"]["analyst"][campo]
+
+    with pytest.raises(KeyError):
+        budgets_from_dict(payload)
+
+
+def test_un_presupuesto_se_declara_sin_calibrar_mientras_no_diga_lo_contrario() -> None:
+    """El defecto es `False`, y esa dirección es la honesta.
+
+    `soft_gb` sigue sin calibrar en los cuatro roles —`budgets.yaml` lo dice con
+    `origen_soft: agente_por_calibrar`—. Si el defecto fuera `True`, un rol al que
+    se le olvidara el campo se publicaría como calibrado sin haberlo estado, y eso
+    es un número que miente en el README.
+    """
+    payload = json.loads(json.dumps(_FIXTURE))
+    del payload["roles"]["analyst"]["soft_is_calibrated"]
+
+    assert budgets_from_dict(payload).budgets[Role.ANALYST].soft_is_calibrated is False
+
+
+def test_el_libro_arrastra_el_sha_del_fichero_firmado() -> None:
+    """Sin procedencia no se puede auditar de qué `budgets.yaml` salió el número."""
+    assert budgets_from_dict(_FIXTURE).source_sha256 == "0" * 64
+
+
+def test_un_libro_sin_sha_se_carga_con_la_procedencia_vacia_y_no_revienta() -> None:
+    """Vacío, nunca `None`: el campo se publica en el registro de auditoría."""
+    payload = json.loads(json.dumps(_FIXTURE))
+    del payload["source_sha256"]
+
+    assert budgets_from_dict(payload).source_sha256 == ""
+
+
+def test_un_blando_igual_al_duro_es_legal() -> None:
+    """El borde exacto de la comprobación: se prohíbe `soft > hard`, no `soft == hard`.
+
+    Un rol cuyo aviso coincida con su rechazo es un rol sin aviso, pero es una
+    configuración coherente y legítima. Un mutante que cambie `>` por `>=` la
+    prohibiría, y aquí es donde se nota.
+    """
+    payload = json.loads(json.dumps(_FIXTURE))
+    payload["roles"]["ops"]["soft_bytes"] = payload["roles"]["ops"]["hard_bytes"]
+
+    libro = budgets_from_dict(payload)
+
+    assert libro.budgets[Role.OPS].soft_bytes == libro.budgets[Role.OPS].hard_bytes
+
+
+@pytest.mark.parametrize("rol", ["admin", "analyst", "finance", "ops"])
+def test_falta_cualquiera_de_los_cuatro_roles_y_se_dice_cual(rol: str) -> None:
+    """El mensaje nombra al rol: un fallo que no dice cuál obliga a adivinar."""
+    payload = json.loads(json.dumps(_FIXTURE))
+    del payload["roles"][rol]
+
+    with pytest.raises(ValueError, match=rol):
+        budgets_from_dict(payload)
+
+
+def test_un_rol_de_mas_en_el_fichero_no_entra_en_el_libro() -> None:
+    """Se recorre `Role`, no las claves del fichero.
+
+    Al revés —recorrer el fichero— un rol inventado en `budgets.yaml` crearía un
+    presupuesto para un principal que el dominio no reconoce, y el rol es lo único
+    que este sistema no acepta de datos no autenticados.
+    """
+    payload = json.loads(json.dumps(_FIXTURE))
+    payload["roles"]["intruso"] = {
+        "soft_bytes": 10**15,
+        "hard_bytes": 10**15,
+        "max_rows": 10**9,
+    }
+
+    libro = budgets_from_dict(payload)
+
+    assert set(libro.budgets) == set(Role)
