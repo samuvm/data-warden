@@ -1,0 +1,42 @@
+{
+  "measures": "bytes_escaneados_estimados",
+  "roles": {
+    "admin": {
+      "hard_bytes": 1500000000,
+      "hard_gb": 1.5,
+      "max_rows": 250000,
+      "soft_bytes": 750000000,
+      "soft_gb": 0.75,
+      "soft_is_calibrated": false
+    },
+    "analyst": {
+      "hard_bytes": 600000000,
+      "hard_gb": 0.6,
+      "max_rows": 50000,
+      "soft_bytes": 300000000,
+      "soft_gb": 0.3,
+      "soft_is_calibrated": false
+    },
+    "finance": {
+      "hard_bytes": 800000000,
+      "hard_gb": 0.8,
+      "max_rows": 100000,
+      "soft_bytes": 400000000,
+      "soft_gb": 0.4,
+      "soft_is_calibrated": false
+    },
+    "ops": {
+      "hard_bytes": 50000000,
+      "hard_gb": 0.05,
+      "max_rows": 2000,
+      "soft_bytes": 20000000,
+      "soft_gb": 0.02,
+      "soft_is_calibrated": false
+    }
+  },
+  "signed_by": "Samuel",
+  "source": "docs/spec/budgets.yaml",
+  "source_sha256": "ccabe637b3302e4331f15452103a2bc9a393733c548d58a75d78449aefc4d716",
+  "unit_base": 1000000000,
+  "version": 1
+}

@@ -1,0 +1,65 @@
+# =============================================================================
+# Lo poco del catálogo que el motor NO puede decir
+#
+# I-07 dice que el catálogo se GENERA y nunca se escribe a mano, y eso sigue
+# siendo cierto: `catalog/generated/schema.json` sale entero de
+# `information_schema`. Pero hay una cosa que ningún motor sabe y que el anillo 1
+# tiene que publicar porque `PROJECT.md` §2 la pide: **qué columnas están
+# deprecadas**. Una columna obsoleta EXISTE, tiene su tipo y responde a un
+# `SELECT`; que no haya que usarla es conocimiento de negocio.
+#
+# ESTE FICHERO NO PUEDE AÑADIR NADA. Solo anota columnas que ya existen, y
+# `scripts/check_catalog_fresh.py` falla si alguna clave de aquí no está en el
+# esquema generado. Es lo que impide que se convierta en un catálogo paralelo
+# escrito a mano, que es exactamente lo que I-07 existe para prohibir.
+#
+# LAS EXCLUSIONES NO ESTÁN AQUÍ. `dim_merchant.traffic_weight` sale del catálogo
+# publicado por el cambio C-3 de la firma de Q-003, y por tanto vive en
+# `docs/spec/policy.yaml`, que es donde vive lo que firma negocio. Dos ficheros
+# diciendo qué se publica serían dos sitios donde equivocarse.
+# =============================================================================
+
+version: 1
+estado: FIRMADO
+escrito_por: agente
+escrito_el: 2026-09-02
+alcance: >-
+  Anotaciones sobre columnas que ya existen en `catalog/generated/schema.json`.
+  Ni crea columnas, ni crea tablas, ni cambia tipos.
+
+# -----------------------------------------------------------------------------
+# Columnas obsoletas. Cada una con el motivo Y con la columna que hay que usar en
+# su lugar: una deprecación sin sustituto no redirige el trabajo, lo bloquea, y
+# entonces la gente sigue usando la columna vieja.
+# -----------------------------------------------------------------------------
+deprecadas:
+  - columna: fact_payment_attempt.amount_cents
+    usar_en_su_lugar: fact_payment_attempt.amount_minor
+    motivo: >-
+      Columna heredada de la primera ingesta. **Discrepa de `amount_minor` en el
+      0,4 % de las filas**, y esa discrepancia está inyectada a propósito en el
+      generador: es la trampa nº 8 de `docs/spec/glossary.yaml`. Quien la use
+      obtiene un número que se parece al bueno, lo cual es peor que un error
+      evidente. `amount_minor` es la columna vigente y está en la misma tabla.
+    verificado_contra: docs/spec/glossary.yaml · trampas
+
+# -----------------------------------------------------------------------------
+# La clasificación por defecto, escrita porque es una decisión y no un descuido
+# -----------------------------------------------------------------------------
+clasificacion_por_defecto:
+  nivel: allow
+  por_que: >-
+    `docs/spec/policy.yaml` inventaría las 40 columnas SENSIBLES del almacén, no
+    las ~300 que tiene. Una columna sin fila —`amount_minor`, `auth_status`,
+    `event_date`— es una columna de negocio ordinaria, y denegarla por defecto
+    dejaría el sistema sin nada que responder. El guard es allowlist sobre NODOS y
+    FUNCIONES del árbol, que es donde vive el ataque; sobre columnas la lista es de
+    lo protegido, y eso es otra cosa.
+  limite_declarado: >-
+    UNA COLUMNA SENSIBLE NUEVA QUE NADIE CLASIFIQUE QUEDA EN `allow`. Es el hueco
+    real de este diseño y se declara aquí en vez de descubrirse. Lo que lo acota:
+    el esquema se GENERA, así que una columna nueva cambia el sha de
+    `catalog/generated/schema.json` y `G-CATALOG-FRESH` obliga a regenerarlo en un
+    turno que un humano revisa. Lo que NO hace: avisar por sí solo de que la
+    columna nueva es sensible. Eso sigue siendo criterio, y va al modelo de
+    amenaza de la fase 10 con estas palabras.

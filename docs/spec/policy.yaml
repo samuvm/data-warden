@@ -1,28 +1,43 @@
 # =============================================================================
 # Política de acceso a columnas · rol × columna × nivel
 #
-# BORRADOR PARA FIRMA. Lo generó el agente el 2026-08-31 desde el catálogo REAL
+# FIRMADO por Samuel el 2026-09-01 al responder Q-003, CON SIETE CAMBIOS (C-1..C-7)
+# que el agente aplicó el 2026-09-02 y que están anotados uno a uno en la fila que
+# tocan, con la etiqueta `cambio_firmado:`. Nada más se ha tocado.
+#
+# Lo generó el agente el 2026-08-31 desde el catálogo REAL
 # del dataset CIERZO (`datagen/out/full`), no de memoria: las 28 columnas de
 # `dim_customer`, las 13 de `dim_card` y las 36 de `fact_payment_attempt` están
 # inventariadas una a una.
 #
-# CÓMO SE REVISA. Todo lo dudoso está en el nivel más restrictivo posible. Tu
-# trabajo es RELAJAR lo que quieras que se vea, no endurecer. Cambia el nivel,
-# escribe el porqué en `justificacion` y ya está. Hasta que firmes, este fichero
-# es una propuesta: `estado: BORRADOR` abajo lo dice, y `make done` no lo acepta
-# como contrato hasta que ponga `FIRMADO`.
+# LOS SIETE CAMBIOS DE LA FIRMA, en una línea cada uno:
+#   C-1  dim_customer.national_id · finance: mask(ultimos_n:1) -> deny. Una máscara
+#        que no sirve para el caso de uso que la justifica es peor que un deny.
+#   C-2  dim_employee.salary_band · admin sigue deny, pero la excepción al invariante
+#        «admin lo ve todo» pasa a ser un DATO (`excepcion_admin`), no prosa.
+#   C-3  dim_merchant.traffic_weight · además de deny, SALE del catálogo publicado.
+#   C-4  dim_customer.birth_date · ops: mask -> deny.
+#   C-5  regla de composición: `derivada_de` en las columnas compuestas, y un test
+#        que falla si una columna `allow` deriva de otra que no lo es para ese rol.
+#   C-6  dim_customer.support_note · confirmado deny salvo ops, y la columna
+#        redactada queda anclada a la FASE 4 con dueño, no huérfana.
+#   C-7  los presupuestos por rol salen de aquí a `docs/spec/budgets.yaml`: la matriz
+#        la firma negocio y no se toca; los presupuestos se recalibran en la fase 3.
 #
 # Q-003 de `docs/PARA-SAMUEL.md`. Bloquea la regla R008 de la fase 2, la fase 4
 # entera y la meta `G-PII-LEAK`.
 # =============================================================================
 
 version: 1
-estado: BORRADOR          # BORRADOR | FIRMADO  — solo Samuel escribe FIRMADO
+estado: FIRMADO           # BORRADOR | FIRMADO  — solo Samuel escribe FIRMADO
 generado_por: agente
 generado_el: 2026-08-31
 catalogo_origen: datagen/out/full/MANIFEST.json
-firmado_por: null
-firmado_el: null
+firmado_por: Samuel
+firmado_el: 2026-09-01      # respuesta a Q-003 en docs/PARA-SAMUEL.md
+cambios_aplicados_por: agente
+cambios_aplicados_el: 2026-09-02
+cambios_de_la_firma: [C-1, C-2, C-3, C-4, C-5, C-6, C-7]
 
 # -----------------------------------------------------------------------------
 # Los tres niveles. Esto no es una escala de confianza: es una escala de
@@ -84,41 +99,50 @@ enmascarado:
 # -----------------------------------------------------------------------------
 exige_alternativa_generalizada: true
 
+# C-7: `presupuesto_gb` y `limite_filas` ya NO viven aquí. Son dos contratos con
+# dos ritmos de cambio distintos: esta matriz la firma negocio y no se toca; los
+# presupuestos se recalibran con `make cost-calibration` en la fase 3. Mezclarlos
+# significaba que cada recalibración tocaba el fichero firmado.
+presupuestos_en: docs/spec/budgets.yaml
+
 roles:
   analyst:
     quien_es: >-
       Analista de datos de Producto. Construye el informe semanal de tasa de
       aprobación por adquirente, cohortes de cliente y análisis de reintentos.
       Trabaja sobre agregados; nunca necesita saber QUIÉN es una fila.
-    presupuesto_gb: 0.60
-    limite_filas: 50000
   ops:
     quien_es: >-
       Agente de Payment Operations y disputas. Su unidad de trabajo es un pago
       concreto de un cliente concreto que acaba de llamar por teléfono. Necesita
       identificar a la persona en treinta segundos.
-    presupuesto_gb: 0.05
-    limite_filas: 2000
   finance:
     quien_es: >-
       Controller de conciliación y liquidación. Cuadra lo capturado contra lo
       liquidado, calcula comisiones e interchange, persigue los lotes que no
       cierran. Ve MÁS DINERO Y MENOS PERSONA que ops, y eso es verdad en la vida
       real, no una escala de confianza inventada.
-    presupuesto_gb: 0.80
-    limite_filas: 100000
   admin:
     quien_es: >-
       Delegado de Protección de Datos y responsable de plataforma. Atiende un
       derecho de acceso, un requerimiento judicial o una investigación de
       incidente. No consulta a diario: consulta cuando hay que responder a alguien.
-    presupuesto_gb: 1.50
-    limite_filas: 250000
     nota: >-
       Lo ve todo sin una sola columna enmascarada, y es DELIBERADO: un DPO que no
       puede exportar el expediente completo de un interesado no puede cumplir la
       ley. El control sobre el rol privilegiado NO ES EL ENMASCARADO, es el NO
       REPUDIO: cada consulta suya entra en la auditoría encadenada.
+
+# -----------------------------------------------------------------------------
+# C-3: columnas que EXISTEN en el esquema y NO se publican en el catálogo del
+# anillo 1. Siguen teniendo su fila `deny` abajo: son dos anillos distintos y el
+# segundo no depende de que el primero se haya aplicado bien.
+# -----------------------------------------------------------------------------
+columnas_excluidas_del_catalogo:
+  - columna: dim_merchant.traffic_weight
+    motivo: >-
+      Artefacto del generador, no dato de negocio. Publicarlo sería publicar la
+      respuesta del examen.
 
 # =============================================================================
 # LA MATRIZ
@@ -211,32 +235,49 @@ columnas:
     tipo_dato: identificador_nacional
     analyst: deny
     ops: deny
-    finance: mask
+    finance: deny
     admin: allow
     generalizada: null
+    cambio_firmado: C-1
     excepcion_justificada: >-
       Un NIF parcial sigue siendo un NIF: publicar la letra de control reduce el
       espacio de búsqueda a 1 de cada 23, y publicar los últimos dígitos lo
       reduce mucho más de lo que parece.
-    transformacion: ultimos_n
-    n: 1
     justificacion: >-
-      Es la llave que cruza este dataset con cualquier otro. Finance lo necesita
-      de verdad (retención de IRPF, declaraciones informativas). Ops no lo
-      necesita para nada: identifica al cliente por teléfono y correo.
+      Es la llave que cruza este dataset con cualquier otro. Ops no lo necesita
+      para nada: identifica al cliente por teléfono y correo.
+      C-1, DE LA FIRMA: finance pasa de `mask` con `ultimos_n: 1` a `deny`. El
+      borrador se contradecía solo — decía que publicar la letra de control
+      reduce el espacio a 1 de 23 y acto seguido publicaba exactamente la letra
+      de control, porque `n: 1` sobre un NIF español ES la letra. Y la necesidad
+      declarada de finance (retención e informativas) NO se satisface con un NIF
+      truncado: o lo tienes entero o no sirve para una declaración. Una máscara
+      que no sirve para el caso de uso que la justifica es peor que un `deny`,
+      porque filtra un dígito de entropía y encima no desbloquea el trabajo. Si
+      finance necesitara el NIF completo para un flujo concreto, eso es un
+      `allow` acotado a ese flujo, y es otra conversación con su propio ADR.
 
   - columna: dim_customer.birth_date
     tipo_dato: cuasi_identificador
     analyst: mask
-    ops: mask
+    ops: deny
     finance: deny
     admin: allow
     generalizada: dim_customer.age_band
     transformacion: generalizar
+    cambio_firmado: C-4
     justificacion: >-
       LA COLUMNA DE LA CAPTURA ESTRELLA DEL README. Fecha exacta de nacimiento
       más código postal reidentifica a una persona con probabilidad altísima. Y
       poder filtrar por edad es discriminación por edad en tres líneas de SQL.
+      C-4, DE LA FIRMA: ops pasa de `mask` a `deny`. Era la única fila donde el
+      borrador se ablandaba sin justificarlo. Ops identifica al cliente por
+      teléfono y correo —lo dice la propia fila de `national_id`—, así que no
+      necesita la fecha exacta; y `age_band` está en `allow` para los cuatro
+      roles. Dejarla en `mask` para ops hacía posible el ataque de
+      reidentificación por proyección directa (fecha + código postal, ambos
+      visibles para ops) en un solo SELECT. Con `deny` para ops, la columna
+      estrella del README queda protegida para todo el mundo menos admin.
     fuga_residual: >-
       `age_band` en tramos de cinco años deja cohortes de miles de personas en
       los países grandes y de decenas en los pequeños. Cruzado con
@@ -302,10 +343,23 @@ columnas:
     justificacion: >-
       Ops la necesita para hacer su trabajo. Para todos los demás se deniega, que
       es la única respuesta honesta mientras no exista una columna redactada.
-    trabajo_pendiente: >-
-      Producir `support_note_redacted` fuera de línea, con las entidades
-      sustituidas, y relajar entonces el nivel para analyst. Hasta que exista, el
-      límite se declara aquí en vez de fingir que la política lo cubre.
+    cambio_firmado: C-6
+    trabajo_pendiente:
+      que: >-
+        Producir `dim_customer.support_note_redacted` fuera de línea, con las
+        entidades sustituidas, y relajar entonces el nivel para analyst. Hasta que
+        exista, el límite se declara aquí en vez de fingir que la política lo cubre.
+      fase: 4
+      dueno: agente
+      como: >-
+        REDACCIÓN EXACTA, NO UN MODELO DE NER. La ventaja de que el dataset sea
+        sintético es que el generador SABE qué entidades metió en cada nota, porque
+        las metió él: nombre, teléfono, NIF y cuatro últimos dígitos salen de la
+        misma fila. Sustituirlas es una búsqueda exacta, no una inferencia, y hay
+        que cobrarse esa ventaja en vez de montar un NER que acierta el 95 %.
+      por_que_con_fecha: >-
+        C-6, DE LA FIRMA: el trabajo pendiente del borrador era correcto pero estaba
+        huérfano. Sin dueño ni fase, no se hace.
 
   - columna: dim_customer.kyc_status
     tipo_dato: cumplimiento
@@ -383,12 +437,19 @@ columnas:
     ops: allow
     finance: allow
     admin: allow
+    cambio_firmado: C-5
+    derivada_de:
+      - dim_customer.value_tier
+      - dim_customer.age_band
+      - dim_customer.primary_category
     justificacion: >-
-      Compuesto de `value_tier`, `age_band` y categoría dominante. AVISO A LA
-      REVISIÓN: contiene `age_band` LITERALMENTE, así que si algún día se
-      restringiera `age_band`, esta columna sería un puente que lo rodea. Hoy
-      `age_band` es `allow` para los cuatro roles y no hay contradicción, pero la
-      dependencia queda escrita para que no se descubra tarde.
+      Compuesto de `value_tier`, `age_band` y categoría dominante. Contiene
+      `age_band` LITERALMENTE, así que si algún día se restringiera `age_band`,
+      esta columna sería un puente que lo rodea.
+      C-5, DE LA FIRMA: la dependencia deja de ser un aviso en prosa y pasa a ser
+      el campo `derivada_de`, que un test recorre. Hoy no hay contradicción; el
+      test existe para que siga sin haberla cuando alguien restrinja `age_band`
+      dentro de seis semanas. Cierra la clase entera de bugs, no este caso.
 
   # -------------------------------------------------------------------- dim_card
   - columna: dim_card.pan_last4
@@ -571,11 +632,17 @@ columnas:
     admin: deny
     generalizada: dim_employee.org_level
     transformacion: tachar
+    cambio_firmado: C-2
+    excepcion_admin: true
+    excepcion_admin_motivo: >-
+      ROMPE EL INVARIANTE «admin lo ve todo» A PROPÓSITO, Y ESTÁ AQUÍ COMO DATO Y NO
+      COMO PROSA. C-2 de la firma: si la excepción viviera solo en la justificación,
+      el primer test que compruebe coherencia de la matriz la marcaría como error y
+      alguien la «arreglaría» concediéndosela a admin. Con el campo, el test la
+      reconoce y la respeta. Un DPO responde derechos de acceso; no revisa nóminas.
     justificacion: >-
       Es el sueldo de tu compañero, en tramos. Ni siquiera admin lo necesita: un
-      DPO responde derechos de acceso, no revisa la nómina. Es el único caso de
-      la matriz en que admin NO lo ve todo, y está aquí a propósito para que la
-      revisión decida si es lo que quieres.
+      DPO responde derechos de acceso, no revisa la nómina.
 
   # --------------------------------------------------------- dim_corporate_group
   - columna: dim_corporate_group.payout_iban
@@ -628,12 +695,28 @@ columnas:
     finance: deny
     admin: deny
     generalizada: null
+    cambio_firmado: C-3
+    catalogo_publicado: false
+    excepcion_admin: true
+    excepcion_admin_motivo: >-
+      SEGUNDA excepción al invariante «admin lo ve todo», y se declara por el mismo
+      motivo que la de `dim_employee.salary_band` (C-2): porque si no, la primera
+      comprobación de coherencia de la matriz la marca como error y alguien la
+      «arregla» concediéndosela a admin. C-3 dice literalmente «denegado para los
+      CUATRO roles», así que la excepción está firmada; lo que faltaba era el dato.
+      LA ENCONTRÓ EL PROPIO TEST DE C-2, no una revisión, que es exactamente para lo
+      que Samuel pidió que la excepción fuera dato y no prosa.
     excepcion_justificada: >-
       No es un dato de negocio: es el peso con el que el GENERADOR sorteó el
       tráfico de cada comercio. Publicarlo sería publicar la respuesta del examen
       —cualquier consulta sobre concentración se contestaría leyéndolo en vez de
-      midiéndolo—. Denegado para los cuatro roles, y candidato a desaparecer del
-      catálogo publicado.
+      midiéndolo—.
+      C-3, DE LA FIRMA: denegarla a los cuatro roles era correcto pero
+      INSUFICIENTE. Mientras esté en el catálogo publicado, el generador NL→SQL la
+      ve, la propone, y todas esas consultas se rechazan: eso contamina
+      `G-EXEC-ACC` con fallos que no son fallos del sistema. Sale del catálogo
+      expuesto en el anillo 1 y la fila `deny` se queda como red de seguridad de
+      segundo nivel.
 
 # =============================================================================
 # LÍMITES DECLARADOS. Lo que esta política NO cierra.

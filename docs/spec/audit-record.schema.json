@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/samuvm/data-warden/docs/spec/audit-record.schema.json",
+  "title": "Registro de auditoría encadenado",
+  "description": "Contrato propio del proyecto. Meta G-AUDIT-COV (axioma: ninguna invocación sin su registro) y G-AUDIT-TAMPER. SE AUDITA TODA INVOCACIÓN, no solo las que se ejecutan: un rechazo del guard es un evento de seguridad y no registrarlo es el peor fallo posible de este sistema. CANONICALIZACIÓN: el hash se calcula sobre JCS (RFC 8785) del registro SIN el campo `hash`. Sin canonicalización el hash depende del orden de las claves y no vale nada; decirlo aquí, en el contrato, es lo que impide que dos implementaciones produzcan dos cadenas incompatibles. LÍMITE HONESTO, obligatorio en docs/threat-model.md: quien tiene escritura sobre el almacén puede recalcular la cadena entera. El hash encadenado detecta manipulación de quien NO puede reescribir todo lo posterior; por eso existe `warden audit anchor`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "seq",
+    "recorded_at",
+    "principal_id",
+    "role",
+    "role_source",
+    "status",
+    "question_digest",
+    "sql_digest",
+    "prev_hash",
+    "hash"
+  ],
+  "properties": {
+    "seq": {
+      "description": "Posición en la cadena, empezando en 1. Es lo que hace comprobable `n_registros == n_invocaciones`: un hueco es una invocación sin registro.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "recorded_at": {
+      "description": "Instante en que se cerró el registro, en UTC y con la Z explícita. Es un dato del registro, no una fuente de orden: el orden lo da `seq` y lo garantiza el hash. Un reloj que retrocede no puede romper la cadena.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "principal_id": {
+      "description": "Quién preguntó. Identificador opaco acuñado por el servidor, nunca un dato que venga del cliente.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "role": {
+      "description": "El rol EFECTIVO con el que se resolvió la consulta.",
+      "type": "string",
+      "enum": ["analyst", "ops", "finance", "admin"]
+    },
+    "role_source": {
+      "description": "DE DÓNDE salió el rol, y es el campo que hace auditable el invariante I-05. `server_process` es un proceso por rol; `principal_token` es un handle HMAC acuñado por el servidor. NO EXISTE un valor `request_meta` ni `tool_argument`: si el rol pudiera venir de ahí, el anillo 5 sería ficción, y un enum sin esos valores convierte la promesa en algo que un esquema rechaza.",
+      "type": "string",
+      "enum": ["server_process", "principal_token", "cli_flag"]
+    },
+    "status": {
+      "description": "Los CUATRO estados que G-AUDIT-COV exige. `rejected_by_guard` y `rejected_by_budget` se registran igual que `executed`: auditar solo lo ejecutado deja fuera precisamente los eventos que importan.",
+      "type": "string",
+      "enum": ["rejected_by_guard", "rejected_by_budget", "executed", "error"]
+    },
+    "question_digest": {
+      "description": "sha256 hex de la pregunta en lenguaje natural, NO la pregunta. La pregunta puede contener el nombre de una persona ('cuánto cobra Fulano') y la auditoría es inmutable: guardarla en claro crea la contradicción entre append-only y derecho de supresión que la política declara como límite. El digest permite demostrar que la pregunta fue esa sin conservarla.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "question_preview": {
+      "description": "Opcional y APAGADO por defecto. Existe para el modo de depuración local, donde no hay datos de personas reales porque el dataset es sintético. Que sea opcional y esté documentado como tal es la diferencia entre una decisión y un descuido.",
+      "type": ["string", "null"],
+      "maxLength": 500
+    },
+    "sql_digest": {
+      "description": "sha256 hex del SQL RE-SERIALIZADO desde el AST validado -- lo que de verdad se ejecutó (I-02)-- y nunca de la cadena de entrada. Si se hasheara la entrada, la auditoría certificaría algo distinto de lo que corrió.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sql": {
+      "description": "El SQL re-serializado, en claro. Opcional: es esquema y estructura, no datos, así que guardarlo no filtra nada de nadie, pero abulta.",
+      "type": ["string", "null"],
+      "maxLength": 20000
+    },
+    "tables": {
+      "description": "Tablas del árbol validado, cualificadas y ordenadas. Ordenadas por obligación: entran en el hash.",
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "columns_masked": {
+      "description": "Columnas que el anillo 4 reescribió, `tabla.columna`, ordenadas. Es la evidencia de que el enmascarado ocurrió, no la promesa de que ocurrió.",
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "rejection": {
+      "description": "El rechazo íntegro, conforme a rejection.schema.json, cuando `status` empieza por `rejected_`. Se guarda entero porque el mensaje accionable ES el evento.",
+      "type": ["object", "null"]
+    },
+    "estimated_bytes": {
+      "description": "Bytes que el estimador previó que se escanearían, ANTES de ejecutar. Junto con `scanned_bytes` es lo que alimenta G-COST-CALIB sin tener que volver a correr nada.",
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "scanned_bytes": {
+      "description": "Bytes que el motor dice haber escaneado, si el motor lo reporta. `null` cuando no lo reporta, que es distinto de cero y no se puede confundir con él.",
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "budget_bytes": {
+      "description": "El presupuesto duro del rol en el momento de la invocación. Se guarda porque el presupuesto se recalibra, y un registro que solo dijera 'rechazado por presupuesto' no sería reproducible seis meses después.",
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "row_count": {
+      "description": "Filas DEVUELTAS tras aplicar `max_rows` del dominio.",
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "truncated": {
+      "description": "Si `max_rows` recortó el resultado. Sin este campo, un análisis sobre 2.000 filas parece completo.",
+      "type": ["boolean", "null"]
+    },
+    "duration_ms": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "engine": {
+      "type": ["string", "null"],
+      "enum": ["duckdb", "athena", null]
+    },
+    "model": {
+      "description": "Qué modelo generó el SQL, por TAG y por DIGEST. El digest porque un tag de Ollama es móvil: `qwen3.5:9b-mlx` puede apuntar a otro peso dentro de tres meses (models.lock, Q-007).",
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "tag": { "type": "string" },
+        "digest": { "type": "string" },
+        "prompt_id": { "type": "string" },
+        "prompt_version": { "type": "integer" },
+        "prompt_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "trace_id": {
+      "description": "`traceparent` propagado desde `_meta` (MCP 2026-07-28). Es DATO transportado y jamás autoridad: encadena trazas, no concede permisos.",
+      "type": ["string", "null"]
+    },
+    "prev_hash": {
+      "description": "El `hash` del registro anterior. El primero de la cadena lleva 64 ceros, que es un valor legal y distinguible en vez de `null`, para que el verificador no necesite un caso especial.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hash": {
+      "description": "sha256( prev_hash_bytes || jcs(record_without_hash) ). La concatenación es de BYTES y el orden es ese: sin fijarlo aquí, dos implementaciones producen dos cadenas que no se pueden verificar entre sí.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "description": "Versión de ESTE contrato con la que se escribió el registro. Entra en el hash: una cadena que mezcla versiones sin decirlo no se puede verificar.",
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    }
+  },
+  "$defs": {
+    "canonicalizacion": {
+      "description": "JCS, RFC 8785: claves ordenadas por punto de código UTF-16, sin espacios, números en la forma más corta que round-trip, cadenas con el escapado mínimo. Se aplica al registro SIN `hash` y CON `prev_hash`."
+    }
+  }
+}

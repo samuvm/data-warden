@@ -1,0 +1,640 @@
+{
+  "columns": {
+    "dim_card.card_bin": {
+      "admin_exception": false,
+      "data_type": "metadato_de_emisor",
+      "derived_from": [],
+      "generalized": "dim_card.card_scheme",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "generalizar"
+    },
+    "dim_card.card_token": {
+      "admin_exception": false,
+      "data_type": "pseudonimo",
+      "derived_from": [],
+      "generalized": "dim_card.card_sk",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_card.funding_type": {
+      "admin_exception": false,
+      "data_type": "derivada_generalizada",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_card.issuer_country": {
+      "admin_exception": false,
+      "data_type": "derivada_generalizada",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_card.issuer_name": {
+      "admin_exception": false,
+      "data_type": "comercial",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_card.pan_last4": {
+      "admin_exception": false,
+      "data_type": "instrumento_de_pago_pci",
+      "derived_from": [],
+      "generalized": "dim_card.card_scheme",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "mask",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_corporate_group.payout_iban": {
+      "admin_exception": false,
+      "data_type": "cuenta_bancaria",
+      "derived_from": [],
+      "generalized": "dim_corporate_group.incorporation_country",
+      "keep_last_n": 4,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "mask",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": "ultimos_n"
+    },
+    "dim_corporate_group.vat_number": {
+      "admin_exception": false,
+      "data_type": "identificador_fiscal",
+      "derived_from": [],
+      "generalized": "dim_corporate_group.incorporation_country",
+      "keep_last_n": 3,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "allow",
+        "ops": "mask"
+      },
+      "published_in_catalog": true,
+      "transformation": "ultimos_n"
+    },
+    "dim_customer.age_band": {
+      "admin_exception": false,
+      "data_type": "derivada_generalizada",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.birth_date": {
+      "admin_exception": false,
+      "data_type": "cuasi_identificador",
+      "derived_from": [],
+      "generalized": "dim_customer.age_band",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": "generalizar"
+    },
+    "dim_customer.email": {
+      "admin_exception": false,
+      "data_type": "identificador_directo",
+      "derived_from": [],
+      "generalized": "dim_customer.email_domain",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "generalizar"
+    },
+    "dim_customer.email_domain": {
+      "admin_exception": false,
+      "data_type": "derivada_generalizada",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.erasure_requested_on": {
+      "admin_exception": false,
+      "data_type": "derecho_rgpd",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.first_name": {
+      "admin_exception": false,
+      "data_type": "identificador_directo",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_customer.income_tier": {
+      "admin_exception": false,
+      "data_type": "derivada_no_identificativa",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.kyc_status": {
+      "admin_exception": false,
+      "data_type": "cumplimiento",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.kyc_verified_on": {
+      "admin_exception": false,
+      "data_type": "cumplimiento",
+      "derived_from": [],
+      "generalized": "dim_customer.kyc_status",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.last_name_1": {
+      "admin_exception": false,
+      "data_type": "identificador_directo",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_customer.last_name_2": {
+      "admin_exception": false,
+      "data_type": "identificador_directo",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_customer.national_id": {
+      "admin_exception": false,
+      "data_type": "identificador_nacional",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.phone_e164": {
+      "admin_exception": false,
+      "data_type": "contacto",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.postal_code": {
+      "admin_exception": false,
+      "data_type": "cuasi_identificador",
+      "derived_from": [],
+      "generalized": "dim_customer.region_code",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "generalizar"
+    },
+    "dim_customer.region_code": {
+      "admin_exception": false,
+      "data_type": "derivada_generalizada",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.retention_expires_on": {
+      "admin_exception": false,
+      "data_type": "cumplimiento",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "allow",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.segment_code": {
+      "admin_exception": false,
+      "data_type": "derivada_no_identificativa",
+      "derived_from": [
+        "dim_customer.value_tier",
+        "dim_customer.age_band",
+        "dim_customer.primary_category"
+      ],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.street_address": {
+      "admin_exception": false,
+      "data_type": "domicilio",
+      "derived_from": [],
+      "generalized": "dim_customer.region_code",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "mask",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_customer.support_note": {
+      "admin_exception": false,
+      "data_type": "texto_libre_con_pii",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_customer.value_tier": {
+      "admin_exception": false,
+      "data_type": "derivada_no_identificativa",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_device.device_fingerprint": {
+      "admin_exception": false,
+      "data_type": "identificador_de_dispositivo",
+      "derived_from": [],
+      "generalized": "dim_device.device_class",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "hash_estable"
+    },
+    "dim_employee.first_name": {
+      "admin_exception": false,
+      "data_type": "identificador_directo_empleado",
+      "derived_from": [],
+      "generalized": "dim_employee.employee_id",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_employee.last_name": {
+      "admin_exception": false,
+      "data_type": "identificador_directo_empleado",
+      "derived_from": [],
+      "generalized": "dim_employee.employee_id",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_employee.personal_phone": {
+      "admin_exception": false,
+      "data_type": "contacto_empleado",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_employee.salary_band": {
+      "admin_exception": true,
+      "data_type": "retribucion",
+      "derived_from": [],
+      "generalized": "dim_employee.org_level",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "deny",
+        "analyst": "deny",
+        "finance": "mask",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_employee.work_email": {
+      "admin_exception": false,
+      "data_type": "contacto_corporativo",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "dim_merchant.mdr_bps": {
+      "admin_exception": false,
+      "data_type": "comercial_sensible",
+      "derived_from": [],
+      "generalized": "dim_merchant.risk_tier",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "allow",
+        "ops": "deny"
+      },
+      "published_in_catalog": true,
+      "transformation": "tachar"
+    },
+    "dim_merchant.traffic_weight": {
+      "admin_exception": true,
+      "data_type": "artefacto_del_generador",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "deny",
+        "analyst": "deny",
+        "finance": "deny",
+        "ops": "deny"
+      },
+      "published_in_catalog": false,
+      "transformation": null
+    },
+    "fact_payment_attempt.geo_country": {
+      "admin_exception": false,
+      "data_type": "derivada_generalizada",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "allow",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "fact_payment_attempt.ip_address_int": {
+      "admin_exception": false,
+      "data_type": "identificador_de_red",
+      "derived_from": [],
+      "generalized": "fact_payment_attempt.geo_country",
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "mask",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": "hash_estable"
+    },
+    "fact_payment_attempt.risk_decision": {
+      "admin_exception": false,
+      "data_type": "interno_comercial",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    },
+    "fact_payment_attempt.risk_score": {
+      "admin_exception": false,
+      "data_type": "interno_comercial",
+      "derived_from": [],
+      "generalized": null,
+      "keep_last_n": null,
+      "levels": {
+        "admin": "allow",
+        "analyst": "allow",
+        "finance": "deny",
+        "ops": "allow"
+      },
+      "published_in_catalog": true,
+      "transformation": null
+    }
+  },
+  "default_level": "allow",
+  "deterministic_masking": true,
+  "excluded_from_catalog": [
+    "dim_merchant.traffic_weight"
+  ],
+  "forbidden_positions_in_mask": [
+    "where",
+    "join_on",
+    "group_by",
+    "order_by",
+    "having",
+    "qualify",
+    "argumento_de_funcion",
+    "clave_de_particion_de_ventana"
+  ],
+  "levels": [
+    "allow",
+    "mask",
+    "deny"
+  ],
+  "pepper_from": "config",
+  "roles": [
+    "admin",
+    "analyst",
+    "finance",
+    "ops"
+  ],
+  "signed_by": "Samuel",
+  "signed_on": "2026-09-01",
+  "source": "docs/spec/policy.yaml",
+  "source_sha256": "d7759244d2a9915df5e03c3ce0c0626db9fa32e83334fecd3bfeb647f55296ab",
+  "version": 1
+}
