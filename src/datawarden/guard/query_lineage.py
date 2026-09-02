@@ -57,7 +57,53 @@ def resolve(
     for scope in root.traverse():
         for column in scope.columns:
             out[id(column)] = tuple(sorted(_sources(column, scope, catalog_lineage, 0)))
+    _index_alias_references(root, out)
     return out
+
+
+def _index_alias_references(root: Scope, out: dict[int, tuple[str, ...]]) -> None:
+    """Las columnas que `Scope.columns` NO devuelve. **Era una fuga real.**
+
+    `SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 5` se ACEPTABA para
+    `analyst`, y `first_name` está enmascarada para ese rol. La cadena del fallo:
+
+    1. `qualify()` expande el alias en `GROUP BY` y en `HAVING` —por eso esos dos
+       casos sí se rechazaban— pero **NO en `ORDER BY`**: deja el nodo como una
+       columna sin tabla. De paso convierte el ordinal, así que `ORDER BY 1` acaba
+       exactamente en el mismo sitio.
+    2. `Scope.columns` de sqlglot excluye deliberadamente las referencias a alias de
+       salida, así que el bucle de arriba nunca indexa ese nodo.
+    3. R008 sí lo ve —recorre `exp.Column`—, pregunta por `.n`, no encuentra fila en
+       la matriz y aplica el `allow` por defecto.
+
+    Y no era un rechazo perdido cualquiera: **`ORDER BY n LIMIT 1` con predicados
+    sobre columnas permitidas es una búsqueda binaria sobre un valor enmascarado.**
+    Se ordena, se mira el extremo, se acota. La política firmada lo prohíbe con esas
+    palabras —una columna «alcanzada a través de un alias»— y el guard no lo estaba
+    cumpliendo.
+
+    **Se cierra la CLASE, no el caso.** Toda columna que el bucle principal no haya
+    indexado se resuelve aquí o se marca `UNKNOWN`: si su nombre casa con un alias de
+    salida de su `SELECT`, hereda el linaje de esa proyección —un alias no cambia de
+    dónde sale un dato—; y si no casa con nada, es una columna cuyo origen el guard no
+    sabe seguir, que es la definición de fail-closed. Arreglar solo el `ORDER BY`
+    habría dejado la puerta abierta para la siguiente cláusula que sqlglot decida no
+    expandir.
+    """
+    for scope in root.traverse():
+        select = scope.expression
+        if not isinstance(select, exp.Select):
+            continue
+        by_alias: dict[str, tuple[str, ...]] = {}
+        for projection in select.expressions:
+            sources: set[str] = set()
+            for inner in projection.find_all(exp.Column):
+                sources |= set(out.get(id(inner), (UNKNOWN,)))
+            by_alias[projection.alias_or_name.lower()] = tuple(sorted(sources))
+        for column in select.find_all(exp.Column):
+            if id(column) in out or column.table:
+                continue
+            out[id(column)] = by_alias.get(column.name.lower(), (UNKNOWN,))
 
 
 def _sources(
