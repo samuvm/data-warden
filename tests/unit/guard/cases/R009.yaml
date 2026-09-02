@@ -39,6 +39,9 @@ reject:
     sql: "SELECT * FROM dim_customer"
     rule_id: R009
     code: star_not_expanded
+    posicion: projection
+    sujeto: "*"
+    reintentable: true
     por_que: "Una estrella que llega a la fase posterior sin expandir."
   - id: R009-R0b
     nivel: regla
@@ -46,6 +49,9 @@ reject:
     sql: "SELECT d.* FROM dim_customer d"
     rule_id: R009
     code: star_not_expanded
+    posicion: projection
+    sujeto: "*"
+    reintentable: true
     por_que: "La estrella cualificada con un alias es igual de opaca."
   - id: R009-R0c
     nivel: regla
@@ -53,12 +59,18 @@ reject:
     sql: "SELECT * FROM dim_customer JOIN dim_card ON dim_card.customer_sk = dim_customer.customer_sk"
     rule_id: R009
     code: star_not_expanded
+    posicion: projection
+    sujeto: "*"
+    reintentable: true
     por_que: "Con dos relaciones, la estrella esconde el doble."
   - id: R009-R1
     rol: analyst
     sql: "SELECT * FROM dim_customer"
     rule_id: R008
     code: column_policy
+    posicion: projection
+    sujeto: "dim_customer.phone_e164"
+    reintentable: true
     por_que: >-
       LA ESTRELLA SE EXPANDE Y ENTONCES SE VE LO QUE TRAÍA. Para analyst,
       `dim_customer` incluye `national_id`, que es `deny`. El rechazo lo da R008 y no
@@ -68,10 +80,16 @@ reject:
     sql: "SELECT * FROM dim_employee"
     rule_id: R008
     code: column_policy
+    posicion: projection
+    sujeto: "dim_employee.personal_phone"
+    reintentable: true
     por_que: "Igual: la estrella trae `personal_phone`, denegada a ops."
   - id: R009-R3
     rol: analyst
     sql: "SELECT * FROM dim_corporate_group"
     rule_id: R008
     code: column_policy
+    posicion: projection
+    sujeto: "dim_corporate_group.vat_number"
+    reintentable: true
     por_que: "La estrella trae `payout_iban`. Un IBAN con un nombre domicilia recibos."

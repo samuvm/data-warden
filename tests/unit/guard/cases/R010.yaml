@@ -33,30 +33,45 @@ reject:
     sql: "DELETE FROM dim_customer"
     rule_id: R010
     code: write_node_present
+    posicion: statement
+    sujeto: "Delete"
+    reintentable: false
     por_que: "Con rol admin: ni el rol más alto escribe, porque el sistema no escribe."
   - id: R010-R2
     rol: analyst
     sql: "WITH x AS (DELETE FROM dim_customer RETURNING 1 AS uno) SELECT uno FROM x"
     rule_id: R010
     code: write_node_present
+    posicion: cte
+    sujeto: "Delete"
+    reintentable: false
     por_que: "LA CTE QUE ESCONDE UNA ESCRITURA, del cuaderno de evasiones."
   - id: R010-R3
     rol: analyst
     sql: "UPDATE dim_customer SET country_code = 'ES'"
     rule_id: R010
     code: write_node_present
+    posicion: statement
+    sujeto: "Update"
+    reintentable: false
     por_que: "Escritura directa."
   - id: R010-R4
     rol: analyst
     sql: "CREATE TABLE t AS SELECT customer_sk FROM dim_customer"
     rule_id: R010
     code: write_node_present
+    posicion: statement
+    sujeto: "Create"
+    reintentable: false
     por_que: "Materializar el resultado es escribir, aunque lo que se lea sea legítimo."
   - id: R010-R5
     rol: analyst
     sql: "DrOp TaBlE dim_customer"
     rule_id: R010
     code: write_node_present
+    posicion: statement
+    sujeto: "Drop"
+    reintentable: false
     por_que: >-
       MAYÚSCULAS RARAS. Para el árbol es el mismo `Drop`: no hay nada que
       normalizar, que es la diferencia entera con una lista de palabras.

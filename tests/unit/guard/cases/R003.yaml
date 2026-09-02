@@ -28,18 +28,27 @@ reject:
     sql: "SELECT glob('/*') AS f FROM dim_customer"
     rule_id: R003
     code: function_not_allowed
+    posicion: function_argument
+    sujeto: "glob"
+    reintentable: false
     por_que: "Lista el sistema de ficheros del servidor desde una consulta."
   - id: R003-R2
     rol: analyst
     sql: "SELECT mi_udf(customer_sk) AS x FROM dim_customer"
     rule_id: R003
     code: function_not_allowed
+    posicion: function_argument
+    sujeto: "mi_udf"
+    reintentable: true
     por_que: "Una UDF puede hacer cualquier cosa. El guard no puede razonar sobre ella."
   - id: R003-R3
     rol: admin
     sql: "SELECT getenv('AWS_SECRET_ACCESS_KEY') AS s FROM dim_customer"
     rule_id: R003
     code: function_not_allowed
+    posicion: function_argument
+    sujeto: "getenv"
+    reintentable: false
     por_que: >-
       Lee el entorno del proceso. Con rol admin, que es el que todo lo ve: el nivel
       de acceso a DATOS no concede acceso al PROCESO, y son cosas distintas.
@@ -48,4 +57,7 @@ reject:
     sql: "SELECT read_text('/etc/passwd') AS x FROM dim_customer"
     rule_id: R003
     code: function_not_allowed
+    posicion: function_argument
+    sujeto: "read_text"
+    reintentable: false
     por_que: "Lectura de fichero arbitrario, en la proyección en vez de en el FROM."

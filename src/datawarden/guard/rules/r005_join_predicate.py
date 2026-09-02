@@ -52,7 +52,7 @@ class JoinPredicateRule:
                 if on is not None and not _is_constant(on):
                     continue
                 right = _relation_name(join.this)
-                left = _relation_name((select.args.get("from") or exp.From()).this)
+                left = _relation_name(_from_relation(select))
                 if _is_small(right) or _is_small(left):
                     continue
                 return reject(
@@ -83,6 +83,38 @@ def _is_constant(condition: exp.Expression) -> bool:
     cubre los tres sin tener que enumerar formas.
     """
     return condition.find(exp.Column) is None
+
+
+def _from_relation(select: exp.Select) -> exp.Expression | None:
+    """La relación del `FROM`, buscada POR CLASE DE NODO y no por clave.
+
+    **Esto era un bug, y lo destapó asertar el VALOR del rechazo en vez de su
+    existencia.** El código decía `select.args.get("from")`, y sqlglot 30 renombró
+    esa clave a `from_`. La llamada devolvía `None` SIEMPRE, así que `left` era
+    siempre la cadena vacía, con dos consecuencias que ningún test veía:
+
+    1. **El mensaje mentía en su mitad izquierda.** `FROM fact_payment_attempt a,
+       fact_order_line l` producía «the join between *a subquery* and
+       fact_order_line», y no hay ninguna subconsulta. Un rechazo que nombra mal el
+       objeto no redirige el trabajo, y `G-RECOVERY` lo habría pagado en la fase 6
+       sin que nadie supiera por qué.
+    2. **La exención de relación pequeña estaba muerta en un lado.**
+       `_is_small(left)` nunca era cierta, así que un `FROM ref_fx_rate_daily JOIN
+       fact_payment_attempt` se rechazaba pese a que multiplicar por catorce filas
+       es justo lo que `SMALL_RELATION_PREFIXES` declara normal. Un falso positivo,
+       o sea la dirección segura, pero un guard que bloquea trabajo legítimo se
+       desactiva en tres semanas —lo dice `docs/spec/policy.yaml`—.
+
+    Se busca la instancia de `exp.From` entre los argumentos DIRECTOS del `Select`,
+    que es el mismo principio que R010 aplica a los nodos de escritura: la clase de
+    nodo es estable, el nombre de la clave es un detalle de la versión. Y son
+    argumentos directos, no `find()`, para no bajar a la subconsulta de otro ámbito.
+    """
+    for value in select.args.values():
+        if isinstance(value, exp.From):
+            relation: exp.Expression | None = value.this
+            return relation
+    return None
 
 
 def _relation_name(node: exp.Expression | None) -> str:

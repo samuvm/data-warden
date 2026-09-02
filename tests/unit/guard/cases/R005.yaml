@@ -37,18 +37,27 @@ reject:
     sql: "SELECT a.payment_intent_id FROM fact_payment_attempt a, fact_order_line l"
     rule_id: R005
     code: cartesian_join
+    posicion: join_on
+    sujeto: "fact_payment_attempt x fact_order_line"
+    reintentable: true
     por_que: "La coma es un JOIN, y es la forma que más se olvida."
   - id: R005-R2
     rol: analyst
     sql: "SELECT a.payment_intent_id FROM fact_payment_attempt a CROSS JOIN fact_order_line l"
     rule_id: R005
     code: cartesian_join
+    posicion: join_on
+    sujeto: "fact_payment_attempt x fact_order_line"
+    reintentable: true
     por_que: "El mismo cartesiano, escrito de forma explícita."
   - id: R005-R3
     rol: analyst
     sql: "SELECT c.customer_sk FROM dim_customer c JOIN dim_card k ON TRUE"
     rule_id: R005
     code: cartesian_join
+    posicion: join_on
+    sujeto: "dim_customer x dim_card"
+    reintentable: true
     por_que: >-
       Tiene ON, y el ON es `TRUE`: un cartesiano disfrazado de unión. Nueve millones
       por dieciocho millones de filas.

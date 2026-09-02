@@ -34,18 +34,27 @@ reject:
     sql: "SELECT customer_sk FROM tabla_que_no_existe"
     rule_id: R004
     code: relation_out_of_scope
+    posicion: statement
+    sujeto: "tabla_que_no_existe"
+    reintentable: true
     por_que: "La tabla no está en el catálogo generado."
   - id: R004-R2
     rol: analyst
     sql: "SELECT * FROM read_parquet('/etc/shadow.parquet')"
     rule_id: R004
     code: relation_out_of_scope
+    posicion: statement
+    sujeto: "readparquet"
+    reintentable: false
     por_que: "Una función de tabla que lee un fichero del servidor."
   - id: R004-R3
     rol: admin
     sql: "SELECT customer_sk FROM dim_customer WHERE columna_inventada = 1"
     rule_id: R004
     code: relation_out_of_scope
+    posicion: statement
+    sujeto: "columna_inventada"
+    reintentable: true
     por_que: >-
       La columna no existe. Se detecta al cualificar y no en el motor, que es donde
       ya no hay mensaje accionable que dar. Rol admin: no es cuestión de permisos.
@@ -57,4 +66,7 @@ reject:
       SELECT 1 FROM otra_base.dim_customer
     rule_id: R004
     code: relation_out_of_scope
+    posicion: statement
+    sujeto: "otra_base.dim_customer"
+    reintentable: false
     por_que: "La evasión por UNION contra una tabla fuera de ámbito, del cuaderno."

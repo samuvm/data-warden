@@ -46,6 +46,9 @@ reject:
     parametro: 2500
     rule_id: R013
     code: tree_too_large
+    posicion: statement
+    sujeto: "5005 nodes"
+    reintentable: true
     por_que: >-
       **CINCO MIL NODOS EN CINCO MIL CARACTERES**, y este caso existe porque la
       MUTACIÓN destapó que faltaba. Los otros dos casos generan SQL tan largo que el
@@ -59,6 +62,9 @@ reject:
     parametro: 2001
     rule_id: R013
     code: tree_too_large
+    posicion: statement
+    sujeto: "4007 nodes"
+    reintentable: true
     por_que: >-
       Justo por encima del límite: 4.003 nodos contra un máximo de 4.000. Un caso
       pegado al borde es lo que mata un mutante que cambia `>` por `>=`.
@@ -68,6 +74,9 @@ reject:
     parametro: 3000
     rule_id: R013
     code: tree_too_large
+    posicion: statement
+    sujeto: "64929 characters"
+    reintentable: true
     por_que: >-
       Tres mil predicados `OR`. Rechazado por LONGITUD DE ENTRADA antes de parsear,
       que es el otro mecanismo de R013 y también hay que probarlo.
@@ -77,6 +86,9 @@ reject:
     parametro: 8000
     rule_id: R013
     code: tree_too_large
+    posicion: statement
+    sujeto: "174929 characters"
+    reintentable: true
     por_que: "El mismo ataque, más grande."
   - id: R013-R3
     rol: analyst
@@ -84,6 +96,9 @@ reject:
     parametro: 6000
     rule_id: R013
     code: tree_too_large
+    posicion: statement
+    sujeto: "96026 characters"
+    reintentable: true
     por_que: >-
       La misma bomba con otra forma: una expresión, no un predicado. La regla mira
       el TAMAÑO del árbol, no qué construcción lo hizo grande.
