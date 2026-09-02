@@ -13,6 +13,16 @@
   <img alt="tests" src="https://img.shields.io/badge/tests-427-informational">
 </p>
 
+<p align="center">
+  <img src="docs/img/flow.gif" width="820"
+       alt="Una petición recorre los cinco anillos: contexto, generación, guard, coste y salida. El guard rechaza una consulta que expone una columna enmascarada dentro de un PARTITION BY, el coste se calcula leyendo cero filas, y el registro de auditoría anota tanto lo ejecutado como lo rechazado.">
+</p>
+
+<p align="center">
+  <sub><b>Una petición, de principio a fin.</b> El rechazo no es el caso de error: es el producto.<br>
+  <a href="docs/img/flow.mp4">Versión en vídeo</a> · <a href="docs/img/flow.png">fotograma estático</a></sub>
+</p>
+
 ---
 
 **La tesis.** Traducir lenguaje natural a SQL es la parte fácil, y hace tiempo que está
