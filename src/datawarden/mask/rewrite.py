@@ -52,6 +52,7 @@ from datawarden.guard.allowlist import ALLOWED_NODES
 from datawarden.guard.context import lineage_index
 from datawarden.guard.query_lineage import UNKNOWN, resolve
 from datawarden.mask.config import MaskConfig
+from datawarden.mask.macro import MACRO_NAME
 from datawarden.principal.policy import AccessPolicy, Level
 
 #: Los nodos que puede contener un árbol ENMASCARADO: los del guard más el hash.
@@ -61,7 +62,32 @@ from datawarden.principal.policy import AccessPolicy, Level
 #: enmascarador corre después de validar y necesita producirla. Declarar la
 #: diferencia en un conjunto propio mantiene acotada la superficie del anillo 3 y
 #: deja comprobable que el anillo 4 no la agranda por su cuenta.
-MASK_NODES: Final[frozenset[str]] = frozenset(ALLOWED_NODES) | {"SHA2"}
+MASK_NODES: Final[frozenset[str]] = frozenset(ALLOWED_NODES) | {"Anonymous"}
+
+
+def uses_only_mask_nodes(tree: exp.Expression) -> bool:
+    """¿El árbol enmascarado usa SOLO lo que el anillo 4 tiene permitido añadir?
+
+    No basta un conjunto plano, y por eso esto es una función. La máscara necesita
+    llamar a `warden_hash`, y sqlglot representa una función que no conoce como
+    `exp.Anonymous` — el nodo comodín—. Pero el invariante del proyecto dice que
+    **`exp.Anonymous` es rechazo**, así que admitirlo a secas convertiría el conjunto
+    en «cualquier función», que es exactamente lo que la allowlist del anillo 3
+    existe para impedir.
+
+    Se admite `Anonymous` **solo con nuestro nombre**: el anillo 4 añade al árbol
+    validado exactamente una función, y es la suya.
+    """
+    for node in tree.walk():
+        name = node.__class__.__name__
+        if name == "Anonymous":
+            if str(node.this).lower() != MACRO_NAME:
+                return False
+            continue
+        if name not in MASK_NODES:
+            return False
+    return True
+
 
 #: Lo que sustituye a un valor tachado. Sin conservar longitud: la longitud de un
 #: apellido o de una dirección también informa.
@@ -164,7 +190,7 @@ def _mask_expression(
     INVENTARÍA un valor donde no lo había, y las respuestas de referencia del banco
     de 60 saldrían falsas sin que nadie lo notara.
     """
-    body = _mask_body(column, column_policy, config)
+    body = _mask_body(column, column_policy)
     if body is None:
         return None
     # La envoltura es la misma para las cuatro, incluida `generalizar`, donde el
@@ -177,10 +203,13 @@ def _mask_expression(
     )
 
 
-def _mask_body(
-    column: exp.Column, column_policy: object, config: MaskConfig
-) -> exp.Expression | None:
-    """El sustituto, sin la envoltura que preserva NULL."""
+def _mask_body(column: exp.Column, column_policy: object) -> exp.Expression | None:
+    """El sustituto, sin la envoltura que preserva NULL.
+
+    Ya no recibe la configuración: desde P-008 la pimienta vive en la macro del motor
+    y no en el árbol, así que este módulo no necesita tocarla. Dejar el parámetro
+    habría sido una firma que miente sobre qué secreto maneja quién.
+    """
     transformation = getattr(column_policy, "transformation", None)
 
     if transformation == "tachar":
@@ -211,14 +240,10 @@ def _mask_body(
         )
 
     if transformation == "hash_estable":
-        # La pimienta entra como literal porque el hash se calcula en el MOTOR. Ver
-        # el límite declarado en el docstring del módulo y P-008.
-        salted = exp.Concat(expressions=[_as_text(column), exp.Literal.string(config.pepper)])
-        return exp.Substring(
-            this=exp.SHA2(this=salted, length=exp.Literal.number(256)),
-            start=exp.Literal.number(1),
-            length=exp.Literal.number(HASH_HEX),
-        )
+        # `warden_hash(CAST(col AS TEXT))`. **La pimienta y el truncado viven DENTRO
+        # de la macro** (`mask/macro.py`), así que la clave no viaja en cada consulta
+        # ni acaba en el campo `sql` del registro de auditoría. P-008.
+        return exp.Anonymous(this=MACRO_NAME, expressions=[_as_text(column)])
 
     return None
 

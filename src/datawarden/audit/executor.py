@@ -47,7 +47,13 @@ from datawarden.principal.policy import AccessPolicy
 #: así que hashear la entrada sería justo lo prohibido: la auditoría certificaría
 #: algo distinto de lo que corrió. Los 64 ceros son un valor legal y distinguible,
 #: el mismo vocabulario que el contrato usa para el génesis de `prev_hash`.
-#: Documentado en P-007 de `docs/PARA-SAMUEL.md`.
+#:
+#: **OJO: el mismo relleno que `chain.GENESIS`, y significa otra cosa.** Allí quiere
+#: decir «primero de la cadena»; aquí, «no hubo árbol validado». No colisionan porque
+#: son campos distintos y se leen por NOMBRE, pero un registro que sea a la vez el
+#: primero de la cadena y un rechazo pre-parseo llevará los dos. Se leen por campo,
+#: nunca por valor. Lo señaló Samuel al aprobar P-007, y está escrito también en la
+#: `description` de los dos campos del contrato.
 NO_VALIDATED_TREE = "0" * 64
 
 

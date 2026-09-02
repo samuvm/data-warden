@@ -31,6 +31,15 @@ from datawarden.domain.types import Role, RoleSource, Status
 #: El `prev_hash` del primer registro. 64 ceros y no `null`: «un valor legal y
 #: distinguible, para que el verificador no necesite un caso especial»
 #: (`docs/spec/audit-record.schema.json`).
+#:
+#: **OJO: este relleno se usa DOS veces con dos significados distintos.** Aquí quiere
+#: decir «primero de la cadena»; en `executor.NO_VALIDATED_TREE` quiere decir «no hubo
+#: árbol validado que hashear». Hoy no colisionan porque son campos distintos y un
+#: verificador los lee por NOMBRE, pero el primer registro de una cadena que además
+#: sea un rechazo pre-parseo llevará los mismos 64 ceros en `prev_hash` y en
+#: `sql_digest` a la vez. Lo señaló Samuel al aprobar P-007: los valores son
+#: correctos y no se cambian, pero nadie debe escribir jamás un ayudante genérico
+#: del tipo «¿esto es un centinela?». Se leen por campo, nunca por valor.
 GENESIS: Final = "0" * 64
 
 #: Versión de `docs/spec/audit-record.schema.json` con la que se escriben los

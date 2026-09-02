@@ -27,7 +27,8 @@ from datawarden.catalog import SCHEMA_PATH, load_generated
 from datawarden.domain.types import Principal, RejectionReason, Role, RoleSource, ValidatedQuery
 from datawarden.guard.validator import validate
 from datawarden.mask.config import MaskConfig
-from datawarden.mask.rewrite import MASK_NODES, mask_query
+from datawarden.mask.macro import MACRO_NAME, macro_ddl
+from datawarden.mask.rewrite import MASK_NODES, mask_query, uses_only_mask_nodes
 from datawarden.principal import BUDGETS_PATH, POLICY_PATH
 from datawarden.principal.budgets import load_budgets
 from datawarden.principal.policy import load_policy, policy_from_dict
@@ -128,14 +129,22 @@ def test_ultimos_n_conserva_exactamente_los_n_que_declara_la_politica() -> None:
     assert 4 in numeros
 
 
-def test_hash_estable_produce_un_hash_truncado_y_no_el_valor() -> None:
-    """`ip_address_int` para analyst. Permite contar sesiones distintas sin verlas."""
+def test_hash_estable_llama_a_la_macro_del_motor_y_no_lleva_la_pimienta() -> None:
+    """`ip_address_int` para analyst. Permite contar sesiones distintas sin verlas.
+
+    **Y la pimienta NO aparece en el árbol.** Es P-008: el hash se calcula en el
+    motor, así que la clave tiene que llegarle de algún modo; con la macro llega una
+    vez por conexión en vez de una vez por consulta, y sobre todo **deja de acabar en
+    el campo `sql` del registro de auditoría**, que es el que cualquier subproceso del
+    mismo usuario puede leer.
+    """
     query = _enmascarada("SELECT ip_address_int FROM fact_payment_attempt")
     expresion = _proyecciones(query)["ip_address_int"]
 
-    assert expresion.find(exp.SHA2) is not None, "el hash estable no hashea nada"
-    numeros = [int(n.this) for n in expresion.find_all(exp.Literal) if not n.is_string]
-    assert 12 in numeros, "el hash tiene que salir truncado a 12 hex"
+    llamada = expresion.find(exp.Anonymous)
+    assert llamada is not None, "el hash estable no llama a nada"
+    assert str(llamada.this).lower() == MACRO_NAME
+    assert _CONFIG.pepper not in query.sql(), "LA PIMIENTA VIAJA EN EL SQL"
 
 
 # ------------------------------------------------------------ NULL ---
@@ -231,8 +240,8 @@ def test_los_nodos_de_la_mascara_son_los_del_guard_mas_el_hash() -> None:
     """
     from datawarden.guard.allowlist import ALLOWED_NODES
 
-    assert "SHA2" in MASK_NODES
-    assert "SHA2" not in ALLOWED_NODES
+    assert "Anonymous" in MASK_NODES
+    assert "Anonymous" not in ALLOWED_NODES
     assert ALLOWED_NODES <= MASK_NODES
 
 
@@ -250,8 +259,7 @@ def test_el_arbol_enmascarado_solo_usa_nodos_del_conjunto_declarado() -> None:
         ("SELECT ip_address_int FROM fact_payment_attempt", Role.ANALYST),
     ):
         query = _enmascarada(sql, rol)
-        usados = {n.__class__.__name__ for n in query.ast.walk()}
-        assert usados <= MASK_NODES, f"nodos fuera de MASK_NODES: {usados - MASK_NODES}"
+        assert uses_only_mask_nodes(query.ast), f"nodos inesperados en: {sql}"
 
 
 # --------------------------------------------------------------- fail-closed ---
@@ -375,3 +383,72 @@ def test_una_proyeccion_sin_alias_se_enmascara_y_conserva_su_nombre() -> None:
     salida = _proyecciones(resultado)
     assert "first_name" in salida
     assert isinstance(salida["first_name"], exp.Case)
+
+
+# =============================================================================
+# P-008 · la macro del motor. Aprobada por Samuel el 2026-09-02 "en dos tiempos":
+# la macro ahora, y el pseudonimo `_sk` generado en construccion cuando se
+# regenere el dataset.
+# =============================================================================
+
+
+def test_solo_se_admite_una_funcion_anonima_y_es_la_nuestra() -> None:
+    """`exp.Anonymous` es RECHAZO en el anillo 3, y aquí no puede dejar de serlo.
+
+    Admitir `Anonymous` a secas en el conjunto de nodos convertiría la comprobación
+    en «cualquier función», que es exactamente lo que la allowlist existe para
+    impedir. El anillo 4 añade al árbol validado una sola función y es la suya.
+    """
+    nuestra = exp.Anonymous(this=MACRO_NAME, expressions=[exp.Literal.number(1)])
+    ajena = exp.Anonymous(this="read_csv", expressions=[exp.Literal.string("/etc/passwd")])
+
+    assert uses_only_mask_nodes(nuestra) is True
+    assert uses_only_mask_nodes(ajena) is False
+
+
+def test_un_nodo_que_no_esta_en_el_conjunto_tampoco_pasa() -> None:
+    """La otra mitad de la comprobación: no solo se vigilan las funciones anónimas.
+
+    `exp.SHA2` es el caso perfecto para este test, porque fue lo que el enmascarador
+    emitía ANTES de P-008. Si mañana alguien reintroduce el hash inline sin pasar por
+    la macro, esto lo caza: el nodo dejó de estar en el conjunto el día que la
+    pimienta salió del árbol.
+    """
+    inline = exp.SHA2(this=exp.Literal.string("x"), length=exp.Literal.number(256))
+
+    assert uses_only_mask_nodes(inline) is False
+
+
+def test_la_macro_lleva_la_pimienta_y_por_eso_no_se_audita() -> None:
+    """La cadena que instala la clave no es una consulta del usuario.
+
+    Se comprueba que la pimienta está dentro —si no, la macro no hashearía nada
+    protegido— precisamente para dejar constancia de que **esta cadena no puede ir a
+    un log de aplicación ni al registro de auditoría**.
+    """
+    ddl = macro_ddl(_CONFIG)
+
+    assert MACRO_NAME in ddl
+    assert "TEMP" in ddl.upper(), "una macro no temporal exigiría abrir en escritura"
+    assert _CONFIG.pepper in ddl
+
+
+def test_una_pimienta_con_comilla_no_rompe_la_macro() -> None:
+    """Inyección por la puerta de la configuración, cerrada donde toca.
+
+    La pimienta la escribe un humano en una variable de entorno. Una comilla suelta
+    ahí no puede convertirse en SQL: se duplica, que es el escape de SQL estándar.
+    """
+    ddl = macro_ddl(MaskConfig(pepper="con'comilla-y-longitud-mas-que-suficiente"))
+
+    assert "con''comilla" in ddl
+
+
+def test_no_se_inventa_una_macro_para_un_dialecto_que_no_se_ha_probado() -> None:
+    """Athena es la fase 9, y hasta entonces no hay macro que ofrecer.
+
+    Devolver la de DuckDB para otro motor sería inventar un dialecto, que es
+    justamente lo que este proyecto no hace. El mensaje dice qué hacer en su lugar.
+    """
+    with pytest.raises(ValueError, match="athena"):
+        macro_ddl(_CONFIG, dialect="athena")
