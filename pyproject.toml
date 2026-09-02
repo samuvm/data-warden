@@ -61,6 +61,14 @@ dev = [
   "import-linter==2.14",
   "testcontainers==4.15.0",
   "detect-secrets==1.5.0",
+  # Cinco scripts del gate leen los contratos firmados de `docs/spec/`, que son
+  # YAML porque los firma un humano. Entraba como transitiva de `langgraph` y de
+  # `detect-secrets`: reproducible pero NO declarada, y el día que langgraph deje
+  # de arrastrarla el gate entero no arranca. `src/` no importa YAML en ninguna
+  # parte —`compile_contracts.py` los traduce a JSON y el dominio lee solo JSON,
+  # porque parsear YAML dentro del camino crítico de `G-GUARD-P95` sería tiempo
+  # tirado en el peor sitio posible—. P-002, aprobada por Samuel el 2026-09-02.
+  "pyyaml==6.0.3",
   # El generador del dataset sintético. Vive hoy en `datagen/` y se porta a
   # `scripts/` como trabajo de la fase 0 (P-001, aprobada).
   "Faker==40.37.0",
@@ -240,7 +248,22 @@ pytest_add_cli_args_test_selection = ["tests/unit", "tests/contract"]
 # `catalog/statistics.py::build_from_iceberg`, que solo la integración ejercita,
 # salen como «sin tests» y cuentan como NO muertos. Es un número peor que el real, y
 # es preferible a inflarlo excluyéndolos.
-also_copy = ["docs", "README.md", "attacks", "thresholds.lock", "models.lock"]
+#
+# `src/datawarden/engines` viaja pero NO se muta, y las dos mitades son deliberadas.
+# Viaja porque `audit/executor.py` importa el puerto `Engine` y sin el paquete los
+# mutantes de `audit/` ni siquiera COLECTAN —fallan al importar, que es un falso
+# «sin tests» que hunde el número por un motivo que no es el que la meta mide—. Y no
+# se muta porque es un ADAPTADOR: `docs/RULES.md §2` los deja fuera de la cobertura
+# de línea por la misma razón, que mutar un adaptador premia envolverlo en tests que
+# no prueban nada.
+also_copy = [
+  "docs",
+  "README.md",
+  "attacks",
+  "thresholds.lock",
+  "models.lock",
+  "src/datawarden/engines",
+]
 
 # =============================================================================
 # import-linter: los límites entre capas del mapa de docs/RULES.md, ejecutables.
@@ -269,6 +292,32 @@ name = "El guard no toca el motor: valida un árbol, no ejecuta nada"
 type = "forbidden"
 source_modules = ["datawarden.guard"]
 forbidden_modules = ["datawarden.engines", "duckdb", "pyiceberg"]
+
+# I-06 HECHO EJECUTABLE, y hasta hoy solo estaba escrito en prosa. El invariante
+# dice que `AuditedExecutor` es el ÚNICO camino a `Engine.execute()`, y eso el
+# contrato de capas NO lo puede expresar: colocar `engines` abajo del todo dejaría
+# que `guard` o `cost` lo importaran sin romper ninguna capa. Hace falta enumerar
+# quién NO puede tocarlo, que es todo el mundo menos `audit`.
+#
+# Sin esto, «ninguna invocación sin auditoría» es una frase del README. Con esto,
+# el día que alguien importe el motor desde el CLI para «una consulta rápida», el
+# paso 1 de `make done` sale rojo antes de que ese atajo llegue a existir.
+[[tool.importlinter.contracts]]
+name = "Al motor solo se llega por la auditoría (I-06)"
+type = "forbidden"
+source_modules = [
+  "datawarden.domain",
+  "datawarden.principal",
+  "datawarden.catalog",
+  "datawarden.guard",
+  "datawarden.cost",
+  "datawarden.mask",
+  "datawarden.nl2sql",
+  "datawarden.agent",
+  "datawarden.mcp",
+  "datawarden.http",
+]
+forbidden_modules = ["datawarden.engines"]
 
 [[tool.importlinter.contracts]]
 name = "Las capas van en un solo sentido"
