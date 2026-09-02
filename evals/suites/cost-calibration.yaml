@@ -1,0 +1,106 @@
+# =============================================================================
+# Banco de calibración del estimador de coste · `G-COST-CALIB`
+#
+# Sesenta consultas contra `datagen/out/full`, como pide `docs/PLAN.md` en la
+# fase 3. No son sesenta variaciones de la misma: la mitad del valor está en que el
+# banco cubra los dos ejes donde el estimador puede equivocarse, que son los dos que
+# separan un lakehouse de una base de datos de filas:
+#
+#   · **poda de PARTICIONES** — con predicado de fecha y sin él, un día, una semana,
+#     un mes, un rango abierto, y predicados que el estimador NO sabe leer;
+#   · **poda de COLUMNAS** — una columna, cinco, la tabla entera, y `count(*)`, que
+#     no proyecta ninguna y aun así obliga a abrir los ficheros.
+#
+# Y las dos tablas grandes, las medianas y las de referencia, porque el error
+# relativo de un estimador se ve en las pequeñas: sobre 4 GB, equivocarse en 10 MB
+# no se nota; sobre 3 KB, es un factor de tres.
+#
+# La fecha de referencia del almacén es 2026-08-31 (`glossary.periodo`), y todos los
+# literales de este banco se anclan a ella. Con `current_date` el banco caducaría
+# solo, que es el bug con fecha de explosión que G-3 de la firma de Q-004 evita.
+# =============================================================================
+
+version: 1
+escrito_por: agente
+escrito_el: 2026-09-02
+perfil: full
+fecha_de_referencia: "2026-08-31"
+
+consultas:
+  # ------------------------------------------- un día, columnas estrechas y anchas
+  - {id: C-01, rol: analyst, sql: "SELECT auth_status FROM fact_payment_attempt WHERE event_date = DATE '2026-08-31'"}
+  - {id: C-02, rol: analyst, sql: "SELECT auth_status, amount_minor FROM fact_payment_attempt WHERE event_date = DATE '2026-08-31'"}
+  - {id: C-03, rol: analyst, sql: "SELECT payment_intent_id, auth_status, amount_eur_minor, latency_ms, geo_country FROM fact_payment_attempt WHERE event_date = DATE '2026-08-30'"}
+  - {id: C-04, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE event_date = DATE '2026-08-29'"}
+  - {id: C-05, rol: analyst, sql: "SELECT auth_status, count(*) AS n FROM fact_payment_attempt WHERE event_date = DATE '2026-08-28' GROUP BY auth_status"}
+  - {id: C-06, rol: finance, sql: "SELECT sum(amount_eur_minor) AS v FROM fact_payment_attempt WHERE event_date = DATE '2026-08-27'"}
+  - {id: C-07, rol: ops, sql: "SELECT payment_intent_id, auth_status FROM fact_payment_attempt WHERE event_date = DATE '2026-08-26'"}
+  - {id: C-08, rol: admin, sql: "SELECT ip_address_int, geo_country FROM fact_payment_attempt WHERE event_date = DATE '2026-08-25'"}
+
+  # ------------------------------------------------------- una semana y un mes
+  - {id: C-09, rol: analyst, sql: "SELECT auth_status FROM fact_payment_attempt WHERE event_date BETWEEN DATE '2026-08-25' AND DATE '2026-08-31'"}
+  - {id: C-10, rol: analyst, sql: "SELECT auth_status, count(*) AS n FROM fact_payment_attempt WHERE event_date >= DATE '2026-08-25' GROUP BY auth_status"}
+  - {id: C-11, rol: analyst, sql: "SELECT auth_status FROM fact_payment_attempt WHERE event_date >= DATE '2026-08-01' AND event_date < DATE '2026-09-01'"}
+  - {id: C-12, rol: finance, sql: "SELECT sum(fee_minor) AS f FROM fact_payment_attempt WHERE event_date >= DATE '2026-08-01'"}
+  - {id: C-13, rol: analyst, sql: "SELECT geo_country, count(*) AS n FROM fact_payment_attempt WHERE event_date IN (DATE '2026-08-01', DATE '2026-08-15', DATE '2026-08-31') GROUP BY geo_country"}
+  - {id: C-14, rol: analyst, sql: "SELECT auth_status, amount_eur_minor FROM fact_payment_attempt WHERE event_date > DATE '2026-08-20'"}
+  - {id: C-15, rol: admin, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE event_date <= DATE '2024-09-05'"}
+
+  # ----------------------------------------------- sin poda: la tabla entera
+  - {id: C-16, rol: analyst, sql: "SELECT auth_status, count(*) AS n FROM fact_payment_attempt GROUP BY auth_status"}
+  - {id: C-17, rol: analyst, sql: "SELECT geo_country, count(*) AS n FROM fact_payment_attempt GROUP BY geo_country"}
+  - {id: C-18, rol: admin, sql: "SELECT count(*) AS n FROM fact_payment_attempt"}
+  - {id: C-19, rol: finance, sql: "SELECT currency_code, sum(amount_eur_minor) AS v FROM fact_payment_attempt GROUP BY currency_code"}
+  - {id: C-20, rol: analyst, sql: "SELECT channel, count(*) AS n FROM fact_payment_attempt GROUP BY channel"}
+
+  # -------------------------------- predicados que el estimador NO sabe podar
+  - {id: C-21, rol: analyst, sql: "SELECT auth_status, count(*) AS n FROM fact_payment_attempt WHERE date_trunc('month', event_date) = DATE '2026-08-01' GROUP BY auth_status"}
+  - {id: C-22, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE event_date = DATE '2026-08-31' OR amount_minor > 100000"}
+  - {id: C-23, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'approved'"}
+  - {id: C-24, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE NOT is_test"}
+  - {id: C-25, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE risk_score > 90"}
+
+  # --------------------------------------------- la otra tabla grande: cestas
+  - {id: C-26, rol: analyst, sql: "SELECT count(*) AS n FROM fact_order_line WHERE event_date = DATE '2026-08-31'"}
+  - {id: C-27, rol: analyst, sql: "SELECT product_sk, count(*) AS n FROM fact_order_line WHERE event_date = DATE '2026-08-30' GROUP BY product_sk"}
+  - {id: C-28, rol: analyst, sql: "SELECT count(*) AS n FROM fact_order_line WHERE event_date >= DATE '2026-08-01'"}
+  - {id: C-29, rol: finance, sql: "SELECT sum(line_amount_minor) AS v FROM fact_order_line WHERE event_date = DATE '2026-08-29'"}
+  - {id: C-30, rol: admin, sql: "SELECT count(*) AS n FROM fact_order_line"}
+
+  # ---------------------------------------------------- dimensiones grandes
+  - {id: C-31, rol: analyst, sql: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code"}
+  - {id: C-32, rol: analyst, sql: "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band"}
+  - {id: C-33, rol: analyst, sql: "SELECT income_tier, value_tier, count(*) AS n FROM dim_customer GROUP BY income_tier, value_tier"}
+  - {id: C-34, rol: admin, sql: "SELECT count(*) AS n FROM dim_customer"}
+  - {id: C-35, rol: analyst, sql: "SELECT card_scheme, count(*) AS n FROM dim_card GROUP BY card_scheme"}
+  - {id: C-36, rol: analyst, sql: "SELECT issuer_country, count(*) AS n FROM dim_card GROUP BY issuer_country"}
+  - {id: C-37, rol: analyst, sql: "SELECT device_class, count(*) AS n FROM dim_device GROUP BY device_class"}
+  - {id: C-38, rol: analyst, sql: "SELECT os_family, count(*) AS n FROM dim_device GROUP BY os_family"}
+  - {id: C-39, rol: admin, sql: "SELECT count(*) AS n FROM bridge_customer_device"}
+  - {id: C-40, rol: analyst, sql: "SELECT count(*) AS n FROM dim_ip_block"}
+
+  # ------------------------------------------------------- tablas medianas
+  - {id: C-41, rol: finance, sql: "SELECT sum(gross_eur_minor) AS v FROM fact_settlement_batch"}
+  - {id: C-42, rol: finance, sql: "SELECT batch_status, count(*) AS n FROM fact_settlement_batch GROUP BY batch_status"}
+  - {id: C-43, rol: finance, sql: "SELECT sum(fee_eur_minor) AS f, sum(gross_eur_minor) AS g FROM fact_settlement_batch WHERE settlement_date >= DATE '2026-08-01'"}
+  - {id: C-44, rol: analyst, sql: "SELECT outcome, count(*) AS n FROM fact_dispute GROUP BY outcome"}
+  - {id: C-45, rol: analyst, sql: "SELECT count(*) AS n FROM fact_refund"}
+  - {id: C-46, rol: finance, sql: "SELECT count(*) AS n FROM fact_payout"}
+  - {id: C-47, rol: analyst, sql: "SELECT category, count(*) AS n FROM dim_merchant WHERE is_current GROUP BY category"}
+  - {id: C-48, rol: analyst, sql: "SELECT risk_tier, count(*) AS n FROM dim_merchant GROUP BY risk_tier"}
+  - {id: C-49, rol: analyst, sql: "SELECT country_code, count(*) AS n FROM dim_merchant_site GROUP BY country_code"}
+  - {id: C-50, rol: analyst, sql: "SELECT count(*) AS n FROM dim_product"}
+
+  # ------------------------------------------- tablas de referencia, minúsculas
+  - {id: C-51, rol: analyst, sql: "SELECT currency_code, minor_units FROM ref_currency"}
+  - {id: C-52, rol: analyst, sql: "SELECT mcc, category FROM ref_mcc"}
+  - {id: C-53, rol: analyst, sql: "SELECT country_code, region FROM ref_country"}
+  - {id: C-54, rol: analyst, sql: "SELECT decline_reason_code, category FROM ref_decline_reason"}
+  - {id: C-55, rol: analyst, sql: "SELECT count(*) AS n FROM ref_fx_rate_daily"}
+
+  # ------------------------------------------------------------------- joins
+  - {id: C-56, rol: analyst, sql: "SELECT c.card_scheme, count(*) AS n FROM fact_payment_attempt AS a JOIN dim_card AS c ON c.card_sk = a.card_sk WHERE a.event_date = DATE '2026-08-31' GROUP BY c.card_scheme"}
+  - {id: C-57, rol: finance, sql: "SELECT m.category, sum(b.gross_eur_minor) AS v FROM fact_settlement_batch AS b JOIN v_merchant_current AS m ON m.merchant_id = b.merchant_id GROUP BY m.category"}
+  - {id: C-58, rol: analyst, sql: "SELECT d.device_class, count(*) AS n FROM fact_payment_attempt AS a JOIN dim_device AS d ON d.device_sk = a.device_sk WHERE a.event_date = DATE '2026-08-30' GROUP BY d.device_class"}
+  - {id: C-59, rol: analyst, sql: "SELECT r.category, count(*) AS n FROM fact_payment_attempt AS a JOIN ref_decline_reason AS r ON r.decline_reason_code = a.decline_reason_code WHERE a.event_date = DATE '2026-08-29' GROUP BY r.category"}
+  - {id: C-60, rol: analyst, sql: "SELECT cu.country_code, count(*) AS n FROM fact_payment_attempt AS a JOIN dim_customer AS cu ON cu.customer_sk = a.customer_sk WHERE a.event_date = DATE '2026-08-28' GROUP BY cu.country_code"}
