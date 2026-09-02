@@ -1,0 +1,12 @@
+{
+  "default_level": "allow",
+  "deprecated": {
+    "fact_payment_attempt.amount_cents": {
+      "reason": "Columna heredada de la primera ingesta. **Discrepa de `amount_minor` en el 0,4 % de las filas**, y esa discrepancia está inyectada a propósito en el generador: es la trampa nº 8 de `docs/spec/glossary.yaml`. Quien la use obtiene un número que se parece al bueno, lo cual es peor que un error evidente. `amount_minor` es la columna vigente y está en la misma tabla.",
+      "use_instead": "fact_payment_attempt.amount_minor"
+    }
+  },
+  "source": "docs/spec/catalog-overlay.yaml",
+  "source_sha256": "0931aa1bc90ac5b57ba2704772310bcfe807c38d6322134703dc34dea87e3b52",
+  "version": 1
+}

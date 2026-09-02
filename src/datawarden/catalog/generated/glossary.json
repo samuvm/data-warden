@@ -1,0 +1,169 @@
+{
+  "critical_definitions": {
+    "cliente_activo": {
+      "ancla": "max_date_del_dataset",
+      "correccion_firmada": "G-3",
+      "definicion": "Un cliente con al menos un pago válido en los **90 días naturales anteriores a la fecha de referencia del dataset**, definida en `periodo`.",
+      "nunca_current_date": "G-3, DE LA FIRMA: «últimos 90 días» se ancla a `max(date)` del dataset y **NUNCA a `current_date`**. Con un dataset sintético congelado, `current_date` hace que la métrica se vacíe sola con el paso del tiempo y que el resultset de referencia de la fase 8 caduque sin que nadie toque una línea. **Es un bug con fecha de explosión, no un matiz.**",
+      "ojo": "El 4,3 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y cualquier tasa calculada así sale inflada.",
+      "por_que_90_y_no_30": "Es el intervalo que corresponde al patrón de una pasarela de pagos genérica y el que hace comparables las cohortes trimestrales. Los 30 días producen una serie demasiado ruidosa con la estacionalidad semanal que el generador inyecta a propósito.",
+      "pregunta": "¿Cuándo un cliente está «activo»?",
+      "se_calcula": "WHERE event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY"
+    },
+    "comercio_activo": {
+      "definicion": "La VERSIÓN VIGENTE (`is_current = true`) con `is_active = true` y al menos un pago válido en los últimos 30 días.",
+      "ojo": "`dim_merchant` es una dimensión de cambio lento tipo 2: un comercio tiene varias filas, una por versión. Unir por `merchant_id` en vez de por `merchant_sk` multiplica las filas un 53 % y reescribe la historia.",
+      "pregunta": "¿Cuándo un comercio está «activo»?"
+    },
+    "ingreso": {
+      "correccion_firmada": "G-2",
+      "definicion": "G-2, DE LA FIRMA: que haya dos métricas es correcto; que se llamen «ingreso» las dos es lo que produce el error. **Cada mitad tiene ahora nombre canónico, y la tercera —que no estaba en el borrador— también.** Una métrica que cambia el resultado a la mitad merece un nombre propio, no una nota al pie.",
+      "metricas_canonicas": {
+        "ingreso_bruto": {
+          "es_dinero_de_cierzo": true,
+          "formula": "sum(fee_eur_minor) FROM fact_settlement_batch",
+          "que_es": "La comisión de descuento cobrada al comercio. De cada 100 € procesados, unos 2,14 € son esto."
+        },
+        "margen_neto": {
+          "es_dinero_de_cierzo": true,
+          "formula": "sum(fee_eur_minor - interchange_eur_minor - scheme_fee_eur_minor) FROM fact_settlement_batch",
+          "que_es": "Lo que queda después de pagar al banco emisor (`interchange`) y a la red de tarjetas (`scheme_fee`). NO estaba en el borrador y hacía falta: el `ojo` avisaba de que restarlos «cambia el resultado a la mitad», y eso es una métrica distinta, no un matiz."
+        },
+        "volumen_procesado": {
+          "es_dinero_de_cierzo": false,
+          "formula": "sum(gross_eur_minor) FROM fact_settlement_batch",
+          "que_es": "El dinero que pasó por la pasarela. Es del comercio, no de CIERZO."
+        }
+      },
+      "ojo": "`interchange_eur_minor` va al banco emisor y `scheme_fee_eur_minor` a la red de tarjetas: NO son ingreso de CIERZO, son coste que se paga con la comisión cobrada.",
+      "pregunta": "¿Qué es «ingreso» — lo que cobra el comercio o lo que gana CIERZO?",
+      "regla_de_traduccion": "La palabra «ingresos» a secas se resuelve como `ingreso_bruto`, **y la respuesta debe decir cuál ha usado**. Un número correcto cuya definición no se declara es un número que el que lo lee entenderá como el otro."
+    },
+    "pago_valido": {
+      "correccion_firmada": "G-1",
+      "definicion": "Un `payment_intent_id` que terminó en `auth_status = 'approved'` en alguno de sus intentos, con `is_test = false`, y tomado UNA sola vez.",
+      "descartado_y_por_que": [
+        {
+          "Contar filas de `fact_payment_attempt`": "cuenta los reintentos como ventas."
+        },
+        {
+          "Contar solo el primer intento": "pierde los pagos que salieron a la segunda."
+        },
+        "Restar los devueltos de los válidos: mezcla dos hechos con dos fechas distintas y hace que el número de un mes cerrado cambie meses después."
+      ],
+      "pregunta": "¿Qué cuenta como «un pago»?",
+      "se_calcula": "SELECT * FROM v_payment_intent WHERE eventually_approved",
+      "una_devolucion_no_lo_anula": "G-1, DE LA FIRMA: **un pago aprobado y luego devuelto SIGUE SIENDO un pago válido.** La devolución es un hecho posterior, vive en `fact_refund` y no reescribe la venta. Sin esta frase, la mitad de las 60 preguntas sobre volumen tienen dos respuestas defendibles, que es la peor forma de que un banco de evaluación mida ruido en vez de exactitud."
+    },
+    "periodo": {
+      "correccion_firmada": "G-4",
+      "definicion": "ENTRADA NUEVA, PEDIDA AL FIRMAR. El glosario definía tres granos y cuatro conceptos y no definía el eje del tiempo, que es el que aparece en casi todas las preguntas. Todo periodo relativo —«el mes pasado», «la semana pasada», «este trimestre», «los últimos 90 días»— se resuelve **contra la fecha de referencia del dataset**, nunca contra el reloj de quien pregunta.",
+      "ejemplos": {
+        "el_mes_pasado": "Si la fecha de referencia es 2026-08-31, «el mes pasado» es [2026-07-01, 2026-08-01). NO es «los últimos 30 días».",
+        "la_semana_pasada": "Semana ISO completa anterior a la que contiene la fecha de referencia: de lunes a lunes, [inicio, fin).",
+        "los_ultimos_90_dias": "(referencia - 90 días, referencia]. Es una ventana deslizante y NO un periodo natural; por eso se nombra distinto."
+      },
+      "fecha_de_referencia": {
+        "por_que_no_max_de_dim_date": "`dim_date` es un calendario y llega más lejos que los hechos. Anclar ahí produciría un «mes pasado» vacío y nadie lo notaría hasta la fase 8.",
+        "que_es": "El último `dim_date.date_key` que TIENE DATOS de hechos.",
+        "se_calcula": "SELECT max(event_date) FROM fact_payment_attempt"
+      },
+      "limites": "cerrado_por_abajo_abierto_por_arriba",
+      "por_que_importa": "Con un dataset congelado hay dos lecturas de cada periodo relativo y la diferencia es del 100 % de las filas. Sin esta entrada, entre 15 y 20 de las 60 preguntas de Q-010 tienen dos resultsets de referencia igual de legítimos, y eso se descubre al escribir la número cuarenta.",
+      "pregunta": "¿Qué es «el mes pasado» sobre un almacén congelado?",
+      "zona_horaria": "Europe/Madrid"
+    }
+  },
+  "domain": "CIERZO es una pasarela de pagos europea. Un comercio le envía un intento de cobro con tarjeta, CIERZO lo enruta a un adquirente, el banco emisor lo autoriza o lo rechaza, y días después el dinero se liquida en lotes y se paga a la sociedad propietaria del comercio. Todo lo que hay en el almacén es una consecuencia de esa frase.",
+  "grains": {
+    "intento_de_autorizacion": {
+      "no_usar_para": "Contar ventas ni sumar dinero.",
+      "ojo": "Un pago que falla y se reintenta dos veces son TRES filas con el mismo `payment_intent_id`. `count(*)` sobre esta tabla NO es el número de ventas, y `sum(amount_minor)` NO son los ingresos: sobrestima un 24 %.",
+      "tabla": "fact_payment_attempt",
+      "una_fila_es": "Un intento de cobrar una tarjeta.",
+      "usar_para": "Tasas de aprobación, análisis de reintentos, latencia, motivos de rechazo."
+    },
+    "linea_de_cesta": {
+      "ojo": "Unir esta tabla con la de intentos multiplica cada cesta por su número de intentos. Únela con `v_payment_intent`, no con `fact_payment_attempt`.",
+      "tabla": "fact_order_line",
+      "una_fila_es": "Un producto dentro de la cesta de un pago.",
+      "usar_para": "Qué se compró, mezcla de producto, descuentos, cesta media."
+    },
+    "lote_de_liquidacion": {
+      "ojo": "Es el ÚNICO grano donde «cuánto nos han pagado» tiene una sola respuesta. Está en euros, ya deduplicado y sin tráfico de pruebas.",
+      "tabla": "fact_settlement_batch",
+      "una_fila_es": "El dinero de un comercio en un día, agrupado para transferirlo.",
+      "usar_para": "Ingresos reales, comisiones, conciliación."
+    }
+  },
+  "metrics": {
+    "mdr_efectivo": {
+      "definicion": "Comisión cobrada sobre volumen procesado.",
+      "ojo": "Un comercio de alto riesgo paga más y espera más días a cobrar.",
+      "se_calcula": "SELECT 100.0 * sum(fee_eur_minor) / sum(gross_eur_minor) FROM fact_settlement_batch",
+      "valor_tipico": "2,1-2,4 %"
+    },
+    "tasa_de_aprobacion": {
+      "definicion": "Pagos aprobados sobre pagos intentados, contados por INTENTO.",
+      "ojo": "Se puede medir por intento o por pago, y los dos números son legítimos y distintos. Por PAGO sale más alta, porque incluye los que salieron a la segunda. Di siempre cuál estás usando.",
+      "se_calcula": "SELECT 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*) FROM v_attempt_dedup WHERE NOT is_test",
+      "valor_tipico": "86-87 %"
+    },
+    "tasa_de_contracargo": {
+      "definicion": "Disputas abiertas sobre pagos aprobados.",
+      "ojo": "Una disputa tiene VARIAS FILAS, una por etapa, y el importe se repite en todas. `sum(disputed_eur_minor)` infla el contracargo un 60 %: filtra por `is_final_stage` o cuenta `dispute_case_id` distintos.",
+      "se_calcula": "SELECT 100.0 * count(DISTINCT d.payment_intent_id)\n             / count(DISTINCT f.payment_intent_id)\nFROM v_attempt_dedup f LEFT JOIN fact_dispute d ON d.payment_intent_id = f.payment_intent_id\n                        AND d.stage_no = 1\nWHERE f.auth_status = 'approved'"
+    },
+    "tasa_de_reintento": {
+      "definicion": "Intentos por pago.",
+      "ojo": "Un rechazo DURO (tarjeta robada, número inválido) no se reintenta nunca: reintentarlo es una infracción de las reglas de la red que cuesta dinero. Solo los blandos se reintentan.",
+      "se_calcula": "SELECT count(*)::DOUBLE / count(DISTINCT payment_intent_id) FROM v_attempt_dedup",
+      "valor_tipico": "1,063"
+    },
+    "ticket_medio": {
+      "definicion": "Importe medio de un pago válido, en euros.",
+      "ojo": "La mediana (≈43 €) y la media (≈173 €) se separan por un factor de cuatro, porque la cola es larga. Publicar solo la media engaña."
+    }
+  },
+  "reviewed_by": "Samuel",
+  "source": "docs/spec/glossary.yaml",
+  "source_sha256": "6efa46b137247fa6ea413ee9756bff3caea1c572c3b6195a3638d63aabb03bb1",
+  "tables": {
+    "bridge_customer_device": "Qué persona usó qué dispositivo. Muchos a muchos en ambos sentidos.",
+    "bridge_merchant_account_manager": "Qué gestor lleva qué comercio, con peso y vigencia.",
+    "dim_card": "El instrumento de pago. Nunca guarda el número completo (PCI DSS).",
+    "dim_corporate_group": "La sociedad propietaria. Recursiva: quién es dueño de quién.",
+    "dim_customer": "El titular de la tarjeta. Donde vive casi toda la PII.",
+    "dim_date": "Calendario, con festivos y días hábiles.",
+    "dim_device": "El dispositivo desde el que se pagó.",
+    "dim_employee": "Personal de CIERZO. Jerarquía recursiva.",
+    "dim_ip_block": "Rangos de IP geolocalizados. Se une POR RANGO, no por igualdad.",
+    "dim_merchant": "El comercio, con historia (cambio lento tipo 2).",
+    "dim_merchant_site": "Dónde se aceptó el pago. Un comercio grande tiene sedes en varios países.",
+    "dim_product": "El catálogo de productos que venden los comercios.",
+    "fact_dispute": "Una etapa de una disputa. Varias filas por disputa.",
+    "fact_order_line": "Un producto dentro de la cesta de un pago.",
+    "fact_payment_attempt": "Un intento de cobrar una tarjeta. La tabla grande.",
+    "fact_payout": "La transferencia real a la sociedad propietaria del comercio.",
+    "fact_refund": "Una devolución, total o parcial, de un pago ya cobrado.",
+    "fact_settlement_batch": "El dinero de un comercio en un día, listo para transferir.",
+    "ref_city": "Ciudades, con coordenadas.",
+    "ref_country": "Países, con región y divisa.",
+    "ref_currency": "Divisas, con sus decimales. El forinto húngaro tiene CERO.",
+    "ref_decline_reason": "Motivos de rechazo, mapeados a códigos ISO 8583.",
+    "ref_fx_rate_daily": "Tipo de cambio diario a euro. NO cotiza fines de semana ni festivos.",
+    "ref_mcc": "Código de categoría de comercio. Decide riesgo, comisión y plazo."
+  },
+  "traps": [
+    "Contar ingresos contando filas de `fact_payment_attempt`: **+24 %**.",
+    "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+53 % de filas**.",
+    "Unir con `ref_fx_rate_daily` por igualdad de fecha: pierde el **24 %** de los pagos no euro, porque los fines de semana no hay cotización. Se usa el último tipo publicado.",
+    "Sumar `disputed_eur_minor` sin filtrar por `is_final_stage`: **+60 %**.",
+    "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **4,3 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila).",
+    "No filtrar `is_test`: mete un **1,2 %** de tráfico de pruebas en los números de negocio.",
+    "Sumar `amount_minor` entre divisas: está en moneda LOCAL. Para sumar, `amount_eur_minor`.",
+    "Usar `amount_cents`: es una columna OBSOLETA que discrepa de `amount_minor` en el 0,4 % de las filas.",
+    "Contar `fact_payment_attempt` sin deduplicar: el **0,35 %** son duplicados de ingesta. Usa `v_attempt_dedup`."
+  ],
+  "version": 1
+}
