@@ -115,6 +115,7 @@ reject:
     posicion: group_by
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       Agrupar por una columna ENMASCARADA la para R008 antes que R012, y el caso
       vive aqui para dejar escrito cual de las dos manda: la de politica, porque

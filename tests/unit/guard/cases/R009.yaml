@@ -71,6 +71,7 @@ reject:
     posicion: projection
     sujeto: "dim_customer.phone_e164"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       LA ESTRELLA SE EXPANDE Y ENTONCES SE VE LO QUE TRAÍA. Para analyst,
       `dim_customer` incluye `national_id`, que es `deny`. El rechazo lo da R008 y no
@@ -83,6 +84,7 @@ reject:
     posicion: projection
     sujeto: "dim_employee.personal_phone"
     reintentable: true
+    menciona_rol: true
     por_que: "Igual: la estrella trae `personal_phone`, denegada a ops."
   - id: R009-R3
     rol: analyst
@@ -92,4 +94,5 @@ reject:
     posicion: projection
     sujeto: "dim_corporate_group.vat_number"
     reintentable: true
+    menciona_rol: true
     por_que: "La estrella trae `payout_iban`. Un IBAN con un nombre domicilia recibos."

@@ -75,6 +75,10 @@ class Case:
     #: tope del rol si falta y lo recorta si sobra, y hasta hoy nadie comprobaba el
     #: número: bastaba con que hubiera un `LIMIT` cualquiera.
     expected_limit: int | None = None
+    #: `true` cuando el rechazo DEPENDE del rol y por tanto el mensaje tiene que
+    #: nombrarlo. No todos lo hacen: el fail-closed del linaje dice «no puedo saber
+    #: de dónde sale esta columna», que es verdad para los cuatro roles.
+    expects_role_named: bool | None = None
 
     def __str__(self) -> str:
         return self.case_id
@@ -138,6 +142,7 @@ def _load() -> list[Case]:
                         expected_retryable=raw.get("reintentable"),
                         expected_alternative=raw.get("alternativa"),
                         expected_limit=raw.get("limite"),
+                        expects_role_named=raw.get("menciona_rol"),
                     )
                 )
     return cases
@@ -275,6 +280,20 @@ def test_caso_del_corpus(case: Case) -> None:
             f"{'reintentable' if verdict.retryable else 'NO reintentable'} y el "
             f"caso dice lo contrario. Reintentar un DELETE no lo convierte en una "
             "pregunta: solo gasta tokens y contamina la métrica de recuperación."
+        )
+    # EL MENSAJE NOMBRA AL ROL cuando el rechazo DEPENDE del rol. Un rechazo que
+    # dijera «denegada para el rol analyst» sobre una consulta de `finance` manda a
+    # corregir lo que no era, y eso es del mismo tipo que decir la posición
+    # equivocada: no es prosa, es información falsa sobre por qué se rechazó.
+    #
+    # Se declara caso a caso y no se infiere de la regla, porque **no todo rechazo de
+    # R008 depende del rol**: el fail-closed del linaje dice «no puedo saber de dónde
+    # sale esta columna», y eso es igual de cierto para los cuatro.
+    if case.expects_role_named:
+        assert case.role.value in verdict.message, (
+            f"{case.case_id}: el rechazo depende del rol y el mensaje no lo nombra. "
+            "La misma columna es legal para uno e ilegal para otro, así que el rol "
+            "es la mitad del motivo."
         )
     if case.expected_alternative is not None:
         assert case.expected_alternative in (verdict.suggestion or ""), (

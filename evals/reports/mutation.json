@@ -5,11 +5,11 @@
       "command": "make mutation",
       "detail": {
         "floor": 85.0,
-        "killed": 652,
+        "killed": 655,
         "scope": "src/datawarden/guard/rules",
         "total": 778
       },
-      "value": 83.8
+      "value": 84.19
     },
     "G-MUTATION": {
       "adicionales": {},
@@ -134,10 +134,10 @@
             "total": 22
           },
           "datawarden.guard.rules.r001_single_read_statement": {
-            "killed": 36,
-            "score": 90.0,
+            "killed": 35,
+            "score": 87.5,
             "survived": 3,
-            "suspicious": 1,
+            "suspicious": 2,
             "total": 40
           },
           "datawarden.guard.rules.r002_node_allowlist": {
@@ -165,9 +165,9 @@
             "total": 54
           },
           "datawarden.guard.rules.r006_row_limit": {
-            "killed": 136,
-            "score": 85.53,
-            "survived": 23,
+            "killed": 139,
+            "score": 87.42,
+            "survived": 20,
             "total": 159
           },
           "datawarden.guard.rules.r007_nesting_depth": {
@@ -177,9 +177,9 @@
             "total": 38
           },
           "datawarden.guard.rules.r008_column_policy": {
-            "killed": 79,
-            "score": 81.44,
-            "survived": 18,
+            "killed": 80,
+            "score": 82.47,
+            "survived": 17,
             "total": 97
           },
           "datawarden.guard.rules.r009_star_expansion": {

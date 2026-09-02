@@ -68,6 +68,7 @@ reject:
     sujeto: "dim_customer.birth_date"
     reintentable: true
     alternativa: "dim_customer.age_band"
+    menciona_rol: true
     por_que: "EL CANAL LATERAL POR PREDICADO. No devuelve la fecha y filtra por ella."
   - id: R008-R2
     rol: analyst
@@ -77,6 +78,7 @@ reject:
     posicion: projection
     sujeto: "dim_customer.national_id"
     reintentable: true
+    menciona_rol: true
     por_que: "`deny` está prohibida incluso en proyección directa."
   - id: R008-R3
     rol: analyst
@@ -86,6 +88,7 @@ reject:
     posicion: function_argument
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       LA EXPRESIÓN DERIVADA que `PROJECT.md` describe. Dentro de una función es
       posición prohibida para una columna enmascarada, aunque la función esté en la
@@ -101,6 +104,7 @@ reject:
     sujeto: "dim_customer.birth_date"
     reintentable: true
     alternativa: "dim_customer.age_band"
+    menciona_rol: true
     por_que: >-
       EL ALIAS QUE OCULTA. En el WHERE no pone `birth_date`, pone `b`. Lo encontró
       una prueba de humo, no una revisión, y obligó a resolver el linaje DENTRO de
@@ -113,6 +117,7 @@ reject:
     posicion: where
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       LA VISTA QUE REEXPONE. `v_customer.full_name` es `concat_ws` de tres columnas
       protegidas, servido por el propio catálogo.
@@ -124,6 +129,7 @@ reject:
     posicion: where
     sujeto: "dim_customer.phone_e164"
     reintentable: true
+    menciona_rol: true
     por_que: "La otra mitad de la asimetría: finance no ve el teléfono en ninguna posición."
   - id: R008-R7
     rol: analyst
@@ -137,6 +143,7 @@ reject:
     sujeto: "dim_customer.birth_date"
     reintentable: true
     alternativa: "dim_customer.age_band"
+    menciona_rol: true
     por_que: "El mismo predicado, escondido en la condición de un JOIN."
 
   # ---------------------------------------------------------------------------
@@ -246,6 +253,7 @@ reject:
     posicion: order_by
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       Ordenar por el alias de una columna enmascarada. Es el caso que estaba
       abierto y el que convierte el orden en un oráculo de comparación.
@@ -257,6 +265,7 @@ reject:
     posicion: order_by
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       El mismo ataque por ordinal. `qualify` lo reescribe al alias, así que
       cerrarlo por el nombre del alias no habría bastado.
@@ -268,6 +277,7 @@ reject:
     posicion: order_by
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       `ORDER BY ... DESC LIMIT 1` es la forma más directa del oráculo: devuelve el
       extremo del recorrido en una sola consulta.
@@ -285,6 +295,7 @@ reject:
     posicion: window_partition
     sujeto: "dim_customer.national_id"
     reintentable: true
+    menciona_rol: true
     por_que: "Particionar por un identificador denegado. Cada particion es una persona."
   - id: R008-R16
     rol: analyst
@@ -294,6 +305,7 @@ reject:
     posicion: window_partition
     sujeto: "dim_customer.first_name"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       Y con una columna ENMASCARADA, no denegada: `mask` es legal en la proyeccion
       y prohibida aqui, que es la asimetria entera de la politica.
@@ -305,6 +317,7 @@ reject:
     posicion: order_by
     sujeto: "dim_customer.national_id"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       El ORDER BY de dentro de una ventana, que es otra rama del arbol y otro
       oraculo de comparacion: ordena por el valor sin proyectarlo.
@@ -316,6 +329,7 @@ reject:
     posicion: group_by
     sujeto: "dim_customer.national_id"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       **La columna prohibida es la SEGUNDA del GROUP BY.** La regla tiene que seguir
       mirando despues de encontrar una permitida: un `continue` que fuera un `break`
@@ -330,6 +344,7 @@ reject:
     posicion: group_by
     sujeto: "dim_customer.national_id"
     reintentable: true
+    menciona_rol: true
     por_que: >-
       Agrupar por el alias de una CTE. El rechazo nombra la columna BASE y no la
       `x`, que es lo unico que permite corregir la consulta.

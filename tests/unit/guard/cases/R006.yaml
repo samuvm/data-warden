@@ -193,4 +193,45 @@ reject:
     sujeto: "OFFSET"
     reintentable: true
     por_que: "Lo mismo por el lado del OFFSET, que es una rama distinta de la regla."
-
+  # ---------------------------------------------------------------------------
+  # EL OFFSET DE UNA OPERACION DE CONJUNTO ANIDADA. Anadidos el 2026-09-02.
+  #
+  # Van a `nivel: regla` y no al guard completo, y el motivo merece quedar escrito:
+  # a traves del guard entero **R008 los rechaza antes**, porque una operacion de
+  # conjunto dentro de una derivada deja el linaje en UNKNOWN y eso es fail-closed.
+  # Asi que la lista `find_all(Select, Union, Except, Intersect)` de R006 es hoy
+  # DEFENSA REDUNDANTE: la segunda linea que queda si el linaje se afloja algun dia.
+  #
+  # Probarla a nivel de regla es lo unico honesto: dice que R006 hace su trabajo por
+  # si sola, sin fingir que el caso llega hasta ella en produccion.
+  # ---------------------------------------------------------------------------
+  - id: R006-R12
+    rol: analyst
+    nivel: regla
+    sql: "SELECT s.customer_sk FROM ((SELECT customer_sk FROM dim_customer) UNION ALL (SELECT customer_sk FROM dim_customer) OFFSET 9000000) s"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 9000000"
+    reintentable: true
+    por_que: "El OFFSET del nodo UNION anidado. Sin `exp.Union` en la lista, R006 no lo ve."
+  - id: R006-R13
+    rol: analyst
+    nivel: regla
+    sql: "SELECT s.customer_sk FROM ((SELECT customer_sk FROM dim_customer) EXCEPT (SELECT customer_sk FROM dim_customer) OFFSET 9000000) s"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 9000000"
+    reintentable: true
+    por_que: "Lo mismo con EXCEPT, que es otro nodo de la lista."
+  - id: R006-R14
+    rol: analyst
+    nivel: regla
+    sql: "SELECT s.customer_sk FROM ((SELECT customer_sk FROM dim_customer) INTERSECT (SELECT customer_sk FROM dim_customer) OFFSET 9000000) s"
+    rule_id: R006
+    code: row_limit
+    posicion: statement
+    sujeto: "OFFSET 9000000"
+    reintentable: true
+    por_que: "Y con INTERSECT. Las tres juntas cierran la lista entera."
