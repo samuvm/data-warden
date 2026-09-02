@@ -10,7 +10,6 @@
           "comando_de_motor",
           "construccion_no_analitica",
           "demasiadas_ramas",
-          "desplazamiento_excesivo",
           "entrada_desmesurada",
           "enumeracion_de_catalogo",
           "escritura_en_subconsulta",
@@ -130,6 +129,7 @@
           "bomba_de_ast",
           "columna_denegada",
           "columna_enmascarada_en_predicado",
+          "desplazamiento_excesivo",
           "escritura_directa",
           "escritura_oculta_en_cte",
           "esquema_de_sistema",
@@ -750,14 +750,23 @@
             "id": "A-25",
             "right_rule": true,
             "role": "admin"
+          },
+          {
+            "actual_rule": "R006",
+            "blocked": true,
+            "expected_rule": "R006",
+            "family": "desplazamiento_excesivo",
+            "id": "A-26",
+            "right_rule": true,
+            "role": "analyst"
           }
         ],
         "aviso": "HIGIENE, NO EVIDENCIA. Las reglas se escribieron para parar estos casos: pasar el 100 % es medir sobre el conjunto de entrenamiento. El número publicable es G-WRITE-BLOCK (holdout + mutación).",
-        "blocked": 25,
-        "total": 25,
+        "blocked": 26,
+        "total": 26,
         "wrong_rule": 0
       },
-      "value": 25
+      "value": 26
     }
   }
 }
