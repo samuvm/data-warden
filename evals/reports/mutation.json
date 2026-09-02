@@ -17,13 +17,14 @@
       "detail": {
         "como_se_cuenta": "muertos / (muertos + supervivientes + sospechosos + timeouts + sin tests). «Sin tests» cuenta como NO muerto a propósito: es el hueco que la meta existe para encontrar.",
         "floor": 70.0,
-        "killed": 1959,
+        "killed": 2257,
         "limite_declarado": "tests/property y tests/integration quedan fuera de la pasada. La propiedad corre 5.000 ejemplos por axioma y multiplicarlo por 3.238 mutantes son horas; la integración necesita los 7,1 GB del dataset, que mutmut no copia a su árbol de trabajo. Los mutantes que solo esas suites matan salen como «sin tests» y bajan el número: es un número peor que el real, y es preferible a inflarlo.",
         "per_module": {
           "datawarden.audit.chain": {
             "killed": 31,
             "score": 67.39,
-            "survived": 15,
+            "survived": 14,
+            "timeout": 1,
             "total": 46
           },
           "datawarden.audit.executor": {
@@ -33,38 +34,37 @@
             "total": 148
           },
           "datawarden.audit.store": {
-            "killed": 162,
-            "score": 84.82,
-            "survived": 29,
+            "killed": 165,
+            "score": 86.39,
+            "survived": 26,
             "total": 191
           },
           "datawarden.catalog.build": {
-            "killed": 30,
-            "score": 85.71,
+            "killed": 28,
+            "score": 80.0,
             "survived": 5,
+            "timeout": 2,
             "total": 35
           },
           "datawarden.catalog.introspect": {
             "killed": 109,
             "no tests": 76,
             "score": 51.42,
-            "survived": 26,
-            "timeout": 1,
+            "survived": 27,
             "total": 212
           },
           "datawarden.catalog.lineage": {
-            "killed": 172,
-            "score": 71.07,
+            "killed": 173,
+            "score": 71.49,
             "survived": 67,
-            "timeout": 3,
+            "timeout": 2,
             "total": 242
           },
           "datawarden.catalog.statistics": {
-            "killed": 84,
+            "killed": 85,
             "no tests": 110,
-            "score": 41.18,
+            "score": 41.67,
             "survived": 9,
-            "timeout": 1,
             "total": 204
           },
           "datawarden.catalog.types": {
@@ -122,10 +122,10 @@
             "total": 27
           },
           "datawarden.guard.query_lineage": {
-            "killed": 41,
-            "score": 74.55,
-            "survived": 14,
-            "total": 55
+            "killed": 67,
+            "score": 75.28,
+            "survived": 22,
+            "total": 89
           },
           "datawarden.guard.rule": {
             "killed": 17,
@@ -219,10 +219,34 @@
             "total": 30
           },
           "datawarden.guard.validator": {
-            "killed": 201,
-            "score": 69.07,
-            "survived": 90,
+            "killed": 202,
+            "score": 69.42,
+            "survived": 89,
             "total": 291
+          },
+          "datawarden.mask.config": {
+            "killed": 13,
+            "score": 35.14,
+            "survived": 24,
+            "total": 37
+          },
+          "datawarden.mask.macro": {
+            "killed": 14,
+            "score": 56.0,
+            "survived": 11,
+            "total": 25
+          },
+          "datawarden.mask.pipeline": {
+            "killed": 42,
+            "score": 84.0,
+            "survived": 8,
+            "total": 50
+          },
+          "datawarden.mask.rewrite": {
+            "killed": 199,
+            "score": 80.24,
+            "survived": 49,
+            "total": 248
           },
           "datawarden.principal.budgets": {
             "killed": 49,
@@ -238,9 +262,9 @@
           }
         },
         "scope": "el resto de los paquetes de [tool.gate].testable",
-        "total": 2761
+        "total": 3155
       },
-      "value": 70.95
+      "value": 71.54
     }
   }
 }
