@@ -133,8 +133,18 @@ def build(data_dir: pathlib.Path, db_path: pathlib.Path) -> str:
         f"| **{mc['top_1pct_measured_on_traffic']:.2%} / {mc['top_10pct_measured_on_traffic']:.2%}** |",
         f"| (el mismo objetivo sobre el vector de pesos, que **no** es lo publicado) "
         f"| {mc['top_1pct_share']:.0%} / {mc['top_10pct_share']:.0%} |",
-        f"| Clientes que nunca pagan (objetivo {cp['never_paid_target']:.1%}) "
-        f"| {cp['never_paid_share']:.3%} |",
+        # P-003-b: la fila decía «objetivo X | Y» con Y = el propio sorteo de la
+        # cohorte, que sigue al objetivo por construcción. Publicar eso como medida es
+        # el error que el proyecto existe para no cometer. Las tres son distintas y se
+        # publican con su nombre; y NINGUNA es la del glosario, que declara el 6,2 % de
+        # clientes sin PAGO logrado y solo se puede contar contra los hechos.
+        f"| Clientes que nunca pagan · objetivo | {cp['never_paid_target']:.1%} |",
+        f"| (la cohorte sorteada; sigue al objetivo por construcción, no es evidencia) "
+        f"| {cp['never_paid_drawn']:.3%} |",
+        f"| (sin ningún INTENTO, contado sobre el vector) "
+        f"| {cp['never_paid_zero_attempts']:.3%} |",
+        "| (sin ningún PAGO logrado — el 6,2 % que declara el glosario — NO se cuenta "
+        "aquí: solo se puede contra los hechos, con `make dataset-traps`) | · |",
         f"| Pagos por cliente pagador: media · mediana · p99 · máximo "
         f"| {cp['mean_per_paying_customer']:.2f} · {cp['median_per_paying_customer']:.0f} "
         f"· {cp['p99']} · {cp['max']} |",

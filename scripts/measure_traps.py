@@ -15,8 +15,23 @@ el número que se publique en el README tenga fecha, perfil y comando al lado.
 **Por qué la tolerancia no es cero.** El generador sortea con semilla fija, así que
 sobre el MISMO perfil el número es exactamente reproducible; pero los tres perfiles
 tienen tamaños distintos y una trampa que dependa de la cola de una distribución se
-mueve algunas décimas entre ellos. La tolerancia se declara por trampa y es parte
-del dato, no una manga ancha genérica.
+mueve algunas décimas entre ellos.
+
+**Por qué la tolerancia es UNA SOLA y no una por trampa.** Condición que Samuel añadió
+al aprobar P-003 el 2026-09-02, y es la parte que de verdad importaba:
+
+> «Las tolerancias del script están puestas a mano y no siguen ninguna regla: ±6 sobre
+> un 24 %, ±12 sobre un 60 %, ±5 sobre un 53 %, ±1 sobre un 4,3 %. **Una tolerancia por
+> trampa, elegida a ojo, es el mando con el que se pone verde el script sin tocar el
+> dato** — que es literalmente el atajo que la propia propuesta dice haber descartado.»
+
+Así que hay **una regla, declarada arriba como `TOLERANCE_REL`, aplicada a las nueve por
+igual: ±20 % RELATIVO sobre el valor declarado.** Nueve mandos sueltos se convierten en
+un número que hay que justificar una vez. Con los dos números corregidos por P-003, las
+nueve trampas pasan y el margen más ajustado sobra por 0,07 puntos, así que **hoy no hay
+ni una excepción**. Si alguna vez hiciera falta una, va declarada en el propio
+`docs/spec/glossary.yaml` con su motivo escrito — y como ese fichero está FIRMADO, eso
+es una propuesta nueva en `docs/PARA-SAMUEL.md`, no una línea que se cambia aquí.
 """
 
 from __future__ import annotations
@@ -30,6 +45,19 @@ from dataclasses import dataclass
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from gatelib import ROOT
 
+#: La regla única. ±20 % RELATIVO sobre el valor declarado, para las nueve por igual.
+#: No hay una tolerancia por trampa: ver el porqué en el docstring del módulo (P-003).
+TOLERANCE_REL: float = 0.20
+
+
+def tolerance_for(declared_pct: float) -> float:
+    """Tolerancia absoluta en puntos porcentuales para un valor declarado.
+
+    Una sola regla para las nueve trampas. Se expone como función para que el
+    informe pueda publicar el número que de verdad se aplicó a cada una.
+    """
+    return round(abs(declared_pct) * TOLERANCE_REL, 4)
+
 
 @dataclass(frozen=True, slots=True)
 class Trap:
@@ -39,7 +67,6 @@ class Trap:
     glossary: str
     sql: str
     declared_pct: float | None
-    tolerance_pct: float
 
 
 TRAPS: tuple[Trap, ...] = (
@@ -55,11 +82,10 @@ TRAPS: tuple[Trap, ...] = (
             ) / (SELECT sum(captured_eur_minor) FROM v_payment_intent)
         """,
         declared_pct=24.0,
-        tolerance_pct=6.0,
     ),
     Trap(
         key="scd2_por_clave_natural",
-        glossary="Unir con dim_merchant por merchant_id en vez de merchant_sk: +53 % de filas",
+        glossary="Unir con dim_merchant por merchant_id en vez de merchant_sk: +32 % de filas",
         sql="""
             SELECT 100.0 * (
                 (SELECT count(*) FROM fact_settlement_batch b
@@ -69,8 +95,11 @@ TRAPS: tuple[Trap, ...] = (
             ) / (SELECT count(*) FROM fact_settlement_batch b
                    JOIN v_merchant_current m ON m.merchant_id = b.merchant_id)
         """,
-        declared_pct=53.0,
-        tolerance_pct=5.0,
+        # P-003, aprobada 2026-09-02. Era 53,0 y ninguna lectura del dataset llega ahí:
+        # full +31,94 % · demo +30,32 % · dev +37,87 %, y versiones sobre entidades +31,31 %.
+        # La trampa sigue siendo real y grave —un ranking de comercios sale un tercio
+        # inflado si uno se equivoca de clave—; lo que estaba mal era la cifra.
+        declared_pct=32.0,
     ),
     Trap(
         key="fx_por_igualdad_de_fecha",
@@ -92,7 +121,6 @@ TRAPS: tuple[Trap, ...] = (
             ) / (SELECT count(*) FROM no_euro)
         """,
         declared_pct=24.0,
-        tolerance_pct=6.0,
     ),
     Trap(
         key="disputa_sin_etapa_final",
@@ -104,11 +132,10 @@ TRAPS: tuple[Trap, ...] = (
             ) / (SELECT sum(disputed_eur_minor) FROM fact_dispute WHERE is_final_stage)
         """,
         declared_pct=60.0,
-        tolerance_pct=12.0,
     ),
     Trap(
         key="clientes_que_nunca_compraron",
-        glossary="INNER JOIN contra dim_customer: pierde el 4,3 % de clientes sin ningún pago",
+        glossary="INNER JOIN contra dim_customer: pierde el 6,2 % de clientes sin ningún pago",
         sql="""
             SELECT 100.0 * (
                 SELECT count(*) FROM dim_customer c
@@ -117,8 +144,11 @@ TRAPS: tuple[Trap, ...] = (
                                   WHERE p.customer_sk = c.customer_sk)
             ) / (SELECT count(*) FROM dim_customer WHERE customer_sk >= 0)
         """,
-        declared_pct=4.3,
-        tolerance_pct=1.0,
+        # P-003, aprobada 2026-09-02. Era 4,3 y ese es el OBJETIVO del generador, no la
+        # medida: aparta un 4,3 % que nunca paga, y el sorteo Zipf deja además a otro
+        # ~1,9 % sin ningún pago por pura cola. Lo que un INNER JOIN pierde de verdad son
+        # 570.895 de 9.200.000 = 6,205 %. `datagen/` ya separa target de measured.
+        declared_pct=6.2,
     ),
     Trap(
         key="trafico_de_pruebas",
@@ -128,7 +158,6 @@ TRAPS: tuple[Trap, ...] = (
             FROM fact_payment_attempt
         """,
         declared_pct=1.2,
-        tolerance_pct=0.4,
     ),
     Trap(
         key="columna_obsoleta_amount_cents",
@@ -139,7 +168,6 @@ TRAPS: tuple[Trap, ...] = (
             FROM fact_payment_attempt
         """,
         declared_pct=0.4,
-        tolerance_pct=0.2,
     ),
     Trap(
         key="duplicados_de_ingesta",
@@ -151,7 +179,6 @@ TRAPS: tuple[Trap, ...] = (
             ) / (SELECT count(*) FROM v_attempt_dedup)
         """,
         declared_pct=0.35,
-        tolerance_pct=0.15,
     ),
     Trap(
         key="pagos_de_invitado",
@@ -161,7 +188,6 @@ TRAPS: tuple[Trap, ...] = (
             FROM v_payment_intent
         """,
         declared_pct=6.1,
-        tolerance_pct=1.5,
     ),
 )
 
@@ -194,23 +220,25 @@ def main() -> int:
                 rows.append({"key": trap.key, "measured": None, "error": str(exc)})
                 continue
             value = None if measured is None else round(float(measured), 3)
+            tolerance = None if trap.declared_pct is None else tolerance_for(trap.declared_pct)
             ok = (
                 value is not None
+                and tolerance is not None
                 and trap.declared_pct is not None
-                and abs(value - trap.declared_pct) <= trap.tolerance_pct
+                and abs(value - trap.declared_pct) <= tolerance
             )
             if not ok:
                 problems.append(
                     f"{trap.key}: el glosario declara {trap.declared_pct} % "
-                    f"(+/- {trap.tolerance_pct}) y se mide {value} % sobre el perfil "
-                    f"{args.profile}"
+                    f"(+/- {tolerance}, que es el {TOLERANCE_REL:.0%} relativo de la regla "
+                    f"única) y se mide {value} % sobre el perfil {args.profile}"
                 )
             rows.append(
                 {
                     "key": trap.key,
                     "glossary": trap.glossary,
                     "declared_pct": trap.declared_pct,
-                    "tolerance_pct": trap.tolerance_pct,
+                    "tolerance_pct": tolerance,
                     "measured_pct": value,
                     "passed": ok,
                 }
@@ -222,7 +250,21 @@ def main() -> int:
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(
         json.dumps(
-            {"profile": args.profile, "traps": rows, "problems": problems},
+            {
+                "profile": args.profile,
+                "tolerance_rule": {
+                    "relative": TOLERANCE_REL,
+                    "applies_to": "las nueve por igual",
+                    "exceptions": [],
+                    "why": (
+                        "Una tolerancia por trampa elegida a ojo es el mando con el "
+                        "que se pone verde el script sin tocar el dato (P-003, "
+                        "condición de Samuel, 2026-09-02)."
+                    ),
+                },
+                "traps": rows,
+                "problems": problems,
+            },
             indent=2,
             sort_keys=True,
             ensure_ascii=False,

@@ -18,6 +18,30 @@
 #        una trampa cuyo número no se ha vuelto a medir desde que se escribió es
 #        folclore. `make dataset-traps` las comprueba y falla si alguna discrepa.
 #
+# LO QUE G-5 ENCONTRÓ, Y SU CORRECCIÓN (P-003, aprobada por Samuel el 2026-09-02).
+# Se midieron las nueve sobre el perfil `full` (294,7 M de filas) el 2026-09-02.
+# **Siete reproducen, cuatro de ellas con tres decimales.** Dos no, y van marcadas
+# abajo `correccion_medida:`. Ninguna trampa desaparece: las dos siguen siendo
+# reales y graves; lo que estaba mal era la cifra.
+#   P-003-a  SCD tipo 2 por clave natural: **+53 % → +32 %**. Ninguna lectura del
+#            dataset llega a 53 (full +31,94 · demo +30,32 · dev +37,87; y las
+#            versiones sobre entidades, +31,31). El 53 se midió sobre una versión
+#            anterior del generador y se quedó escrito.
+#   P-003-b  Clientes que nunca compraron: **4,3 % → 6,2 %**. Y el error no estaba
+#            aquí, estaba en el generador: `MANIFEST.json` publicaba el OBJETIVO de
+#            diseño (4,3 %) con nombre de medida. Contra los hechos son 570.895 de
+#            9.200.000 = 6,205 %, porque al 4,3 % apartado a propósito se suma un
+#            ~1,9 % que la cola Zipf deja sin ningún pago. `datagen/` ya separa
+#            `never_paid_target` de `never_paid_measured`.
+#
+# CONDICIÓN QUE SAMUEL AÑADIÓ AL APROBAR P-003, y es la que más valía: las nueve
+# tolerancias de `scripts/measure_traps.py` estaban puestas a ojo (±6 sobre un 24 %,
+# ±12 sobre un 60 %, ±1 sobre un 4,3 %), y una tolerancia por trampa es el mando con
+# el que se pone verde el script sin tocar el dato. Ahora hay **una sola regla,
+# ±20 % RELATIVO, aplicada a las nueve por igual**, y CERO excepciones. Si alguna vez
+# hiciera falta una, se declara aquí con su motivo — y como este fichero está
+# FIRMADO, eso es una propuesta nueva, no una línea que se cambia.
+#
 # QUÉ ES ESTO Y POR QUÉ EXISTE. Se expone como recurso MCP de solo lectura, y es
 # lo único que evita que el modelo ADIVINE la semántica. Sin él, «ingresos del
 # mes» se traduce a `sum(amount_minor)` sobre la tabla de intentos, que es la
@@ -40,6 +64,18 @@ revisado_el: 2026-09-01     # respuesta a Q-004 en docs/PARA-SAMUEL.md
 correcciones_aplicadas_por: agente
 correcciones_aplicadas_el: 2026-09-02
 correcciones_de_la_firma: [G-1, G-2, G-3, G-4, G-5]
+# Correcciones posteriores a la firma, cada una con su propuesta aprobada detrás.
+correcciones_medidas: [P-003-a, P-003-b]
+correcciones_medidas_por: agente
+correcciones_medidas_el: 2026-09-02
+correcciones_medidas_autorizadas_por: >-
+  Samuel, 2026-09-02, al aprobar P-003 en docs/PARA-SAMUEL.md. Este fichero está
+  FIRMADO: el agente lo edita SOLO bajo esta autorización expresa y nunca por
+  iniciativa propia.
+# La regla única de tolerancia con la que `make dataset-traps` juzga las nueve.
+tolerancia_de_las_trampas:
+  relativa: 0.20            # ±20 % del valor declarado, para las nueve por igual
+  excepciones: []           # hoy ninguna; una excepción se declara aquí, con motivo
 
 dominio: >-
   CIERZO es una pasarela de pagos europea. Un comercio le envía un intento de
@@ -313,10 +349,14 @@ tablas:
 # =============================================================================
 trampas:
   - "Contar ingresos contando filas de `fact_payment_attempt`: **+24 %**."
-  - "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+53 % de filas**."
+  # correccion_medida: P-003-a · era +53 %, medido +31,94 % sobre `full` el 2026-09-02.
+  - "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+32 % de filas**."
   - "Unir con `ref_fx_rate_daily` por igualdad de fecha: pierde el **24 %** de los pagos no euro, porque los fines de semana no hay cotización. Se usa el último tipo publicado."
   - "Sumar `disputed_eur_minor` sin filtrar por `is_final_stage`: **+60 %**."
-  - "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **4,3 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila)."
+  # correccion_medida: P-003-b · era 4,3 %, que es el OBJETIVO del generador y no la
+  # medida. Contra los hechos son 570.895 de 9.200.000 = 6,205 %. El 6,1 % de invitado
+  # sí reproduce (6,103 %) y no se toca.
+  - "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **6,2 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila)."
   - "No filtrar `is_test`: mete un **1,2 %** de tráfico de pruebas en los números de negocio."
   - "Sumar `amount_minor` entre divisas: está en moneda LOCAL. Para sumar, `amount_eur_minor`."
   - "Usar `amount_cents`: es una columna OBSOLETA que discrepa de `amount_minor` en el 0,4 % de las filas."
