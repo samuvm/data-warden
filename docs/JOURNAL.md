@@ -1345,3 +1345,110 @@ existe todavía** — una meta bloqueante sin medida es un fallo, nunca un aprob
 fase 5 está medido y en verde.
 
 **Lo que queda:** el refactor de P-005 para `G-MUT-GUARD`, y la fase 4 entera.
+
+## 2026-09-02 · fase 4 · el anillo 4 completo, y `ORDER BY n` era un oráculo
+
+**El hallazgo de seguridad, y sale de diseñar la fase 4 en vez de escribirla a ciegas.**
+Antes de tocar `mask/` se midió el hueco: **las 17 filas `mask` de la política pasaban el guard y
+salían EN CLARO**. Al recorrerlas apareció algo peor, que no era de la fase 4 sino del guard ya
+publicado:
+
+```sql
+SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 5   -- se ACEPTABA
+SELECT first_name AS n FROM dim_customer ORDER BY 1 LIMIT 5   -- también
+```
+
+`qualify()` expande el alias de salida en `GROUP BY` y en `HAVING` —por eso esos dos siempre se
+rechazaron— **pero no en `ORDER BY`**, donde deja una columna sin tabla; y de paso convierte el
+ordinal en el alias, así que las dos formas acababan en el mismo sitio. `Scope.columns` de sqlglot
+excluye deliberadamente esas referencias, el linaje nunca las indexaba, R008 preguntaba por `.n`, no
+encontraba fila en la matriz y aplicaba el `allow` por defecto.
+
+**No era un rechazo perdido cualquiera.** `ORDER BY n LIMIT 1` con predicados sobre columnas
+permitidas es una **búsqueda binaria sobre un valor enmascarado**: se ordena, se mira el extremo, se
+acota, se repite. La política firmada lo prohíbe con esas palabras —una columna «alcanzada a través
+de un alias»— y el guard no lo estaba cumpliendo.
+
+Se cerró **la clase, no el caso**: toda columna que el bucle principal del linaje no indexe se
+resuelve por alias de salida o se marca `UNKNOWN`. Arreglar solo el `ORDER BY` habría dejado la
+puerta abierta para la siguiente cláusula que sqlglot decida no expandir. Con tres casos de
+regresión y **dos casos `accept`**, que son la otra mitad: una columna permitida sigue pudiendo
+ordenarse por su alias y por su ordinal, para que cerrar la fuga no degenere en rechazar todo alias
+sin tabla.
+
+**El anillo 4, y el problema era más pequeño de lo que parecía gracias al guard.** Toda proyección
+que sobrevive llevando una columna enmascarada es un `exp.Column` desnudo: `concat(...)`,
+`upper(substring(...))` y `CASE WHEN ... THEN first_name` son argumento de función y R008 los
+rechaza; `a || b` lo rechaza R002 porque `DPipe` no está en la allowlist. Así que reescribir es
+«sustituye la expresión de la proyección y conserva el alias», y encontrarse otra forma es un fallo
+del anillo anterior: se rechaza con `INTERNAL`, no se improvisa.
+
+**Las cuatro transformaciones, verificadas contra DuckDB y no solo en el árbol**, y las cuatro
+preservan NULL:
+
+```
+tachar        -> [(None,), ('***',), ('***',)]
+generalizar   -> [(None,), ('25-34',), ('55-64',)]
+ultimos_n     -> [('***1691',), ('***9061',)]
+hash_estable  -> [('f7264610f2eb',), ('456c46d5bccc',)]
+admin         -> [(None,), ('Ermenegildo',)]      <- sin máscara
+```
+
+El NULL lo exigen dos contratos a la vez: `policy.yaml` dice que el NULL de `last_name_2` significa
+«este sistema de nombres no tiene segundo apellido» —es un DATO— y `resultset-equality.md` decide
+que NULL y cadena vacía son DISTINTOS. Una máscara que convirtiera NULL en `'***'` **inventaría** un
+valor, y las respuestas de referencia del banco de 60 saldrían falsas sin que nadie lo notara.
+
+**Y `G-PII-LEAK` quedó MEDIDO: 0 fugas en 177 comprobaciones sobre 3 superficies.** No se comprueba
+que el código diga que enmascara: **se ejecuta la consulta dos veces contra el dataset real** —como
+`admin`, que lo ve todo, y como el rol restringido— y se exige que ningún valor real aparezca en la
+salida del segundo. Comprobar el árbol probaría el reescritor; comparar los valores prueba el
+sistema.
+
+## 2026-09-02 · buzón · P-006, P-007 y P-008, y las tres traían un añadido
+
+Samuel respondió las tres propuestas abiertas. Las tres aprobadas, y **las tres con algo que la
+propuesta no pedía**, que es el patrón que este mecanismo produce cuando funciona.
+
+**P-006 · la pérdida se escribe como pérdida.** `PLAN.md` decía «sal por sesión» y `policy.yaml`
+firmado dice `pimienta_desde: config`. Corregido el plan bajo autorización expresa. El añadido:
+*«conviene escribirlo como cambio y no como corrección de una errata»*, porque la sal por sesión
+impedía correlacionar dos sesiones y la pimienta fija no lo impide. Se pierde a sabiendas, a cambio
+de la única métrica sobre la que `G-EXEC-ACC` puede medirse. Publicado en las limitaciones
+declaradas del README.
+
+**P-007 · el centinela sube al contrato, y con un hallazgo.** Los 64 ceros de `sql_digest` significan
+«no hubo árbol validado» y ahora lo dice la `description` del schema, porque **el schema es lo que
+lee quien valida registros sin abrir el código** y para esa persona 64 ceros eran un sha válido y
+silencioso. El añadido de Samuel: `GENESIS` y `NO_VALIDATED_TREE` son **el mismo literal con dos
+significados**. No colisionan porque son campos distintos, pero un registro que sea a la vez el
+primero de la cadena y un rechazo pre-parseo llevará los dos. Anotado en las dos constantes y en
+las dos `description`: se leen por campo, nunca por valor.
+
+**P-008 · la pimienta sale del SQL, y se dice hasta dónde llega el remedio.** El árbol emite ya
+`warden_hash(...)` y la clave vive en un `CREATE TEMP MACRO` instalado al abrir la conexión. TEMP
+porque la conexión es de SOLO LECTURA y tiene que seguir siéndolo. Verificado: **hashes idénticos**
+a los de la versión inline.
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Campo `sql` del registro de auditoría | la pimienta, en cada registro | **no aparece** |
+| Logs del motor | una vez por CONSULTA | **una vez por CONEXIÓN** |
+
+El añadido, y era el importante: *«la macro NO elimina la pimienta de los logs del motor, la
+reduce, y eso se escribe con esas palabras. Un límite que se declara a medias es peor que uno que
+no se declara, porque parece cerrado.»* Y la vía durable que la propuesta no había considerado:
+esas dos columnas no necesitan un hash con clave sino un **pseudónimo estable**, el mismo patrón
+que `card_sk` frente a `card_token`. Convierte un problema de gestión de claves en uno de modelado
+de datos. Va cuando se regenere el dataset.
+
+**Un detalle de diseño que no se relajó.** `warden_hash` es para sqlglot un `exp.Anonymous`, el nodo
+comodín, y el invariante del proyecto dice que `exp.Anonymous` es RECHAZO. Admitirlo a secas en el
+conjunto de nodos del enmascarador lo habría convertido en «cualquier función». Así que la
+comprobación dejó de ser un conjunto plano: admite `Anonymous` **solo con nuestro nombre**.
+
+**Dónde queda el proyecto.** `goals_check` en las fases 4 y 5 deja **un solo fallo, y es el mismo en
+las dos**: `G-MUT-GUARD` 61,87 % contra su suelo de 85. Todo lo demás en verde, incluidos los tres
+axiomas `G-PII-LEAK`, `G-AUDIT-COV` y `G-BUDGET-ESCAPE`. Lo que impide cerrar las fases 3, 4 y 5 es
+exactamente un número, y es trabajo de tests: no queda ninguna decisión pendiente de Samuel salvo
+los tres minutos de P-004.
