@@ -1539,3 +1539,63 @@ cierto para los cuatro roles. Inferirlo habría hecho fallar cuatro casos correc
 **Estado al cierre:** 628 tests · 167 casos de corpus · 26 ataques · `gate-fast` VERDE · 4 contratos
 de import · secretos 0 nuevos. Las metas de las fases 4 y 5 en verde, incluidos los tres axiomas.
 El único fallo que queda en `goals_check` de las fases 3, 4 y 5 es `G-MUT-GUARD` a 0,81 puntos.
+
+## 2026-09-02 · fases 3, 4 y 5 CERRADAS, y arranca la 6
+
+**Seis fases cerradas de once.** `make done MILESTONE=3`, `=4` y `=5`, las tres verdes en el mismo
+turno, con **18 metas bloqueantes por encima de su umbral** y los seis axiomas dentro:
+`G-WRITE-BLOCK`, `G-FAILCLOSED`, `G-NO-RAW-SQL`, `G-BUDGET-ESCAPE`, `G-PII-LEAK` y `G-AUDIT-COV`.
+Es el «punto de parada digno» que declara `PLAN.md` menos la fase 10.
+
+Lo que lo desbloqueó fue un solo número: `G-MUT-GUARD` de **50,73 % a 85,46 %**. Y el último
+empujón no perseguía el número. Los cuatro mutantes que faltaban vivían en la rama de R012 que mira
+`GROUP BY` y `PARTITION BY`, y **esa rama hoy no se alcanza**: medido, cero columnas de la política
+son a la vez identificadoras por `data_type` y `allow`, así que R008 siempre rechaza antes. No es
+código muerto — es defensa en profundidad, y existe para el día que negocio marque una identificadora
+como permitida *porque «no tiene datos personales»*, que es la frase que precede a la mitad de las
+fugas. Se prueba con una política **fixture** que declara ese estado futuro, porque **un anillo que
+solo se prueba cuando el anterior falla no se prueba nunca si se espera a que falle**.
+
+## 2026-09-02 · fase 6 · el ciclo de corrección, y el modelo respondiendo de verdad
+
+**Construido el bucle, y es propio y de sesenta líneas y no un framework.** `PLAN.md` lo pide así
+y el motivo es que este bucle es donde se demuestra la tesis del proyecto: un framework que hiciera
+los reintentos por dentro dejaría el número de `G-RECOVERY` a merced de su política, que es
+exactamente lo que se está midiendo.
+
+**El bucle es CÓDIGO y tiene TDD; el generador se MIDE.** Catorce tests con provider guionizado,
+sin modelo: cuántas veces se reintenta (dos, tres intentos en total), qué se le pasa al siguiente
+—el rechazo anterior, sin lo cual esto sería un bucle que reintenta a ciegas—, y cuándo se para.
+**Un rechazo `retryable: false` para el bucle en seco**: un `DELETE` no se convierte en pregunta
+reescribiéndolo, y darle la oportunidad de fallar contaminaría la métrica con casos que nadie puede
+arreglar.
+
+**Tres providers, y cada uno resuelve un problema distinto.** `LocalProvider` habla con Ollama en el
+host —nunca en compose: Docker en macOS no pasa la GPU—. `RecordedProvider` es la caché estilo VCR
+indexada por `sha256(prompt_id + version + entrada)`, que hace `make eval-recovery` determinista y
+gratis; **un fallo de caché es un error y no una llamada al modelo**, porque caer al modelo sin
+avisar produciría un número mezclado que nadie podría reproducir. Y `ScriptedProvider` para los
+tests del bucle.
+
+**Los prompts viven en `prompts/*.md` con frontmatter, jamás inline.** Y no es manía de orden: un
+prompt cambia el número de `G-RECOVERY` sin cambiar una línea de lógica. Con `id` y `version` en el
+frontmatter, **cambiar el prompt cambia la clave de la caché**, así que una medida vieja no puede
+pasar por una medida del prompt nuevo. Es el mismo error que `schema_version` evita en la cadena de
+auditoría, cerrado igual.
+
+**Los tres modelos de `models.lock` están, con los digests exactos**: `qwen3.5:9b-mlx` en
+`203e30078279` y `gemma4:12b-mlx` en `117d0d84cf2a`. La fase 6 es medible, no solo construible.
+
+**Y el ciclo completo funciona contra el modelo de verdad.** «cuántos clientes hay en total» →
+`SELECT COUNT(*) AS customer_count FROM dim_customer`, aceptada a la primera en 22 s.
+
+**De paso, una comprobación que valía la pena.** El modelo respondió a «dame el nombre de pila de
+cinco clientes» con `SELECT full_name FROM v_customer`, que el guard ACEPTA — y con razón, porque
+`mask` en proyección directa es legal: la columna sale enmascarada. Verificado que el anillo 4 lo
+hace de verdad **a través de la vista**: `v_customer.full_name` deriva de `first_name`,
+`last_name_1` y `last_name_2`, sale `'***'`, y las tres columnas base se declaran en
+`masked_columns`. Sin fuga.
+
+**Lo que queda de la fase 6:** el corpus de 42 rechazos sembrados (3 fraseos × 14 familias),
+`scripts/check_recovery_coverage.py`, `make eval-recovery` y `make eval-refresh`, y
+`agent/langgraph_graph.py` como adaptador delgado.
