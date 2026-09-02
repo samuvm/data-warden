@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/samuvm/data-warden/docs/spec/rejection.schema.json",
+  "title": "Mensaje de rechazo accionable",
+  "description": "Contrato propio del proyecto, invariante I-09 de docs/RULES.md. Un rechazo NO es un error: es una respuesta del sistema, y es la respuesta que más veces va a leer un modelo. Si no dice qué regla saltó, dónde, y qué hacer en su lugar, el ciclo de corrección de la fase 6 no puede funcionar y G-RECOVERY es inalcanzable por diseño y no por calidad del modelo. Dos prohibiciones duras: `suggestion` NO puede estar vacía, y NINGÚN campo puede contener un valor de celda ni el contenido de una columna sensible -- un mensaje de error que cita el IBAN que acaba de rechazar es una fuga con forma de diagnóstico.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rule_id", "code", "message", "suggestion", "severity"],
+  "properties": {
+    "rule_id": {
+      "description": "La regla EXACTA que disparó. Nunca se reutiliza un id y nunca se retira una regla (I-01). `RNNN` para las reglas del guard; `BUDGET` y `POLICY` para los dos rechazos que no vienen del guard y que aun así tienen que ser accionables.",
+      "type": "string",
+      "pattern": "^(R[0-9]{3}|BUDGET|POLICY|INTERNAL)$"
+    },
+    "code": {
+      "description": "Identificador estable y legible por máquina de la FAMILIA del rechazo. Es lo que agrupa las métricas y lo que el bucle de la fase 6 usa para decidir si reintentar. Estable aunque el texto de `message` cambie.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,63}$"
+    },
+    "message": {
+      "description": "Qué ha pasado, en inglés, en una frase. Describe la ESTRUCTURA de la consulta, nunca los datos: 'column dim_customer.iban is denied for role analyst', jamás 'value ES91... is denied'.",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "suggestion": {
+      "description": "Qué hacer en su lugar. NO PUEDE ESTAR VACÍA (I-09). Un rechazo sin salida no redirige el trabajo: lo bloquea, y un guard que bloquea el trabajo se desactiva en tres semanas. Cuando la política publica una columna generalizada, la sugerencia la nombra.",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "severity": {
+      "description": "`security` es un intento de saltarse un control y se audita como evento de seguridad. `policy` es acceso legítimo a algo que ese rol no puede ver. `budget` es coste. `malformed` es que la consulta ni siquiera se pudo parsear. Distinguirlos importa: la tasa de `policy` alta significa que hay que revisar la matriz; la de `security` alta significa otra cosa muy distinta.",
+      "type": "string",
+      "enum": ["security", "policy", "budget", "malformed", "internal"]
+    },
+    "position": {
+      "description": "Dónde en el árbol, con vocabulario de SQL y no de sqlglot: `projection`, `where`, `join_on`, `group_by`, `order_by`, `having`, `qualify`, `function_argument`, `window_partition`, `subquery`, `cte`. Es lo que convierte 'no puedes usar esa columna' en 'no puedes usarla AHÍ', que es la diferencia entre la mitad de los rechazos de este proyecto.",
+      "type": "string",
+      "enum": [
+        "projection",
+        "where",
+        "join_on",
+        "group_by",
+        "order_by",
+        "having",
+        "qualify",
+        "function_argument",
+        "window_partition",
+        "subquery",
+        "cte",
+        "statement",
+        "unknown"
+      ]
+    },
+    "subject": {
+      "description": "El objeto del árbol al que se refiere el rechazo: `tabla.columna`, un nombre de función o un nombre de nodo. Es un IDENTIFICADOR DE ESQUEMA, nunca un valor. El esquema es público en el anillo 1; los valores no.",
+      "type": "string",
+      "maxLength": 200
+    },
+    "alternative": {
+      "description": "La columna generalizada que la política publica como salida, si la hay: `dim_customer.age_band` para `birth_date`. Se separa de `suggestion` para que el bucle de la fase 6 pueda sustituirla sin parsear prosa.",
+      "type": ["string", "null"],
+      "maxLength": 200
+    },
+    "retryable": {
+      "description": "Si tiene sentido que el modelo lo intente otra vez. `false` para un intento de escritura: reformularlo no lo va a arreglar y reintentar solo gasta tokens y contamina la métrica de recuperación.",
+      "type": "boolean",
+      "default": true
+    },
+    "docs": {
+      "description": "Ruta relativa al documento que explica la regla, para un humano que quiera discutirla.",
+      "type": "string",
+      "maxLength": 200
+    }
+  },
+  "examples": [
+    {
+      "rule_id": "R008",
+      "code": "denied_column_position",
+      "message": "column dim_customer.birth_date is masked for role analyst and may only appear in a direct projection; it was used in a WHERE predicate",
+      "suggestion": "filter on dim_customer.age_band instead, which is published for every role and answers the same question without exposing the exact date",
+      "severity": "policy",
+      "position": "where",
+      "subject": "dim_customer.birth_date",
+      "alternative": "dim_customer.age_band",
+      "retryable": true,
+      "docs": "docs/spec/policy.yaml"
+    },
+    {
+      "rule_id": "R001",
+      "code": "write_statement",
+      "message": "only SELECT statements are allowed; the parsed tree contains a DELETE at the top level",
+      "suggestion": "this system is read-only by construction; rephrase the question as a SELECT that describes what you want to see",
+      "severity": "security",
+      "position": "statement",
+      "subject": "Delete",
+      "retryable": false,
+      "docs": "docs/threat-model.md"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/samuvm/data-warden/docs/spec/catalog.schema.json",
+  "title": "Catálogo generado",
+  "description": "La forma de `src/datawarden/catalog/generated/schema.json`. Existe porque el catálogo es a la vez el recurso MCP del anillo 1 y la entrada de `qualify()` en el anillo 3: si su forma cambiara sin avisar, el guard dejaría de resolver alias y no habría ningún test que lo notara. NO CONTIENE CONTEOS DE FILA NI BYTES, y es deliberado: esos cambian con el perfil del dataset y con cada regeneración, mientras que el esquema no. Mezclarlos haría que el sha del catálogo dependiera de cuántas filas se generaron, y `G-CATALOG-FRESH` dejaría de significar nada. Las estadísticas viven aparte.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "dialect", "tables"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "dialect": {
+      "description": "El dialecto de sqlglot con el que se re-serializa el AST validado. Va aquí y no en configuración porque el catálogo y el dialecto tienen que venir del mismo sitio: un esquema de DuckDB re-serializado como Athena es una consulta que nadie ha validado.",
+      "type": "string",
+      "enum": ["duckdb", "athena", "trino"]
+    },
+    "tables": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/table" }
+    }
+  },
+  "$defs": {
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "columns"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "kind": {
+          "description": "`view` no es un detalle: las vistas de este almacén son las que resuelven las trampas declaradas del glosario (`v_attempt_dedup`, `v_payment_intent`), y el catálogo tiene que decir cuáles son para que el generador prefiera la vista correcta a la tabla cruda.",
+          "type": "string",
+          "enum": ["table", "view"]
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/column" }
+        }
+      }
+    },
+    "column": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "engine_type",
+        "family",
+        "nullable",
+        "ordinal",
+        "published",
+        "deprecated",
+        "derives_from",
+        "lineage_resolved"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "engine_type": {
+          "description": "El nombre del tipo tal cual lo dio el motor. Se conserva para poder re-serializar y para `qualify()`.",
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "description": "La familia canónica. El guard y el estimador razonan sobre esto y no sobre el nombre del motor: `VARCHAR` y `string` son la misma cosa con dos nombres, y una regla que comparase nombres de motor se rompería el día que entre Athena.",
+          "type": "string",
+          "enum": [
+            "integer",
+            "decimal",
+            "float",
+            "text",
+            "boolean",
+            "date",
+            "timestamp",
+            "time",
+            "blob",
+            "other"
+          ]
+        },
+        "nullable": { "type": "boolean" },
+        "ordinal": { "type": "integer", "minimum": 1 },
+        "published": {
+          "description": "`false` si la política firmada la excluye del catálogo del anillo 1 (cambio C-3 de la firma de Q-003). La columna sigue estando aquí porque el esquema describe lo que EXISTE; publicar es otra decisión, y tenerla permite que `qualify()` sepa a qué tabla pertenece en vez de verla como una columna desconocida.",
+          "type": "boolean"
+        },
+        "deprecated": { "type": "boolean" },
+        "deprecated_reason": { "type": "string" },
+        "derives_from": {
+          "description": "Las `tabla_base.columna` de las que sale. Para una tabla base, ella misma. PARA UNA VISTA, TODAS SUS FUENTES, y ahí está el valor: `v_customer.full_name` es `concat_ws(' ', first_name, last_name_1, last_name_2)` sobre columnas protegidas, es decir, exactamente el ataque por expresión derivada que describe PROJECT.md, servido por el propio catálogo. Sin linaje, una política que casa por `tabla.columna` no lo ve.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-zA-Z_][a-zA-Z0-9_]*$" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "lineage_resolved": {
+          "description": "`false` cuando sqlglot no pudo seguir el linaje —el caso real de este almacén es una CTE RECURSIVA— y `derives_from` lleva el CIERRE de dependencias en vez del origen exacto. Es fail-closed con puntería: más restrictivo que la verdad y menos que un `deny` a ciegas. Se publica porque un límite contado vale más que un límite escondido.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

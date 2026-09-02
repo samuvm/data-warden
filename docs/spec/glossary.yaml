@@ -1,8 +1,22 @@
 # =============================================================================
 # Glosario de negocio de CIERZO
 #
-# BORRADOR PARA REVISIÓN. Lo generó el agente el 2026-08-31 desde el catálogo
-# real. Q-004 de `docs/PARA-SAMUEL.md`.
+# FIRMADO por Samuel el 2026-09-01 al responder Q-004, con cinco correcciones que
+# el agente aplicó el 2026-09-02 y que van marcadas `correccion_firmada:` en la
+# entrada que tocan. Lo generó el agente el 2026-08-31 desde el catálogo real.
+#
+# LAS CINCO CORRECCIONES:
+#   G-1  `pago_valido`: un pago aprobado y luego DEVUELTO sigue siendo válido.
+#   G-2  `ingreso`: se parte en tres métricas con nombre propio —volumen_procesado,
+#        ingreso_bruto y margen_neto— porque llamar «ingreso» a dos cosas es lo que
+#        produce el error, y la tercera faltaba.
+#   G-3  `cliente_activo`: 90 días anclados a `max(date)` del dataset, NUNCA a
+#        `current_date`. Con un dataset congelado, `current_date` es un bug con
+#        fecha de explosión.
+#   G-4  entrada nueva `periodo`: qué es «el mes pasado» sobre un dataset congelado.
+#   G-5  las nueve trampas se firman sin cambios, pero hay que MEDIRLAS de nuevo:
+#        una trampa cuyo número no se ha vuelto a medir desde que se escribió es
+#        folclore. `make dataset-traps` las comprueba y falla si alguna discrepa.
 #
 # QUÉ ES ESTO Y POR QUÉ EXISTE. Se expone como recurso MCP de solo lectura, y es
 # lo único que evita que el modelo ADIVINE la semántica. Sin él, «ingresos del
@@ -10,17 +24,22 @@
 # respuesta equivocada por un 24 %, y la exactitud de la fase 8 baja por razones
 # que no son culpa del sistema.
 #
-# CÓMO SE REVISA. Lo importante no son las descripciones: es la sección
-# `definiciones_criticas`. Ahí están las cuatro preguntas que solo tú puedes
-# contestar porque son criterio de negocio, no cálculo. Si alguna no coincide
-# con lo que tú entiendes, córrígela y el resto se recalcula solo.
+# LO IMPORTANTE SIGUEN SIENDO LAS `definiciones_criticas`: son ahora CINCO
+# preguntas de criterio de negocio, no de cálculo, y todo lo demás se deriva de
+# ellas. La quinta —`periodo`— la pidió Samuel al firmar, y sin ella entre 15 y 20
+# de las 60 preguntas de Q-010 tendrían dos resultsets de referencia igual de
+# legítimos, lo cual se descubre al escribir la número cuarenta.
 # =============================================================================
 
 version: 1
-estado: BORRADOR
+estado: FIRMADO
 generado_por: agente
 generado_el: 2026-08-31
-revisado_por: null
+revisado_por: Samuel
+revisado_el: 2026-09-01     # respuesta a Q-004 en docs/PARA-SAMUEL.md
+correcciones_aplicadas_por: agente
+correcciones_aplicadas_el: 2026-09-02
+correcciones_de_la_firma: [G-1, G-2, G-3, G-4, G-5]
 
 dominio: >-
   CIERZO es una pasarela de pagos europea. Un comercio le envía un intento de
@@ -69,50 +88,129 @@ definiciones_criticas:
 
   pago_valido:
     pregunta: ¿Qué cuenta como «un pago»?
-    definicion_propuesta: >-
+    correccion_firmada: G-1
+    definicion: >-
       Un `payment_intent_id` que terminó en `auth_status = 'approved'` en alguno
       de sus intentos, con `is_test = false`, y tomado UNA sola vez.
     se_calcula: SELECT * FROM v_payment_intent WHERE eventually_approved
+    una_devolucion_no_lo_anula: >-
+      G-1, DE LA FIRMA: **un pago aprobado y luego devuelto SIGUE SIENDO un pago
+      válido.** La devolución es un hecho posterior, vive en `fact_refund` y no
+      reescribe la venta. Sin esta frase, la mitad de las 60 preguntas sobre
+      volumen tienen dos respuestas defendibles, que es la peor forma de que un
+      banco de evaluación mida ruido en vez de exactitud.
     descartado_y_por_que:
       - Contar filas de `fact_payment_attempt`: cuenta los reintentos como ventas.
       - Contar solo el primer intento: pierde los pagos que salieron a la segunda.
+      - >-
+        Restar los devueltos de los válidos: mezcla dos hechos con dos fechas
+        distintas y hace que el número de un mes cerrado cambie meses después.
 
   ingreso:
     pregunta: ¿Qué es «ingreso» — lo que cobra el comercio o lo que gana CIERZO?
-    definicion_propuesta: >-
-      DOS cosas distintas y hay que decir siempre cuál. **Volumen procesado** es
-      `gross_eur_minor`, el dinero que pasó por la pasarela y que NO es de CIERZO.
-      **Ingreso de CIERZO** es `fee_eur_minor`, la comisión de descuento, que sí
-      lo es. De cada 100 € procesados, unos 2,14 € son ingreso.
-    se_calcula: >-
-      volumen  = SELECT sum(gross_eur_minor) FROM fact_settlement_batch
-      ingreso  = SELECT sum(fee_eur_minor)   FROM fact_settlement_batch
+    correccion_firmada: G-2
+    definicion: >-
+      G-2, DE LA FIRMA: que haya dos métricas es correcto; que se llamen «ingreso»
+      las dos es lo que produce el error. **Cada mitad tiene ahora nombre canónico,
+      y la tercera —que no estaba en el borrador— también.** Una métrica que cambia
+      el resultado a la mitad merece un nombre propio, no una nota al pie.
+    metricas_canonicas:
+      volumen_procesado:
+        formula: sum(gross_eur_minor) FROM fact_settlement_batch
+        es_dinero_de_cierzo: false
+        que_es: El dinero que pasó por la pasarela. Es del comercio, no de CIERZO.
+      ingreso_bruto:
+        formula: sum(fee_eur_minor) FROM fact_settlement_batch
+        es_dinero_de_cierzo: true
+        que_es: >-
+          La comisión de descuento cobrada al comercio. De cada 100 € procesados,
+          unos 2,14 € son esto.
+      margen_neto:
+        formula: >-
+          sum(fee_eur_minor - interchange_eur_minor - scheme_fee_eur_minor)
+          FROM fact_settlement_batch
+        es_dinero_de_cierzo: true
+        que_es: >-
+          Lo que queda después de pagar al banco emisor (`interchange`) y a la red
+          de tarjetas (`scheme_fee`). NO estaba en el borrador y hacía falta: el
+          `ojo` avisaba de que restarlos «cambia el resultado a la mitad», y eso es
+          una métrica distinta, no un matiz.
+    regla_de_traduccion: >-
+      La palabra «ingresos» a secas se resuelve como `ingreso_bruto`, **y la
+      respuesta debe decir cuál ha usado**. Un número correcto cuya definición no
+      se declara es un número que el que lo lee entenderá como el otro.
     ojo: >-
       `interchange_eur_minor` va al banco emisor y `scheme_fee_eur_minor` a la
       red de tarjetas: NO son ingreso de CIERZO, son coste que se paga con la
-      comisión cobrada. Restarlos o no cambia el resultado a la mitad.
+      comisión cobrada.
 
   cliente_activo:
     pregunta: ¿Cuándo un cliente está «activo»?
-    definicion_propuesta: >-
-      Un cliente con al menos un pago válido en los últimos 90 días naturales.
+    correccion_firmada: G-3
+    definicion: >-
+      Un cliente con al menos un pago válido en los **90 días naturales
+      anteriores a la fecha de referencia del dataset**, definida en `periodo`.
+    ancla: max_date_del_dataset
+    se_calcula: >-
+      WHERE event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY
+    por_que_90_y_no_30: >-
+      Es el intervalo que corresponde al patrón de una pasarela de pagos genérica y
+      el que hace comparables las cohortes trimestrales. Los 30 días producen una
+      serie demasiado ruidosa con la estacionalidad semanal que el generador inyecta
+      a propósito.
+    nunca_current_date: >-
+      G-3, DE LA FIRMA: «últimos 90 días» se ancla a `max(date)` del dataset y
+      **NUNCA a `current_date`**. Con un dataset sintético congelado, `current_date`
+      hace que la métrica se vacíe sola con el paso del tiempo y que el resultset de
+      referencia de la fase 8 caduque sin que nadie toque una línea. **Es un bug con
+      fecha de explosión, no un matiz.**
     ojo: >-
       El 4,3 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están
       dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y
       cualquier tasa calculada así sale inflada.
-    alternativas_si_no_te_convence:
-      - 30 días, si el negocio se mide mensualmente.
-      - 12 meses, si el patrón de compra es estacional.
 
   comercio_activo:
     pregunta: ¿Cuándo un comercio está «activo»?
-    definicion_propuesta: >-
+    definicion: >-
       La VERSIÓN VIGENTE (`is_current = true`) con `is_active = true` y al menos
       un pago válido en los últimos 30 días.
     ojo: >-
       `dim_merchant` es una dimensión de cambio lento tipo 2: un comercio tiene
       varias filas, una por versión. Unir por `merchant_id` en vez de por
       `merchant_sk` multiplica las filas un 53 % y reescribe la historia.
+
+  periodo:
+    pregunta: ¿Qué es «el mes pasado» sobre un almacén congelado?
+    correccion_firmada: G-4
+    definicion: >-
+      ENTRADA NUEVA, PEDIDA AL FIRMAR. El glosario definía tres granos y cuatro
+      conceptos y no definía el eje del tiempo, que es el que aparece en casi todas
+      las preguntas. Todo periodo relativo —«el mes pasado», «la semana pasada»,
+      «este trimestre», «los últimos 90 días»— se resuelve **contra la fecha de
+      referencia del dataset**, nunca contra el reloj de quien pregunta.
+    fecha_de_referencia:
+      que_es: El último `dim_date.date_key` que TIENE DATOS de hechos.
+      se_calcula: SELECT max(event_date) FROM fact_payment_attempt
+      por_que_no_max_de_dim_date: >-
+        `dim_date` es un calendario y llega más lejos que los hechos. Anclar ahí
+        produciría un «mes pasado» vacío y nadie lo notaría hasta la fase 8.
+    zona_horaria: Europe/Madrid
+    limites: cerrado_por_abajo_abierto_por_arriba     # [inicio, fin)
+    ejemplos:
+      el_mes_pasado: >-
+        Si la fecha de referencia es 2026-08-31, «el mes pasado» es
+        [2026-07-01, 2026-08-01). NO es «los últimos 30 días».
+      la_semana_pasada: >-
+        Semana ISO completa anterior a la que contiene la fecha de referencia:
+        de lunes a lunes, [inicio, fin).
+      los_ultimos_90_dias: >-
+        (referencia - 90 días, referencia]. Es una ventana deslizante y NO un
+        periodo natural; por eso se nombra distinto.
+    por_que_importa: >-
+      Con un dataset congelado hay dos lecturas de cada periodo relativo y la
+      diferencia es del 100 % de las filas. Sin esta entrada, entre 15 y 20 de las
+      60 preguntas de Q-010 tienen dos resultsets de referencia igual de legítimos,
+      y eso se descubre al escribir la número cuarenta.
 
 # =============================================================================
 # MÉTRICAS ESTÁNDAR. Cómo se calcula cada una, y con qué NO confundirla.
@@ -197,6 +295,16 @@ tablas:
   ref_country: Países, con región y divisa.
   ref_city: Ciudades, con coordenadas.
   ref_currency: Divisas, con sus decimales. El forinto húngaro tiene CERO.
+
+# =============================================================================
+# G-5, DE LA FIRMA: las nueve trampas se firman SIN CAMBIOS, y por eso mismo hay
+# que volver a medirlas. Cada porcentaje de abajo es comprobable con una consulta
+# contra `datagen/out/full`, y `make dataset-traps` las mide las nueve y falla si
+# alguna discrepa de lo escrito.
+#
+# «Una trampa cuyo número no se ha vuelto a medir desde que se escribió es
+# folclore.» El fichero de verificación es `evals/reports/dataset-traps.json`.
+# =============================================================================
 
 # =============================================================================
 # TRAMPAS DECLARADAS. Están puestas a propósito: son errores reales de negocio
