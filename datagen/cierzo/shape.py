@@ -227,9 +227,31 @@ def customer_payment_counts(
         delta = total_intents - int(counts.sum())
 
     paying = counts[counts > 0]
+    # P-003-b (Samuel, 2026-09-02). This used to publish a single `never_paid_share`
+    # holding `never.mean()`, and the report printed it as the MEASURED value next to
+    # the target. It is not a measurement of anything downstream: it is the realised
+    # draw of the never-pays cohort, so it tracks the target by construction and always
+    # will. Publishing a target under the name of a measure is the exact error this
+    # project exists to prevent, and the same file already gets this right for merchant
+    # concentration (`top_1pct_measured_on_traffic` vs `top_1pct_share`).
+    #
+    # The three numbers are genuinely different and each is now named for what it is:
+    #   never_paid_target        the design constant. What we asked for.
+    #   never_paid_drawn         the cohort actually drawn. Tracks the target by
+    #                            construction; it is a seed check, not evidence.
+    #   never_paid_zero_attempts customers who end with no ATTEMPT at all, counted off
+    #                            the vector. Equals `drawn` while every payer is forced
+    #                            to >= 1 attempt, and stops equalling it the day that
+    #                            changes -- which is precisely when we want to be told.
+    #
+    # None of the three is the number the glossary declares. What an INNER JOIN drops is
+    # customers with no successful PAYMENT (6,2 %), which is larger because a customer
+    # whose attempts all failed has no row in `v_payment_intent`. That one can only be
+    # counted against the facts, and `scripts/measure_traps.py` does it there.
     stats = {
-        "never_paid_share": float(never.mean()),
         "never_paid_target": config.CUSTOMER_ZERO_PAYMENT_SHARE,
+        "never_paid_drawn": float(never.mean()),
+        "never_paid_zero_attempts": float((counts == 0).mean()),
         "mean_per_paying_customer": float(paying.mean()),
         "median_per_paying_customer": float(np.median(paying)),
         "p90": int(np.percentile(paying, 90)),

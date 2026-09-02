@@ -127,7 +127,7 @@
   },
   "reviewed_by": "Samuel",
   "source": "docs/spec/glossary.yaml",
-  "source_sha256": "6efa46b137247fa6ea413ee9756bff3caea1c572c3b6195a3638d63aabb03bb1",
+  "source_sha256": "85103e18028b52ccc6b9a03543bb8056c279dbd3c0227429cae26514245d6c3a",
   "tables": {
     "bridge_customer_device": "Qué persona usó qué dispositivo. Muchos a muchos en ambos sentidos.",
     "bridge_merchant_account_manager": "Qué gestor lleva qué comercio, con peso y vigencia.",
@@ -156,10 +156,10 @@
   },
   "traps": [
     "Contar ingresos contando filas de `fact_payment_attempt`: **+24 %**.",
-    "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+53 % de filas**.",
+    "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+32 % de filas**.",
     "Unir con `ref_fx_rate_daily` por igualdad de fecha: pierde el **24 %** de los pagos no euro, porque los fines de semana no hay cotización. Se usa el último tipo publicado.",
     "Sumar `disputed_eur_minor` sin filtrar por `is_final_stage`: **+60 %**.",
-    "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **4,3 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila).",
+    "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **6,2 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila).",
     "No filtrar `is_test`: mete un **1,2 %** de tráfico de pruebas en los números de negocio.",
     "Sumar `amount_minor` entre divisas: está en moneda LOCAL. Para sumar, `amount_eur_minor`.",
     "Usar `amount_cents`: es una columna OBSOLETA que discrepa de `amount_minor` en el 0,4 % de las filas.",
