@@ -1,0 +1,46 @@
+{
+  "metas": {
+    "G-FAILCLOSED": {
+      "adicionales": {
+        "entradas arbitrarias ejercitadas": 20000
+      },
+      "command": "pytest tests/property/test_guard_failclosed.py --hypothesis-profile=gate",
+      "detail": {
+        "examples_per_property": 5000,
+        "nota": "El presupuesto de ejemplos vive en el módulo de test y no en el perfil de Hypothesis: un axioma que se pudiera rebajar con una variable de entorno no sería un axioma.",
+        "properties_failed": 0,
+        "properties_passed": 11,
+        "suite": "tests/property"
+      },
+      "value": 0
+    },
+    "G-FAILCLOSED-AST": {
+      "adicionales": {},
+      "command": "python scripts/check_failclosed.py",
+      "detail": {
+        "allowed": [
+          [
+            "validator.py",
+            "validate"
+          ]
+        ],
+        "handlers": [
+          {
+            "file": "query_lineage.py",
+            "function": "resolve",
+            "line": 51,
+            "returns": true
+          },
+          {
+            "file": "validator.py",
+            "function": "validate",
+            "line": 68,
+            "returns": true
+          }
+        ],
+        "problems": []
+      },
+      "value": 0
+    }
+  }
+}

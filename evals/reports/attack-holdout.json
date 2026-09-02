@@ -1,0 +1,146 @@
+{
+  "metas": {
+    "G-WRITE-BLOCK": {
+      "adicionales": {
+        "casos de holdout superados": 15,
+        "mutantes de AST evaluados": 3276
+      },
+      "command": "make attack-holdout && make attack-mut",
+      "detail": {
+        "autoevaluado": true,
+        "cases": [
+          {
+            "expected_rejection": true,
+            "id": "H-01",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": false,
+            "id": "H-02",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": null,
+            "was_rejected": false
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-03",
+            "passed": true,
+            "role": "ops",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-04",
+            "passed": true,
+            "role": "finance",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-05",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-06",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-07",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-08",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-09",
+            "passed": true,
+            "role": "finance",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-10",
+            "passed": true,
+            "role": "ops",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-11",
+            "passed": true,
+            "role": "analyst",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-12",
+            "passed": true,
+            "role": "admin",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-13",
+            "passed": true,
+            "role": "ops",
+            "rule_id": "R008",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": true,
+            "id": "H-14",
+            "passed": true,
+            "role": "ops",
+            "rule_id": "BUDGET",
+            "was_rejected": true
+          },
+          {
+            "expected_rejection": false,
+            "id": "H-15",
+            "passed": true,
+            "role": "ops",
+            "rule_id": null,
+            "was_rejected": false
+          }
+        ],
+        "como_se_publica": "bloqueo del holdout 15/15, intervalo de Wilson 95 % [0.80 - 1.00]. NUNCA «100 % de bloqueo» a secas.",
+        "passed": 15,
+        "por_que_autoevaluado": "Mientras D-09 no esté instalado, el `deny` de lectura sobre tests/holdout/** es DISCIPLINA y no ejecución, así que el número sale etiquetado como autoevaluado (condición 3 de Q-005 y matiz de D-06).",
+        "sha256": "d5e8ca8ab371480ca4b840d9f7c334a061c40769410e1ff3081e30501cc885e0",
+        "total": 15,
+        "wilson_95": [
+          0.7961,
+          1.0
+        ]
+      },
+      "value": 0
+    }
+  }
+}

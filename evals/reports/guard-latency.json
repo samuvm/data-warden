@@ -1,0 +1,27 @@
+{
+  "metas": {
+    "G-GUARD-P95": {
+      "adicionales": {
+        "máximo absoluto (ms) · es además el timeout de fail-closed": 4.082,
+        "p99 (ms)": 1.152
+      },
+      "command": "make bench-guard",
+      "detail": {
+        "aviso": "El número solo significa algo con el hardware de referencia declarado en GOALS.yaml y con UN SOLO proyecto encendido (D-03). Un p95 medido con otro proyecto compitiendo por la memoria no vale.",
+        "machine": "arm64 · Darwin 25.6.0",
+        "max_ms": 4.082,
+        "p50_ms": 0.558,
+        "p95_ms": 0.802,
+        "p99_ms": 1.152,
+        "protocol": {
+          "corpus": 300,
+          "first_discarded": true,
+          "measurements": 500,
+          "warmups": 50
+        },
+        "python": "3.12.4"
+      },
+      "value": 0.802
+    }
+  }
+}

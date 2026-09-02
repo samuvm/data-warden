@@ -1,0 +1,18 @@
+{
+  "metas": {
+    "G-BUDGET-ESCAPE": {
+      "adicionales": {
+        "rechazo por reloj de una consulta cara sobre 3 GB (ms)": 1.18
+      },
+      "command": "pytest tests/property/test_budget_invariant.py && pytest tests/integration/test_budget_wallclock.py",
+      "detail": {
+        "como_se_mide": "Contador de proceso en engines.base: la propiedad exige delta == 0 cuando el coste estimado supera el presupuesto. No se mira el veredicto, se mira si el motor se movió.",
+        "property_suite": "tests/property/test_budget_invariant.py",
+        "tests_failed": 0,
+        "tests_passed": 6,
+        "wallclock_suite": "tests/integration/test_budget_wallclock.py"
+      },
+      "value": 0
+    }
+  }
+}

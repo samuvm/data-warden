@@ -1,0 +1,13 @@
+{
+  "metas": {
+    "G-ROLE-SOURCE": {
+      "adicionales": {},
+      "command": "python scripts/check_role_source.py",
+      "detail": {
+        "files_checked": 49,
+        "problems": []
+      },
+      "value": 0
+    }
+  }
+}

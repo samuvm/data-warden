@@ -1,0 +1,117 @@
+{
+  "evaluated": [
+    {
+      "axiom": false,
+      "blocking_from": 0,
+      "id": "G-COV-FUNC",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 0,
+      "id": "G-COV-LINE",
+      "measured": 98.0,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 90,
+      "unit": "porcentaje"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 0,
+      "id": "G-SECRETS",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 0,
+      "id": "G-CATALOG-FRESH",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 1,
+      "id": "G-CONTRACTS-FROZEN",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 1,
+      "id": "G-RESULTSET-EQ",
+      "measured": 82,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 12,
+      "unit": "count"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 2,
+      "id": "G-WRITE-BLOCK",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 2,
+      "id": "G-WRITE-BLOCK-DEV",
+      "measured": 25,
+      "operator": "==",
+      "passed": true,
+      "threshold": 25,
+      "unit": "count"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 2,
+      "id": "G-FAILCLOSED",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 2,
+      "id": "G-NO-RAW-SQL",
+      "measured": 0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 2,
+      "id": "G-GUARD-P95",
+      "measured": 0.802,
+      "operator": "<=",
+      "passed": true,
+      "threshold": 25,
+      "unit": "ms"
+    }
+  ],
+  "milestone": 2,
+  "passed": true,
+  "problems": []
+}

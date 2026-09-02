@@ -9,15 +9,62 @@ impide que esto llegue a producción es todo lo que va después.
 
 ---
 
-> ## ⚠️ Estado: EN CONSTRUCCIÓN, fase 0 de 10
+> ## ⚠️ Estado: EN CONSTRUCCIÓN · fases 0, 1 y 2 CERRADAS · la 3, construida y sin cerrar
 >
-> Este README dice hoy lo que hay hoy. **Ningún número de este repositorio está
-> publicado como resultado todavía**, porque el sistema que los produciría aún no
-> existe. Lo que sí existe está abajo, con su comando para comprobarlo.
+> Este README dice hoy lo que hay hoy, y cada número lleva **el comando que lo
+> reproduce y el artefacto del que sale**. Los que faltan se dicen también.
 >
-> Cuando haya métricas, se publicarán **con su `n`, su intervalo de confianza y el
-> artefacto del que salen**, salgan como salgan. Es la política de honestidad que
-> gobierna los cinco proyectos, decidida por escrito antes de que doliera.
+> **Todo lo que se publica aquí es AUTOEVALUADO.** El gobierno que aislaría la
+> reserva de quien escribió las reglas (`~/.claude/gates/`, decisión D-09) todavía no
+> está instalado, así que ese aislamiento es hoy **disciplina y no ejecución**, y el
+> número del holdout sale con esa palabra al lado. Es la política de honestidad de los
+> cinco proyectos, decidida por escrito antes de que doliera.
+
+## Los números, medidos
+
+Todos sobre **MacBook Pro M4 Max · macOS 26.5 · arm64**, con un solo proyecto
+encendido (decisión D-03). Los artefactos están en `evals/reports/`.
+
+| Qué | Umbral | Medido | Comando |
+|---|---|---|---|
+| **Bloqueo de evasiones · RESERVA** | 15/15 | **15/15 · Wilson 95 % [0,80 – 1,00]** | `make attack-holdout` |
+| **Bloqueo de evasiones · mutación de AST** | ≥ 2.000 mutantes | **3.497 · cero evasiones** | `make attack-mut` |
+| **Fail-closed del guard** | ≥ 5.000 entradas, 0 excepciones | **20.000 · 0** | `make guard-property` |
+| **Latencia del guard** | p95 ≤ 25 ms | **p95 0,81 ms** · p99 1,1 · máx 3,7 | `make bench-guard` |
+| **Consultas caras que llegan al motor** | 0 | **0** · rechazo de 4,1 GB en **1,2 ms** | `make budget-invariant` |
+| **Calibración del estimador** | p95(real/est.) ≤ 1,5 | **1,077** · 0 casos > 3, n = 60 | `make cost-calibration` |
+| **Cobertura de línea** | ≥ 90 % / ≥ 95 % en `guard/` | **98,0 % / 96,5 %** | `make coverage` |
+| **Un test por función pública** | 0 sin test | **0 de 88** | `make coverage` |
+| **Secretos nuevos** | 0 | **0** | `make secrets` |
+| **Mutación · `guard/rules`** | ≥ 85 % | **50,73 %** ❌ | `make mutation` |
+| **Mutación · resto** | ≥ 70 % | **66,62 %** ❌ | `make mutation` |
+
+**Qué significa «15/15» y qué no.** Los quince casos de la reserva los escribió un
+subagente que **no vio `src/datawarden/guard/`** ni el cuaderno de ataque de
+desarrollo: escribió contra la especificación firmada. Con 15/15 el intervalo de
+Wilson al 95 % es aproximadamente **[0,80 – 1,00]**, y **eso es lo que se publica, no
+«100 % de bloqueo»**. Publicar el punto con n = 15 sería publicar un número sin
+significado. Subir a 30 casos estrecharía el límite inferior a ~0,88 y es la mejor
+compra de credibilidad por hora que le queda al proyecto.
+
+**Y el cuaderno de desarrollo, que sale 25/25, NO se publica como número de
+seguridad.** Las reglas se escribieron para parar esos casos: pasar el 100 % es medir
+sobre el conjunto de entrenamiento.
+
+### Las dos que están en rojo, y por qué
+
+La **mutación** está por debajo de su umbral y la fase 3 no cierra por eso. El motivo
+está medido: sobre una muestra de 80 mutantes supervivientes de `guard/rules`, **el
+55 % son mutaciones que solo cambian el TEXTO de un mensaje de rechazo**, y casi todo
+el resto solo altera cómo se compone ese texto. Matarlos exigiría asertar los mensajes
+palabra por palabra, que es la misma fragilidad que este proyecto prohíbe en otro
+sitio. La propuesta **P-005** pide sacar los textos del alcance de la medida **sin
+bajar ningún umbral**; hasta que se decida, el número se publica como está.
+
+Lo que la mutación **sí** encontró, y ya está arreglado: que el corpus del guard no
+asertaba `position` ni `subject` de los rechazos, y que R013 estaba «probada» por
+casos que en realidad paraban otro mecanismo. Subió de 38,61 % a 50,73 % tapando
+huecos reales.
 
 ## Lo que ya funciona
 
