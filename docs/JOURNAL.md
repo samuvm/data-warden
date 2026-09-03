@@ -1814,3 +1814,91 @@ El servidor MCP en sí: `server/discover`, `tools/list` determinista, `resultTyp
 que es `G-ROLE-SPOOF` y es axioma: un request con `_meta.role="admin"` y
 `arguments.role="admin"` tiene que obtener exactamente los mismos resultados
 enmascarados que el principal real.
+
+---
+
+## 2026-09-03 · gate · `G-SECRETS` es un axioma y su check no podía fallar
+
+**Qué se intentó.**
+Nada, al principio. Al commitear el arreglo del anillo 4 vi que `.secrets.baseline`
+había pasado de 10 a 12 hallazgos **sola**, sin que yo la tocara. Esa es exactamente
+la forma de silenciar un hallazgo que `docs/RULES.md` prohíbe, así que fui a mirar.
+
+**EL FALLO · `detect-secrets scan --baseline X` REESCRIBE X.**
+`check_secrets.py` corría el escaneo contra el fichero versionado y **después**
+comparaba contra ese mismo fichero, ya actualizado por el escaneo. Cualquier hallazgo
+nuevo entraba solo y el script anunciaba «0 hallazgos nuevos». **La medida era su
+propia referencia.**
+
+Verificado plantando una clave RSA privada en un fichero **rastreado**:
+
+```
+check_secrets: ok · 0 hallazgos nuevos · 15 en la línea base, todos auditados
+codigo de salida: 0
+¿la absorbio la linea base? -> 2   (la huella de la clave, dentro)
+```
+
+**Todo `make done` verde desde la fase 0 certificaba «cero secretos» con un check
+incapaz de dar rojo.** No es un fallo en una defensa: es un fallo en la medida que
+dice que la defensa funciona, y por eso me parece el peor de los tres de hoy.
+
+**El arreglo, y la regla vale para cualquier herramienta con línea base.**
+1. **El escaneo nunca escribe sobre el fichero versionado**: se escanea contra una
+   COPIA en un temporal. Lo que está en git es la referencia, y una referencia que la
+   propia medida puede modificar no es una referencia.
+2. **Se comparan HUELLAS, no cuentas.** Uno que aparece y otro que desaparece dejan
+   el total igual, y el que aparece sería un secreto nuevo.
+3. **Un hallazgo nuevo es ROJO.** La línea base no se regenera: se resuelve, o se
+   añade a mano tras auditarlo, que es deliberado y se ve en el diff.
+
+**Dos efectos que aparecieron al arreglarlo, y los dos enseñan algo.**
+- **La propia línea base se detectaba a sí misma.** `scan --baseline fichero` excluye
+  ese fichero solo; al pasarle una copia, el `.secrets.baseline` versionado pasó a ser
+  un fichero más y sus veinte `hashed_secret` salieron como veinte secretos nuevos.
+  Serían veinte falsos positivos en cada pasada, o sea, la presión exacta que acaba
+  con alguien regenerando la línea base. Se excluye explícitamente.
+- **El informe se envenenaba solo.** `evals/reports/secrets.json` guardaba las huellas
+  de los hallazgos, y la pasada siguiente las detectaba como secretos nuevos. Con
+  prefijos de doce caracteres seguía pasando —el detector marca cualquier hexadecimal
+  de esa longitud—, así que el artefacto guarda **qué fichero y de qué tipo** y nada
+  más. La huella se vuelve a obtener corriendo el check.
+
+**La auditoría de lo que había entrado sin permiso.** Restauré `.secrets.baseline` a
+la de `90e093c` (10 hallazgos, los de siempre) y corrí el check arreglado: cuatro
+hallazgos nuevos, todos en artefactos de informe:
+
+| Hallazgo | Qué es | Veredicto |
+|---|---|---|
+| `recovery.json` × 2 | `sha256` de `prompts/nl2sql.md` y `nl2sql-retry.md` | Falso positivo. Es la PROCEDENCIA que el informe publica a propósito: dos números medidos con prompts distintos no se pueden comparar |
+| `tool-choice.json` × 2 | `sha256` de `docs/spec/tools.yaml` | Falso positivo, mismo motivo |
+
+Son digests de ficheros que están en el repositorio: publicarlos no revela nada que
+no pueda calcular cualquiera. Añadidos a mano, uno a uno, y el diff los enseña.
+
+**Y NO se excluye `evals/reports/` del escaneo**, aunque sería lo cómodo y quitaría la
+fricción de golpe. Ahí puede acabar un secreto de verdad: P-008 dice que la pimienta
+del enmascarado viaja como literal dentro del `sql` que se ejecuta, y ese `sql` va al
+registro de auditoría. Recortar la cobertura del escaneo justo donde el proyecto ya
+sabe que hay un secreto sería cambiar un falso positivo molesto por un agujero.
+
+**Números.**
+
+| Meta | Umbral | Antes | Después | Comando |
+|---|---|---|---|---|
+| `G-SECRETS` *(axioma)* | == 0 nuevos | «0» de un check que no podía fallar | **0, con el check comprobado dando rojo ante una clave plantada** | `make secrets` |
+
+**Prueba de que ahora sí falla**, y es la única que vale para un check:
+
+```
+· fuga_de_prueba.py · Private Key · be4fc4886bd9…
+codigo de salida: 1        · y la linea base NO se la traga (grep: 0)
+```
+
+**Decisiones.**
+- **No se añade un script que «absorba» hallazgos.** Sería recrear el peligro con
+  mejor nombre. Añadir a la línea base es un acto manual y auditado, y la fricción es
+  la característica.
+- `make done MILESTONE=6` vuelto a pasar entero con el check estricto: **VERDE**, 20
+  metas. El snapshot nuevo es `.snapshots/milestone-6-20260903T160202Z`.
+
+**Siguiente.** El servidor MCP, que es lo que estaba haciendo cuando esto apareció.
