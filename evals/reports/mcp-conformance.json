@@ -4,7 +4,7 @@
       "adicionales": {},
       "command": "python scripts/check_role_source.py",
       "detail": {
-        "files_checked": 60,
+        "files_checked": 62,
         "problems": []
       },
       "value": 0

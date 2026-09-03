@@ -1,0 +1,720 @@
+{
+  "metas": {
+    "G-RECOVERY": {
+      "adicionales": {
+        "límite inferior del intervalo de Wilson 95 %": 0.6851,
+        "tamaño del corpus de rechazos sembrados": 42.0
+      },
+      "command": "make eval-recovery",
+      "detail": {
+        "cases": [
+          {
+            "attempts": [
+              "SELECT 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1",
+              "SELECT SUM(1) FROM (SELECT 1 FROM dim_customer LIMIT 2200) AS t"
+            ],
+            "family": "bomba_de_ast",
+            "final": "aceptada",
+            "id": "REC-R013-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R013"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer WHERE country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code",
+              "SELECT customer_sk FROM dim_customer WHERE country_code IN ('ES','FR','DE','IT','GB','NL','BE','AT','CH','PT','GR','PL','CZ','HU','RO','BG','HR','SI','SK','EE','LV','LT','FI','SE','DK','NO','IE','LU','MT','CY','IS','LI','MC','SM','VA','AD','MD','UA','BY','RU','KZ','UZ','TJ','KG','TM','AZ','GE','AM','TR','IL','JO','LB','SY','IQ','IR','AF','PK','IN','BD','LK','MV','NP','BT','MM','TH','KH','LA','VN',"
+            ],
+            "family": "entrada_desmesurada",
+            "final": "aceptada",
+            "id": "REC-R013-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R013"
+          },
+          {
+            "attempts": [
+              "SELECT count(*) AS n FROM fact_payment_attempt WHERE merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merch",
+              "SELECT COUNT(*) AS n FROM fact_payment_attempt WHERE merchant_sk IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, "
+            ],
+            "family": "bomba_de_ast",
+            "final": "aceptada",
+            "id": "REC-R013-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R013"
+          },
+          {
+            "attempts": [
+              "DELETE FROM dim_customer WHERE erasure_requested_on IS NOT NULL"
+            ],
+            "family": "escritura_directa",
+            "final": "rechazada",
+            "id": "REC-R010-1",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R010"
+          },
+          {
+            "attempts": [
+              "UPDATE dim_customer SET kyc_status = 'verified'"
+            ],
+            "family": "escritura_directa",
+            "final": "rechazada",
+            "id": "REC-R010-2",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R010"
+          },
+          {
+            "attempts": [
+              "WITH borrados AS (DELETE FROM dim_customer WHERE is_business_account RETURNING customer_sk) SELECT count(*) AS n FROM borrados"
+            ],
+            "family": "escritura_oculta_en_cte",
+            "final": "rechazada",
+            "id": "REC-R010-3",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R010"
+          },
+          {
+            "attempts": [
+              "SELECT count(*) AS n FROM dim_customer; SELECT count(*) AS n FROM dim_merchant",
+              "SELECT COUNT(*) AS n_customers FROM dim_customer, COUNT(*) AS n_merchants FROM dim_merchant",
+              "SELECT COUNT(*) AS n_customers, COUNT(DISTINCT merchant_sk) AS n_merchants FROM dim_customer JOIN dim_merchant ON 1=1",
+              "SELECT COUNT(DISTINCT customer_sk) AS n_customers, COUNT(DISTINCT merchant_sk) AS n_merchants FROM dim_customer JOIN dim_merchant ON 1=1"
+            ],
+            "family": "sentencia_multiple",
+            "final": "rechazada",
+            "id": "REC-R001-1",
+            "model_calls": 3,
+            "recovered": false,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R001"
+          },
+          {
+            "attempts": [
+              "ATTACH 'backup-agosto.db'"
+            ],
+            "family": "comando_de_motor",
+            "final": "rechazada",
+            "id": "REC-R001-2",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R001"
+          },
+          {
+            "attempts": [
+              "EXPLAIN SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code"
+            ],
+            "family": "sentencia_no_consulta",
+            "final": "rechazada",
+            "id": "REC-R001-3",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R001"
+          },
+          {
+            "attempts": [
+              "SELECT table_name FROM information_schema.tables LIMIT 100"
+            ],
+            "family": "enumeracion_de_catalogo",
+            "final": "rechazada",
+            "id": "REC-R014-1",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R014"
+          },
+          {
+            "attempts": [
+              "SELECT column_name FROM information_schema.columns WHERE table_name = 'dim_customer'"
+            ],
+            "family": "esquema_de_sistema",
+            "final": "rechazada",
+            "id": "REC-R014-2",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R014"
+          },
+          {
+            "attempts": [
+              "SELECT name FROM sqlite_master LIMIT 50"
+            ],
+            "family": "esquema_de_sistema",
+            "final": "rechazada",
+            "id": "REC-R014-3",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R014"
+          },
+          {
+            "attempts": [
+              "SELECT count(*) AS n FROM audit_log LIMIT 10",
+              "SELECT COUNT(*) AS n FROM fact_payment_attempt"
+            ],
+            "family": "tabla_fuera_de_ambito",
+            "final": "aceptada",
+            "id": "REC-R004-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R004"
+          },
+          {
+            "attempts": [
+              "SELECT count(*) AS n FROM read_parquet('/data/enero.parquet')"
+            ],
+            "family": "funcion_de_tabla",
+            "final": "rechazada",
+            "id": "REC-R004-2",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R004"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM legacy.dim_customer LIMIT 10"
+            ],
+            "family": "tabla_fuera_de_ambito",
+            "final": "rechazada",
+            "id": "REC-R004-3",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R004"
+          },
+          {
+            "attempts": [
+              "SELECT card_type, count(*) AS n FROM dim_card GROUP BY card_type LIMIT 10",
+              "SELECT card_scheme AS card_type FROM dim_card GROUP BY card_scheme"
+            ],
+            "family": "columna_inexistente",
+            "final": "aceptada",
+            "id": "REC-R004-4",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R004"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer TABLESAMPLE (10 PERCENT) LIMIT 100",
+              "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT",
+              "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT",
+              "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT"
+            ],
+            "family": "construccion_no_analitica",
+            "final": "rechazada",
+            "id": "REC-R002-1",
+            "model_calls": 3,
+            "recovered": false,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R002"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer WHERE country_code = ANY(SELECT country_code FROM ref_country WHERE is_sepa) LIMIT 100",
+              "SELECT customer_sk FROM dim_customer JOIN ref_country ON dim_customer.country_code = ref_country.country_code WHERE ref_country.is_sepa = 1 LIMIT 100"
+            ],
+            "family": "nodo_desconocido",
+            "final": "aceptada",
+            "id": "REC-R002-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R002"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%!_%' ESCAPE '!' LIMIT 100",
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100",
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100",
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100"
+            ],
+            "family": "nodo_desconocido",
+            "final": "rechazada",
+            "id": "REC-R002-3",
+            "model_calls": 3,
+            "recovered": false,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R002"
+          },
+          {
+            "attempts": [
+              "SELECT getenv('HOME') AS h"
+            ],
+            "family": "funcion_de_motor",
+            "final": "rechazada",
+            "id": "REC-R003-1",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R003"
+          },
+          {
+            "attempts": [
+              "SELECT read_text('/etc/config') AS t"
+            ],
+            "family": "lectura_de_fichero",
+            "final": "rechazada",
+            "id": "REC-R003-2",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R003"
+          },
+          {
+            "attempts": [
+              "SELECT current_setting('memory_limit') AS s",
+              "SELECT 0 AS current_memory_limit_bytes"
+            ],
+            "family": "funcion_desconocida",
+            "final": "aceptada",
+            "id": "REC-R003-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R003"
+          },
+          {
+            "attempts": [
+              "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c, dim_merchant AS m LIMIT 100",
+              "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN fact_payment_attempt AS f ON c.customer_sk = f.customer_sk JOIN dim_merchant AS m ON m.merchant_sk = f.merchant_sk GROUP BY c.customer_sk, m.merchant_sk ORDER BY c.customer_sk, m.merchant_sk LIMIT 100"
+            ],
+            "family": "producto_cartesiano",
+            "final": "aceptada",
+            "id": "REC-R005-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R005"
+          },
+          {
+            "attempts": [
+              "SELECT c.customer_sk, d.device_sk FROM dim_customer AS c CROSS JOIN dim_device AS d LIMIT 100",
+              "SELECT c.customer_sk, d.device_sk FROM bridge_customer_device AS c JOIN dim_device AS d ON c.device_sk = d.device_sk"
+            ],
+            "family": "producto_cartesiano",
+            "final": "aceptada",
+            "id": "REC-R005-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R005"
+          },
+          {
+            "attempts": [
+              "SELECT m.trade_name, sum(p.amount_eur_minor) AS total FROM fact_payment_attempt AS p, dim_merchant AS m GROUP BY m.trade_name LIMIT 100",
+              "SELECT m.trade_name, SUM(p.amount_eur_minor) AS total FROM fact_payment_attempt p JOIN dim_merchant m ON p.merchant_sk = m.merchant_sk GROUP BY m.trade_name LIMIT 100"
+            ],
+            "family": "producto_cartesiano",
+            "final": "aceptada",
+            "id": "REC-R005-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R005"
+          },
+          {
+            "attempts": [
+              "SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT customer_sk AS n FROM dim_customer)))))) LIMIT 10",
+              "WITH c1 AS (SELECT customer_sk, 1 AS level FROM dim_customer),\nc2 AS (SELECT customer_sk, level + 1 AS level FROM c1 WHERE level < 8),\nc3 AS (SELECT customer_sk, level + 1 AS level FROM c2 WHERE level < 8),\nc4 AS (SELECT customer_sk, level + 1 AS level FROM c3 WHERE level < 8),\nc5 AS (SELECT customer_sk, level + 1 AS level FROM c4 WHERE level < 8),\nc6 AS (SELECT customer_sk, level + 1 AS level FRO"
+            ],
+            "family": "anidamiento_excesivo",
+            "final": "aceptada",
+            "id": "REC-R007-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R007"
+          },
+          {
+            "attempts": [
+              "WITH a AS (SELECT customer_sk AS n FROM dim_customer), b AS (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM a))))) SELECT n FROM b LIMIT 10",
+              "SELECT customer_sk AS n FROM dim_customer LIMIT 10"
+            ],
+            "family": "anidamiento_excesivo",
+            "final": "aceptada",
+            "id": "REC-R007-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R007"
+          },
+          {
+            "attempts": [
+              "SELECT t.total AS total FROM (SELECT sum(x.v) AS total FROM (SELECT y.v AS v FROM (SELECT z.v AS v FROM (SELECT w.v AS v FROM (SELECT amount_eur_minor AS v FROM fact_payment_attempt) AS w) AS z) AS y) AS x) AS t LIMIT 10",
+              "WITH payments AS (SELECT amount_eur_minor AS v FROM fact_payment_attempt), step1 AS (SELECT SUM(v) AS total FROM payments), final_result AS (SELECT total FROM step1) SELECT total FROM final_result"
+            ],
+            "family": "anidamiento_excesivo",
+            "final": "aceptada",
+            "id": "REC-R007-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R007"
+          },
+          {
+            "attempts": [
+              "SELECT amount_eur_minor AS v FROM fact_payment_attempt UNION ALL VALUES (100), (200)"
+            ],
+            "family": "union_con_datos_inyectados",
+            "final": "rechazada",
+            "id": "REC-R011-1",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R011"
+          },
+          {
+            "attempts": [
+              "SELECT customer_id AS v FROM dim_customer UNION ALL SELECT * FROM (VALUES ('CUS-00000001')) AS t(v) LIMIT 10"
+            ],
+            "family": "union_con_datos_inyectados",
+            "final": "rechazada",
+            "id": "REC-R011-2",
+            "model_calls": 0,
+            "recovered": false,
+            "retryable": false,
+            "role": "analyst",
+            "rule_id": "R011"
+          },
+          {
+            "attempts": [
+              "SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S0' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S1' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S2' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S3' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S4' ",
+              "SELECT auth_status, COUNT(*) AS n_payments FROM fact_payment_attempt GROUP BY auth_status ORDER BY auth_status"
+            ],
+            "family": "demasiadas_ramas",
+            "final": "aceptada",
+            "id": "REC-R011-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R011"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer WHERE birth_date < '1990-01-01' LIMIT 100",
+              "SELECT customer_sk FROM dim_customer WHERE age_band < 1990 LIMIT 100"
+            ],
+            "family": "columna_enmascarada_en_predicado",
+            "final": "aceptada",
+            "id": "REC-R008-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R008"
+          },
+          {
+            "attempts": [
+              "SELECT national_id FROM dim_customer WHERE region_code = 'MD' LIMIT 100",
+              "SELECT customer_sk FROM dim_customer WHERE region_code = 'MD' LIMIT 100"
+            ],
+            "family": "columna_denegada",
+            "final": "aceptada",
+            "id": "REC-R008-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R008"
+          },
+          {
+            "attempts": [
+              "SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
+              "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
+              "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
+              "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100"
+            ],
+            "family": "alias_que_oculta",
+            "final": "rechazada",
+            "id": "REC-R008-3",
+            "model_calls": 3,
+            "recovered": false,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R008"
+          },
+          {
+            "attempts": [
+              "SELECT country_code, avg(age_years) AS media FROM v_customer GROUP BY country_code LIMIT 100",
+              "SELECT country_code, AVG(age_band) AS media_edad FROM dim_customer GROUP BY country_code LIMIT 100"
+            ],
+            "family": "vista_que_reexpone",
+            "final": "aceptada",
+            "id": "REC-R008-4",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R008"
+          },
+          {
+            "attempts": [
+              "SELECT national_id, count(*) AS n FROM dim_customer GROUP BY national_id LIMIT 100",
+              "SELECT d.customer_sk, COUNT(*) AS n FROM dim_customer d GROUP BY d.customer_sk"
+            ],
+            "family": "reidentificacion_por_cardinalidad",
+            "final": "aceptada",
+            "id": "REC-R012-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "admin",
+            "rule_id": "R012"
+          },
+          {
+            "attempts": [
+              "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 5 LIMIT 100",
+              "SELECT country_code, COUNT(*) AS n FROM dim_customer GROUP BY country_code HAVING COUNT(*) >= 5 ORDER BY n ASC LIMIT 100"
+            ],
+            "family": "agregacion_de_grupo_unico",
+            "final": "aceptada",
+            "id": "REC-R012-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R012"
+          },
+          {
+            "attempts": [
+              "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band HAVING count(*) = 1 LIMIT 100",
+              "SELECT age_band FROM dim_customer GROUP BY age_band HAVING COUNT(*) >= 5 ORDER BY COUNT(*) ASC LIMIT 100"
+            ],
+            "family": "agregacion_de_grupo_unico",
+            "final": "aceptada",
+            "id": "REC-R012-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R012"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 900000",
+              "SELECT customer_sk FROM dim_customer WHERE customer_sk BETWEEN 899000 AND 899999 LIMIT 1000"
+            ],
+            "family": "desplazamiento_excesivo",
+            "final": "aceptada",
+            "id": "REC-R006-1",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R006"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer LIMIT (SELECT 5)",
+              "SELECT customer_sk FROM dim_customer LIMIT 100"
+            ],
+            "family": "limite_no_estatico",
+            "final": "aceptada",
+            "id": "REC-R006-2",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R006"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer LIMIT 0",
+              "SELECT customer_sk FROM dim_customer LIMIT 1"
+            ],
+            "family": "limite_no_estatico",
+            "final": "aceptada",
+            "id": "REC-R006-3",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R006"
+          },
+          {
+            "attempts": [
+              "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET (SELECT 1)",
+              "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 100"
+            ],
+            "family": "desplazamiento_excesivo",
+            "final": "aceptada",
+            "id": "REC-R006-4",
+            "model_calls": 1,
+            "recovered": true,
+            "retryable": true,
+            "role": "analyst",
+            "rule_id": "R006"
+          }
+        ],
+        "corpus": 42,
+        "max_retries": 2,
+        "model": {
+          "digest": "203e30078279",
+          "role": "generador",
+          "seed": 20260903,
+          "tag": "qwen3.5:9b-mlx",
+          "temperature": 0.0,
+          "thinking": false
+        },
+        "not_retryable": 14,
+        "per_rule": {
+          "R001": {
+            "recuperables": 1,
+            "recuperados": 0
+          },
+          "R002": {
+            "recuperables": 3,
+            "recuperados": 1
+          },
+          "R003": {
+            "recuperables": 1,
+            "recuperados": 1
+          },
+          "R004": {
+            "recuperables": 2,
+            "recuperados": 2
+          },
+          "R005": {
+            "recuperables": 3,
+            "recuperados": 3
+          },
+          "R006": {
+            "recuperables": 4,
+            "recuperados": 4
+          },
+          "R007": {
+            "recuperables": 3,
+            "recuperados": 3
+          },
+          "R008": {
+            "recuperables": 4,
+            "recuperados": 3
+          },
+          "R011": {
+            "recuperables": 1,
+            "recuperados": 1
+          },
+          "R012": {
+            "recuperables": 3,
+            "recuperados": 3
+          },
+          "R013": {
+            "recuperables": 3,
+            "recuperados": 3
+          }
+        },
+        "problems": [],
+        "prompts": [
+          {
+            "id": "nl2sql",
+            "sha256": "cf5bb72ab1eb80bad12f01f33236e72e1ccf9575a035606c069bda465b3b5e0a",
+            "version": "1"
+          },
+          {
+            "id": "nl2sql-retry",
+            "sha256": "cad02d6435c0d7626ad66ed02b3741fd8af6da60cda8f9085caa93a4b6fd96d8",
+            "version": "1"
+          }
+        ],
+        "provider": "recorded (casetes)",
+        "recoverable": 28,
+        "recovered": 24,
+        "wilson_95": [
+          0.6851,
+          0.943
+        ]
+      },
+      "value": 0.8571
+    },
+    "G-RECOVERY-COV": {
+      "adicionales": {},
+      "command": "python scripts/check_recovery_coverage.py",
+      "detail": {
+        "active_rules": 14,
+        "cases_per_rule": {
+          "R001": 3,
+          "R002": 3,
+          "R003": 3,
+          "R004": 4,
+          "R005": 3,
+          "R006": 4,
+          "R007": 3,
+          "R008": 4,
+          "R010": 3,
+          "R011": 3,
+          "R012": 3,
+          "R013": 3,
+          "R014": 3
+        },
+        "covered": [
+          "R001",
+          "R002",
+          "R003",
+          "R004",
+          "R005",
+          "R006",
+          "R007",
+          "R008",
+          "R009",
+          "R010",
+          "R011",
+          "R012",
+          "R013",
+          "R014"
+        ],
+        "exempt_verified": [
+          "R009"
+        ],
+        "missing": [],
+        "problems": [],
+        "seeded_cases": 42
+      },
+      "value": 100.0
+    }
+  }
+}

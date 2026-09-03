@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 900000",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "enséñame la página novecientos mil del listado de clientes",
+  "rejection_code": "row_limit",
+  "sql": "SELECT customer_sk FROM dim_customer WHERE customer_sk BETWEEN 899000 AND 899999 LIMIT 1000",
+  "thinking": false
+}

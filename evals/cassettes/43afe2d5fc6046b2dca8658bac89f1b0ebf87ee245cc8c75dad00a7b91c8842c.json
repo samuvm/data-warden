@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT COUNT(*) AS n_customers, COUNT(DISTINCT merchant_sk) AS n_merchants FROM dim_customer JOIN dim_merchant ON 1=1",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos clientes hay y cuántos comercios",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT COUNT(DISTINCT customer_sk) AS n_customers, COUNT(DISTINCT merchant_sk) AS n_merchants FROM dim_customer JOIN dim_merchant ON 1=1",
+  "thinking": false
+}

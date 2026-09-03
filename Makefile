@@ -15,6 +15,13 @@ SHELL := /bin/bash
 UV    := uv run
 PKG   := src/datawarden
 PROFILE ?= dev
+MODEL_ROLE ?= generador
+# MODO RAZONADOR APAGADO POR DEFECTO, y es una decisión MEDIDA el 2026-09-03, no una
+# preferencia: sobre cinco correcciones reales del corpus el modelo recuperó 5/5 en
+# los dos modos, y tardó 6 s sin razonar contra 407 s razonando. El modo va al
+# informe porque cambia el número; para volver a medirlo con razonador:
+#   make eval-refresh REFRESH_FLAGS=
+REFRESH_FLAGS ?= --no-think
 
 .DEFAULT_GOAL := help
 .PHONY: help up down warm lint typecheck imports test-fast test test-int \
@@ -27,17 +34,18 @@ PROFILE ?= dev
 
 # -----------------------------------------------------------------------------
 help:
-	@echo "Data Warden · fase 0"
+	@echo "Data Warden · fase 6"
 	@echo ""
 	@echo "  Funciona hoy:"
 	@echo "    lint typecheck imports test-fast test coverage secrets"
 	@echo "    contracts catalog arch-checks goals gate-fast gate-full done"
-	@echo "    dataset dataset-full report clean"
+	@echo "    dataset dataset-full report clean mutation bench bench-guard"
+	@echo "    attack-dev attack-mut attack-holdout pii-suite guard-property"
+	@echo "    cost-calibration budget-invariant dataset-traps eval-recovery"
+	@echo "    eval-refresh (necesita Ollama en el host)"
 	@echo ""
 	@echo "  Declarado y todavía sin implementar (falla con su motivo):"
-	@echo "    up down warm test-int eval eval-refresh eval-recovery eval-toolchoice"
-	@echo "    bench bench-guard cost-calibration mutation attack-dev attack-holdout"
-	@echo "    attack-mut pii-suite mcp-conformance test-parity"
+	@echo "    up down warm test-int eval eval-toolchoice mcp-conformance test-parity"
 
 # --- infraestructura ---------------------------------------------------------
 up down warm:
@@ -66,8 +74,13 @@ test-fast:
 	$(UV) pytest tests/unit tests/property -m "not slow and not integration" \
 		-p no:cacheprovider --hypothesis-profile=dev
 
+# `tests/adversarial` ENTRA aquí desde la fase 6. Estaba declarado en el mapa de
+# docs/RULES.md y no lo corría ningún target: una carpeta de tests que nadie ejecuta
+# es peor que no tenerla, porque parece cubierta. Cuesta milisegundos y es donde vive
+# la inyección de prompt.
 test:
-	$(UV) pytest tests/unit tests/property tests/contract --hypothesis-profile=gate
+	$(UV) pytest tests/unit tests/property tests/contract tests/adversarial \
+		--hypothesis-profile=gate
 
 test-int:
 	@echo "FASE 0: no hay tests de integración todavía (necesitan el motor y el catálogo)."
@@ -82,6 +95,7 @@ test-int:
 # solo se puede cumplir escribiendo tests que no tocan lo que importa.
 coverage:
 	$(UV) pytest tests/unit tests/property tests/contract tests/integration \
+		tests/adversarial \
 		--cov --cov-context=test --cov-report=term-missing \
 		--cov-report=json:evals/reports/coverage-contexts.json
 	$(UV) python scripts/check_gate_config.py
@@ -132,9 +146,23 @@ goals:
 	$(UV) python scripts/goals_check.py --milestone $(MILESTONE)
 
 # --- evaluación --------------------------------------------------------------
-eval eval-refresh eval-recovery eval-toolchoice:
-	@echo "FASE 8: la evaluación necesita el banco de 60 preguntas (Q-010) y el"
-	@echo "ciclo NL->SQL, que es fase 6. Nada de esto existe."
+# `G-RECOVERY` desde la CACHÉ GRABADA: determinista, gratis y repetible en otra
+# máquina sin modelo. Un fallo de caché es un ERROR, nunca una llamada al modelo:
+# si cayera al modelo local, la evaluación dejaría de ser determinista sin avisar y
+# el número saldría de una mezcla de grabado y generado que nadie puede reproducir.
+eval-recovery:
+	$(UV) python scripts/eval_recovery.py
+	$(UV) python scripts/check_recovery_coverage.py
+
+# Lo único que llama al modelo. Exige Ollama EN EL HOST con el modelo de Q-007
+# fijado por digest en models.lock; tarda minutos y regraba las casetes.
+eval-refresh:
+	$(UV) python scripts/eval_recovery.py --refresh --model-role $(MODEL_ROLE) $(REFRESH_FLAGS)
+
+eval eval-toolchoice:
+	@echo "FASE 8: la evaluación de exactitud necesita el banco de 60 preguntas"
+	@echo "(Q-010, respondida y pendiente de las horas de Samuel). `eval-toolchoice`"
+	@echo "necesita además el servidor MCP, que es la fase 7."
 	@exit 1
 
 # --- rendimiento -------------------------------------------------------------

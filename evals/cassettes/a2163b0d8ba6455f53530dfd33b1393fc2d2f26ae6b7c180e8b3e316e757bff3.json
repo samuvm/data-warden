@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT national_id, count(*) AS n FROM dim_customer GROUP BY national_id LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos registros hay por cada dni",
+  "rejection_code": "group_too_small",
+  "sql": "SELECT d.customer_sk, COUNT(*) AS n FROM dim_customer d GROUP BY d.customer_sk",
+  "thinking": false
+}

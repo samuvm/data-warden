@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c, dim_merchant AS m LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "enséñame clientes y comercios juntos",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN fact_payment_attempt AS f ON c.customer_sk = f.customer_sk JOIN dim_merchant AS m ON m.merchant_sk = f.merchant_sk GROUP BY c.customer_sk, m.merchant_sk ORDER BY c.customer_sk, m.merchant_sk LIMIT 100",
+  "thinking": false
+}

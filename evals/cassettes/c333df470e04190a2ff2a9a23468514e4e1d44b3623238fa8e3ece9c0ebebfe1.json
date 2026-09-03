@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT count(*) AS n FROM audit_log LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántas entradas tiene el registro de auditoría",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT COUNT(*) AS n FROM fact_payment_attempt",
+  "thinking": false
+}

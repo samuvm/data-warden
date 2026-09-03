@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT national_id FROM dim_customer WHERE region_code = 'MD' LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "el dni de los clientes de la región de madrid",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk FROM dim_customer WHERE region_code = 'MD' LIMIT 100",
+  "thinking": false
+}

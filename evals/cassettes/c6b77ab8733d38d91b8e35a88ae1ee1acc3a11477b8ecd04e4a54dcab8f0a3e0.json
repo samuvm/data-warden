@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "los clientes ordenados por su nombre de pila",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
+  "thinking": false
+}

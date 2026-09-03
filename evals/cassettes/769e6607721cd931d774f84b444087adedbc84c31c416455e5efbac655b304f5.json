@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "los clientes cuyo código de región lleve un guion bajo literal",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100",
+  "thinking": false
+}

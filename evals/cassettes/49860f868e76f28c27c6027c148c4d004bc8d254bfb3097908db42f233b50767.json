@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT count(*) AS n FROM dim_customer; SELECT count(*) AS n FROM dim_merchant",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos clientes hay y cuántos comercios",
+  "rejection_code": "unparseable_input",
+  "sql": "SELECT COUNT(*) AS n_customers FROM dim_customer, COUNT(*) AS n_merchants FROM dim_merchant",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT m.trade_name, sum(p.amount_eur_minor) AS total FROM fact_payment_attempt AS p, dim_merchant AS m GROUP BY m.trade_name LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "el importe total de pagos por nombre comercial",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT m.trade_name, SUM(p.amount_eur_minor) AS total FROM fact_payment_attempt p JOIN dim_merchant m ON p.merchant_sk = m.merchant_sk GROUP BY m.trade_name LIMIT 100",
+  "thinking": false
+}

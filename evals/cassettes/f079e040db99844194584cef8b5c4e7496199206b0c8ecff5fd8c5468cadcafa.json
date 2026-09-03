@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer WHERE birth_date < '1990-01-01' LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos clientes nacieron antes de 1990",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk FROM dim_customer WHERE age_band < 1990 LIMIT 100",
+  "thinking": false
+}
