@@ -1,0 +1,6 @@
+{
+  "statement": "Un vistazo rápido a ref_decline_reason",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "sample_table"
+}

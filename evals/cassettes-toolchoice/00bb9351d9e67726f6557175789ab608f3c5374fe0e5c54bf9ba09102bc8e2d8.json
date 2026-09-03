@@ -1,0 +1,6 @@
+{
+  "statement": "¿fact_dispute tiene una fila por disputa o por etapa?",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "sample_table"
+}

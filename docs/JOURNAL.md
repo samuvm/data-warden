@@ -1723,3 +1723,94 @@ comprueba que la alternativa que una justificación recomienda siga siendo `allo
 contra la spec 2026-07-28 (`G-MCP-CONFORM`, 11 puntos), donde vuelve a aparecer la otra
 mitad de lo adversarial de esta fase —instrucciones dentro de un parámetro de tool— y
 donde el catálogo completo se sirve como recurso.
+
+---
+
+## 2026-09-03 · fase 7 · el anillo 4 no estaba en el camino, y el axioma lo certificaba igual
+
+**Qué se intentó.**
+Arrancar la fase 7: contrato de las cuatro herramientas MCP (`docs/spec/tools.yaml`),
+los 20 escenarios de Q-008 con su evaluador, y el servidor. Leyendo `AuditedExecutor`
+para saber por dónde iba a colgar las tools, apareció otra cosa.
+
+**LA FUGA · el único camino auditado al motor no enmascaraba.**
+`AuditedExecutor` es, por I-06 y por contrato de import-linter, **el único camino a
+`Engine.execute()`**. Llamaba a `screen()` —anillos 2 y 3, guard y presupuesto— y se
+saltaba el 4. Medido ejecutando contra `datagen/out/cierzo-dev.duckdb`, rol `analyst`:
+
+```
+SELECT first_name FROM dim_customer  ->  ('Ermenegildo',) ('Federica',) ('Nicanor',)
+SELECT email      FROM dim_customer  ->  ('ermenegildobenigni9523@me.com',) ...
+columns_masked en el registro         ->  ()
+```
+
+Nombres y correos **reales** para un rol cuya política dice `mask`. Y el registro de
+auditoría lo estaba diciendo en cada línea, con un `columns_masked: []` que era
+exacto y que nadie leía.
+
+**Y `G-PII-LEAK` —AXIOMA, `propuesta_admisible: false`— pasaba con 0 fugas en 177
+comprobaciones.** No por un fallo de la suite: `pii_suite.py` medía
+`screen_and_mask()`, que enmascara perfectamente. Medía **un camino que el sistema no
+usa para ejecutar**.
+
+Esto es peor que el fallo del estimador de coste, y por un motivo concreto: allí el
+anillo no se medía contra la realidad; aquí se medía muy bien, **contra la realidad
+equivocada**. Un verde salido de una ruta paralela es mucho más difícil de dudar que
+un número que falta. Lo encontré leyendo imports, no midiendo — y eso es exactamente
+lo que me preocupa del hallazgo.
+
+**El arreglo, en tres piezas y ninguna sobra.**
+1. `AuditedExecutor` pasa por `screen_and_mask()`, conservando el orden: enmascarar
+   **después** de presupuestar, porque reescribir antes cambiaría el árbol que el
+   estimador tarifó y el coste publicado dejaría de ser el de lo ejecutado.
+2. **`mask` es obligatorio y sin valor por defecto.** Con uno opcional el fallo vuelve
+   el día que alguien se olvide de pasarlo, y vuelve en silencio. Hay un test que
+   comprueba que construirlo sin máscara es un `TypeError`.
+3. `pii_suite.py` mide **por el ejecutor**, y `scripts/check_mask_path.py` comprueba
+   sobre el AST que quien llega al motor llama a `screen_and_mask` y **no tiene
+   `screen` a mano**. Verificado reintroduciendo el fallo a propósito: los tres
+   avisos saltan. El contrato de import-linter no podía expresarlo —`audit` puede
+   importar `cost`, y debe—, igual que no podía expresar I-06 hasta que se enumeró
+   quién NO puede tocar `engines`.
+
+**Números.**
+
+| Meta | Umbral | Antes | Después | Comando |
+|---|---|---|---|---|
+| `G-PII-LEAK` *(axioma)* | == 0 | 0 fugas **por el camino que no se ejecuta** | **0 fugas en 177, por `AuditedExecutor`** | `make pii-suite` |
+| `G-MASK-PATH` (nuevo, arquitectura) | == 0 | — | **0** | `python scripts/check_mask_path.py` |
+| `G-TOOL-CHOICE` | >= 18 de 20 | — | **20 / 20** | `make eval-toolchoice` |
+| ídem · **línea base** | (no había) | — | **18 / 20** | ídem |
+
+Juez `gemma4:12b-mlx` (`117d0d84cf2a`), temperatura 0, razonador apagado. El juez
+nunca es el modelo que genera: usar el mismo infla la métrica de forma sistemática.
+
+**EL OTRO HALLAZGO · `G-TOOL-CHOICE` se cumple sin haber diseñado nada.**
+Después de sacar 20/20 con las descripciones del contrato, medí el control negativo:
+las mismas 20 preguntas con cuatro descripciones de una línea que no dicen qué
+devuelven ni cuándo NO usarlas («Ejecuta una consulta SQL sobre el almacén», etc.).
+**Sacan 18 de 20, que es exactamente el umbral.** La prueba sí discrimina —las dos
+que falla son TC-06, el grano de una tabla, y TC-17, el ambiguo del conteo ya
+publicado— pero el listón está puesto en el suelo de no hacer nada. El control queda
+declarado en la suite y el informe publica `baseline_hits` y `margin_over_baseline`
+junto al número; la propuesta de subir el umbral es **P-009**, PENDIENTE, y no
+bloquea nada porque la meta se cumple hoy.
+
+**Decisiones.**
+- **Las descripciones de las tools se escriben con tres reglas**, y las tres salen de
+  que el modelo no ve nada más: decir qué DEVUELVE y no qué hace por dentro; decir
+  cuándo NO usarla y a cuál ir en su lugar; y no usar la palabra que usaría el
+  enunciado —si `explain_cost` dijera «úsala cuando pregunten por el coste», TC-20
+  («¿merece la pena que lance esto?») mediría una coincidencia de palabra—.
+- **Los 20 escenarios siguen con `provenance: agente_propuesto`.** Samuel aceptó el
+  borrador (Q-008) y le queda corregir la columna «correcta», 45 min. Hasta entonces
+  el 20/20 es el agente puntuándose contra su propia respuesta correcta, y tanto el
+  script como el informe lo dicen en voz alta.
+
+**Siguiente.**
+El servidor MCP en sí: `server/discover`, `tools/list` determinista, `resultType`,
+`ttlMs`/`cacheScope`, MRTR para el presupuesto `soft`, stdio + Streamable HTTP, y
+`traceparent` desde `_meta` como DATO. Y `tests/adversarial/test_role_spoofing.py`,
+que es `G-ROLE-SPOOF` y es axioma: un request con `_meta.role="admin"` y
+`arguments.role="admin"` tiene que obtener exactamente los mismos resultados
+enmascarados que el principal real.

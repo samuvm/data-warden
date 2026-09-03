@@ -1,0 +1,6 @@
+{
+  "statement": "¿Cuántas filas tiene fact_payment_attempt?",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "describe_table"
+}

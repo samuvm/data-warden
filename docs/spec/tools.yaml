@@ -1,0 +1,129 @@
+# =============================================================================
+# Las cuatro herramientas MCP · contrato propio del proyecto
+#
+# ESTE FICHERO ES LO QUE `G-TOOL-CHOICE` MIDE. La prueba es esta: se le dan a un
+# modelo SOLO las descripciones de abajo —sin catálogo, sin glosario, sin ejemplos—
+# y se comprueba que elige la herramienta correcta en >= 18 de 20 escenarios. Casi
+# nadie hace esa prueba, y es puro diseño de MCP.
+#
+# LA REGLA DE REACCIÓN, que está en `GOALS.yaml` y conviene repetir en voz alta:
+# **si el número sale por debajo de 18, lo que se arregla es la DESCRIPCIÓN, no el
+# umbral ni el escenario.** El defecto está en el diseño del servidor, que es justo
+# lo que la prueba existe para medir. Por eso la meta es «negociable hacia arriba
+# solo».
+#
+# CÓMO ESTÁ ESCRITA CADA DESCRIPCIÓN, y las tres reglas salen de que el modelo no
+# ve nada más que esto:
+#   1. Dice qué DEVUELVE, no qué hace por dentro. «Ejecuta SQL» no ayuda a elegir;
+#      «devuelve filas agregadas» sí.
+#   2. Dice cuándo NO usarla y a cuál ir en su lugar. La mitad de los errores de
+#      elección son entre dos herramientas vecinas, y el desempate tiene que estar
+#      escrito en las dos.
+#   3. No usa la palabra que el enunciado usaría. Si `explain_cost` dijera «úsala
+#      cuando pregunten por el coste», la prueba mediría la coincidencia de una
+#      palabra y no la comprensión de la intención — y el escenario 20 («¿merece la
+#      pena que lance esto?») existe precisamente para cazar eso.
+#
+# La spec MCP 2026-07-28 exige `inputSchema` y `outputSchema` en JSON Schema
+# 2020-12. El `outputSchema` usa `oneOf` entre `rows` y `rejected`: **un rechazo no
+# es un error del protocolo, es una respuesta legítima del sistema**, y modelarlo
+# como error haría que un cliente lo tratara como un fallo que reintentar en vez de
+# como un motivo que leer.
+# =============================================================================
+
+version: 1
+estado: BORRADOR          # BORRADOR | FIRMADO — solo Samuel escribe FIRMADO
+generado_por: agente
+generado_el: 2026-09-03
+
+# El orden de `tools/list` es DETERMINISTA y es este. La spec lo exige y además es
+# un check de CI barato: un orden que depende de un diccionario cambia entre
+# ejecuciones y convierte cualquier snapshot en ruido.
+orden: [run_query, describe_table, sample_table, explain_cost]
+
+herramientas:
+
+  - nombre: run_query
+    titulo: Responder una pregunta con datos
+    descripcion: >-
+      Devuelve el resultado de una pregunta sobre los datos del almacén: recuentos,
+      sumas, medias, rankings y series temporales, con los filtros que la pregunta
+      pida. Es la herramienta para cualquier petición cuya respuesta sea un número o
+      un conjunto de filas calculado a partir de una condición.
+      No la uses si lo que se pide es el ESQUEMA de una tabla —qué columnas tiene,
+      qué significan, cómo se une— porque eso ya está publicado y leerlo no cuesta
+      un escaneo: para eso está describe_table. Tampoco si solo se quiere ver la
+      pinta de los valores sin ninguna condición: para eso está sample_table.
+    lee_datos: true
+    escanea: true
+    resultado: filas o rechazo
+
+  - nombre: describe_table
+    titulo: Qué hay en una tabla y cómo se usa
+    descripcion: >-
+      Devuelve la ficha publicada de una tabla: sus columnas con el tipo y el
+      significado de cada una, el grano —qué representa una fila—, las claves por
+      las que se une con otras, y el número de filas que el catálogo tiene
+      registrado. No lee ni una fila del almacén y no cuesta escaneo.
+      Es el primer movimiento razonable sobre una tabla que no se conoce, antes de
+      pedir datos de ella. No la uses cuando la respuesta exija calcular algo sobre
+      los valores o filtrar por una condición: eso es run_query.
+    lee_datos: false
+    escanea: false
+    resultado: ficha de tabla
+
+  - nombre: sample_table
+    titulo: Ver qué pinta tienen los valores
+    descripcion: >-
+      Devuelve unas pocas filas tal cual de una tabla, sin condición ninguna, para
+      hacerse una idea de la forma de los valores: qué aspecto tienen los códigos,
+      qué categorías aparecen, si un campo viene relleno o vacío. Las columnas
+      personales salen enmascaradas igual que en cualquier otra respuesta.
+      No la uses si la petición trae una condición —un periodo, un país, un
+      umbral—, aunque esté redactada como «enséñame»: en cuanto hay un filtro, la
+      respuesta se calcula y eso es run_query. Y si lo que se busca es el
+      significado de las columnas y no sus valores, es describe_table.
+    lee_datos: true
+    escanea: true
+    resultado: filas o rechazo
+
+  - nombre: explain_cost
+    titulo: Qué va a consumir antes de lanzarla
+    descripcion: >-
+      Estima, sin ejecutar nada, cuántos bytes leería y cuántas filas escanearía una
+      consulta, y dice si eso cabe en lo que el rol de quien pregunta tiene
+      asignado. Sirve para decidir si conviene lanzar una consulta pesada, para
+      entender por qué una petición fue rechazada por consumo, o para comparar dos
+      formas de escribir lo mismo.
+      No devuelve datos ni responde la pregunta: solo dice lo que costaría
+      responderla. Si lo que se quiere es la respuesta, es run_query.
+    lee_datos: false
+    escanea: false
+    resultado: estimación
+
+# -----------------------------------------------------------------------------
+# El recurso. El catálogo COMPLETO se sirve como recurso MCP y no dentro del
+# prompt: 32 tablas y 428 columnas no caben cómodas en un prompt, y meterlas
+# obligaría a recortarlas justo cuando el modelo necesita el esquema entero.
+#
+# `ttlMs` y `cacheScope` son OBLIGATORIOS en los `list` de la spec 2026-07-28.
+# El TTL es de una hora porque el catálogo se REGENERA (I-07) y `G-CATALOG-FRESH`
+# ya vigila que no se quede viejo; el ámbito es `public` porque el catálogo
+# publicado es el mismo para todos los roles — lo que cambia por rol es la
+# POLÍTICA sobre las columnas, no la lista de tablas.
+# -----------------------------------------------------------------------------
+recursos:
+  - uri: "warden://catalog"
+    nombre: catalogo
+    mime: application/json
+    ttl_ms: 3600000
+    cache_scope: public
+    descripcion: >-
+      El catálogo generado completo: tablas, columnas, tipos y linaje. Es el mismo
+      artefacto contra el que valida el guard.
+
+cache_hints:
+  server/discover: {ttl_ms: 3600000, scope: public}
+  tools/list: {ttl_ms: 3600000, scope: public}
+  resources/list: {ttl_ms: 3600000, scope: public}
+  resources/read: {ttl_ms: 3600000, scope: public}

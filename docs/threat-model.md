@@ -200,10 +200,14 @@ garantía es la capa 2, y es la misma de siempre: *no hace falta que el modelo s
 
 ---
 
-## 5. Un fallo real, y por qué está aquí
+## 5. Dos fallos reales, y por qué están aquí
 
-Un modelo de amenaza que solo enumera defensas se lee como publicidad. Este es un fallo que el
-proyecto tuvo, medido y corregido:
+Un modelo de amenaza que solo enumera defensas se lee como publicidad. Estos son dos fallos que el
+proyecto tuvo, medidos y corregidos. El segundo es el que más enseña.
+
+### 5.1 · El estimador de coste cobraba CERO por una tabla de 4,1 GB
+
+
 
 **El estimador de coste cobraba CERO por una tabla de 4,1 GB.** El `repr` de un `Record` de
 pyiceberg tiene la forma `Record[19967]`, y usarlo como clave de partición producía particiones
@@ -217,3 +221,33 @@ eso `G-COST-CALIB` existe y por eso `GOALS.yaml` dice que sin ella `G-BUDGET-ESC
 
 La lección que este documento hereda: **un anillo que no se mide contra la realidad no es un
 anillo.**
+
+### 5.2 · El anillo 4 no estaba en el camino, y el axioma lo certificaba igual
+
+**`AuditedExecutor` es el ÚNICO camino sancionado a `Engine.execute()` (I-06) y llamaba a
+`screen()`** —anillos 2 y 3, guard y presupuesto—, saltándose el 4. Es decir: el sistema entero
+devolvía **nombres y direcciones de correo reales** al rol `analyst`, para el que la política dice
+`mask`. El registro de auditoría lo estaba diciendo en cada línea, con un `columns_masked: []` que
+era exacto y que nadie leía.
+
+**Y `G-PII-LEAK` —que es un AXIOMA, `propuesta_admisible: false`— pasaba con 0 fugas en 177
+comprobaciones.** No por un fallo de la suite: `scripts/pii_suite.py` medía `screen_and_mask()`,
+que enmascara perfectamente. Medía **un camino que el sistema no usa para ejecutar**.
+
+Eso es peor que el fallo del estimador de coste de §5.1, y por un motivo concreto: allí el anillo no
+se medía contra la realidad; aquí **se medía muy bien, contra la realidad equivocada**. Un número
+verde salido de una ruta paralela es más difícil de dudar que un número que falta.
+
+**Qué lo corrigió, en tres piezas y ninguna sobra:**
+
+1. `AuditedExecutor` pasa por `screen_and_mask()`. El orden importa y se conserva: enmascarar
+   **después** de presupuestar, porque reescribir antes cambiaría el árbol que el estimador tarifó.
+2. **`mask` es un argumento obligatorio y sin valor por defecto.** Con uno opcional, el fallo vuelve
+   el día que alguien construya un ejecutor y se olvide de pasarlo — y vuelve en silencio.
+3. **`scripts/pii_suite.py` mide ahora POR el ejecutor**, y `scripts/check_mask_path.py` comprueba
+   sobre el AST que quien llega al motor llama a `screen_and_mask` y no tiene `screen` a mano. El
+   contrato de import-linter no podía expresarlo: `audit` puede importar `cost`, y debe.
+
+**La lección, que es distinta de la de §5.1:** *no basta con medir un anillo; hay que medirlo por el
+camino que se ejecuta.* Una evaluación que llama a la función correcta desde el sitio equivocado
+certifica algo cierto sobre código que nadie corre.

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import tempfile
 from dataclasses import dataclass
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -58,6 +59,8 @@ class Leak:
 
 
 def main() -> int:
+    from datawarden.audit.executor import AuditedExecutor
+    from datawarden.audit.store import AuditStore
     from datawarden.catalog import SCHEMA_PATH, load_generated
     from datawarden.catalog.statistics import load as load_stats
     from datawarden.cost import STATISTICS_PATH
@@ -65,7 +68,6 @@ def main() -> int:
     from datawarden.engines.duckdb_engine import DuckDBEngine
     from datawarden.mask.config import MaskConfig
     from datawarden.mask.macro import macro_ddl
-    from datawarden.mask.pipeline import screen_and_mask
     from datawarden.principal import BUDGETS_PATH, POLICY_PATH
     from datawarden.principal.budgets import load_budgets
     from datawarden.principal.policy import Level, load_policy
@@ -86,20 +88,35 @@ def main() -> int:
     config = MaskConfig(pepper=GATE_PEPPER)
     engine = DuckDBEngine(database, setup_sql=(macro_ddl(config),))
 
+    # **SE MIDE POR EL CAMINO QUE SE EJECUTA, y esto ES el arreglo.**
+    #
+    # Esta suite llamaba a `screen_and_mask()` y ejecutaba el resultado a mano. Daba
+    # 0 fugas en 177 comprobaciones y era verdad — de un camino que el sistema no
+    # usa. `AuditedExecutor` es el ÚNICO camino sancionado al motor (I-06) y llamaba
+    # a `screen()`, saltándose el anillo 4: devolvía nombres y correos REALES a
+    # `analyst`, y su propio registro lo decía con un `columns_masked: []` que nadie
+    # leía. El axioma pasaba porque la medida iba por otro sitio.
+    #
+    # `docs/threat-model.md §5` ya lo tenía escrito para el estimador de coste: «un
+    # anillo que no se mide contra la realidad no es un anillo». Aquí el anillo se
+    # medía, pero sobre un camino distinto del que corre, que es la misma trampa con
+    # un disfraz mejor.
+    executor = AuditedExecutor(
+        engine=engine,
+        store=AuditStore(pathlib.Path(tempfile.mkdtemp()) / "pii-suite.sqlite"),
+        schema=schema,
+        policy=policy,
+        budgets=budgets,
+        stats=stats,
+        mask=config,
+    )
+
     def run(sql: str, role: Role) -> tuple[object, str]:
         who = Principal(id=f"pii-{role.value}", role=role, source=RoleSource.CLI_FLAG)
-        out = screen_and_mask(
-            sql,
-            principal=who,
-            schema=schema,
-            policy=policy,
-            budgets=budgets,
-            stats=stats,
-            config=config,
-        )
-        if out.query is None:
+        result = executor.run(sql, principal=who)
+        if result.rejection is not None:
             return None, "rechazada"
-        return engine.execute(out.query), "ejecutada"
+        return result.rows, "ejecutada"
 
     leaks: list[Leak] = []
     checked = {"proyeccion": 0, "predicado": 0, "agregacion": 0}

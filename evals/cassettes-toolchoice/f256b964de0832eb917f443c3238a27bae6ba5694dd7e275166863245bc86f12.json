@@ -1,0 +1,6 @@
+{
+  "statement": "Tasa de aprobación por adquirente de la semana pasada",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "run_query"
+}

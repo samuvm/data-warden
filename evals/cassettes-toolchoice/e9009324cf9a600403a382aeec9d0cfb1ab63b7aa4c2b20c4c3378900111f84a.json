@@ -1,0 +1,6 @@
+{
+  "statement": "Enséñame los pagos de ayer",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "run_query"
+}

@@ -1,0 +1,6 @@
+{
+  "statement": "Top 10 comercios por volumen procesado en 2026",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "run_query"
+}

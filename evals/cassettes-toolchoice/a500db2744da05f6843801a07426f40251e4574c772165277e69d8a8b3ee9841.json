@@ -1,0 +1,6 @@
+{
+  "statement": "¿Qué columnas tiene fact_settlement_batch y qué significa cada una?",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "describe_table"
+}
