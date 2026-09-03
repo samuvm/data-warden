@@ -199,9 +199,39 @@
       "passed": true,
       "threshold": 100,
       "unit": "porcentaje"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 7,
+      "id": "G-MCP-CONFORM",
+      "measured": 11.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 11,
+      "unit": "count"
+    },
+    {
+      "axiom": true,
+      "blocking_from": 7,
+      "id": "G-ROLE-SPOOF",
+      "measured": 0.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 7,
+      "id": "G-TOOL-CHOICE",
+      "measured": 20.0,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 18,
+      "unit": "count"
     }
   ],
-  "milestone": 6,
+  "milestone": 7,
   "passed": true,
   "problems": []
 }

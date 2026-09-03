@@ -220,8 +220,14 @@ guard-property:
 pii-suite:
 	$(UV) python scripts/pii_suite.py
 
-mcp-conformance test-parity:
-	@echo "FASE 7 y 9: no hay servidor MCP ni segundo motor todavía."
+# Los 11 puntos de la spec 2026-07-28. Se comprueban las AUSENCIAS igual que las
+# presencias: un servidor que arrastre `initialize` funciona contra un cliente viejo
+# y falla contra uno nuevo, que es la peor forma de fallar.
+mcp-conformance:
+	$(UV) python scripts/mcp_conformance.py
+
+test-parity:
+	@echo "FASE 9: no hay segundo motor todavía."
 	@exit 1
 
 # Las nueve trampas del glosario, MEDIDAS. Nace de la corrección G-5 de la firma
