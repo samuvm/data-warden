@@ -40,6 +40,7 @@ from datawarden.domain.types import (
     ValidatedQuery,
 )
 from datawarden.engines.base import RecordingEngine, count_execution, executions
+from datawarden.mask.config import MaskConfig
 from datawarden.principal import BUDGETS_PATH, POLICY_PATH
 from datawarden.principal.budgets import load_budgets
 from datawarden.principal.policy import load_policy
@@ -103,6 +104,13 @@ class _MotorRoto:
         raise RuntimeError(message)
 
 
+#: La máscara es OBLIGATORIA en el ejecutor desde el 2026-09-03, y sin defecto a
+#: propósito: llamaba a `screen()` y se saltaba el anillo 4, así que el único camino
+#: sancionado al motor devolvía nombres y correos reales. Un parámetro opcional habría
+#: dejado que el fallo volviera con solo olvidarse de pasarlo.
+_MASK = MaskConfig(pepper="pimienta-de-pruebas-de-treinta-y-dos-o-mas")
+
+
 def _ejecutor(stats: Statistics, engine: object | None = None) -> AuditedExecutor:
     return AuditedExecutor(
         engine=engine or RecordingEngine(rows=2),
@@ -111,6 +119,7 @@ def _ejecutor(stats: Statistics, engine: object | None = None) -> AuditedExecuto
         policy=_POLICY,
         budgets=_BUDGETS,
         stats=stats,
+        mask=_MASK,
     )
 
 

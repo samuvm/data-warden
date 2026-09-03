@@ -1,0 +1,6 @@
+{
+  "statement": "Antes de lanzarla, ¿cuánto va a escanear esta consulta?",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "explain_cost"
+}

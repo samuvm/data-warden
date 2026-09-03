@@ -1,0 +1,179 @@
+# =============================================================================
+# Los 20 escenarios de elección de herramienta · G-TOOL-CHOICE
+#
+# QUÉ PRUEBA ESTO, y es la prueba que casi nadie hace: se le dan a un modelo
+# **solo las descripciones de las cuatro herramientas** —sin catálogo, sin
+# glosario, sin ejemplos, sin el esquema— y se comprueba que elige bien. Si hace
+# falta más contexto para acertar, el defecto está en la descripción.
+#
+# LA REGLA DE REACCIÓN, escrita en `docs/GOALS.yaml` y repetida por Samuel al
+# responder Q-008: **si sale por debajo de 18, se reescribe la DESCRIPCIÓN de la
+# herramienta, no el umbral ni el escenario.** El defecto es de diseño del MCP, que
+# es justo lo que esta prueba existe para medir.
+#
+# PROCEDENCIA, declarada y sin adornos. Samuel aceptó la alternativa del borrador
+# al responder Q-008: el agente escribe los 20 candidatos y **el trabajo de Samuel
+# es corregir la columna «correcta»** donde no esté de acuerdo, que es donde está
+# el criterio. Mientras no lo haya hecho, el campo `provenance` dice
+# `agente_propuesto` y NO `agente_propuesto_revisado_humano`, y el informe lo
+# publica así: un número medido contra una respuesta correcta que nadie ha
+# revisado no es una prueba de diseño, es el agente puntuándose a sí mismo.
+#
+# Los enunciados y sus «correctas» están copiados literalmente de la respuesta a
+# Q-008 en `docs/PARA-SAMUEL.md`. No se ha cambiado ninguno.
+# =============================================================================
+
+version: 1
+provenance: agente_propuesto        # -> agente_propuesto_revisado_humano cuando Samuel corrija
+revisado_por: null
+revisado_el: null
+origen: "docs/PARA-SAMUEL.md · Q-008, respondida por Samuel el 2026-09-02"
+
+herramientas: [run_query, describe_table, sample_table, explain_cost]
+
+# -----------------------------------------------------------------------------
+# EL CONTROL NEGATIVO, y es lo que impide que este número sea decorativo.
+#
+# Medido el 2026-09-03: estas cuatro descripciones —una línea cada una, sin un solo
+# desempate escrito, sin decir cuándo NO usar la herramienta— sacan **18 de 20**,
+# que es EXACTAMENTE el umbral de `G-TOOL-CHOICE`. Es decir: la meta se cumple sin
+# haber hecho ningún diseño de MCP.
+#
+# La conclusión no es que la prueba no sirva: las descripciones de verdad sacan
+# 20/20 y las pobres fallan justo donde importa —TC-06, el grano de una tabla, y
+# TC-17, el ambiguo del conteo publicado—. Lo que la conclusión dice es que **el
+# número solo significa algo junto a su línea base**, y por eso el informe publica
+# los dos y el margen. Un 20/20 a secas se lee como un triunfo cuando la señal real
+# es «+2 sobre no hacer nada».
+#
+# La propuesta de subir el umbral está en `docs/PARA-SAMUEL.md` como P-009. Aquí no
+# se toca: `docs/GOALS.yaml` es de solo lectura para el agente.
+# -----------------------------------------------------------------------------
+linea_base:
+  motivo: >-
+    Descripciones deliberadamente pobres: dicen qué hace la herramienta por dentro
+    y no qué devuelve, y ninguna dice cuándo NO usarla ni a cuál ir en su lugar.
+  descripciones:
+    run_query: Ejecuta una consulta SQL sobre el almacén.
+    describe_table: Describe una tabla.
+    sample_table: Devuelve una muestra de una tabla.
+    explain_cost: Calcula el coste de una consulta.
+
+escenarios:
+  - id: TC-01
+    enunciado: "Tasa de aprobación por adquirente de la semana pasada"
+    correcta: run_query
+    por_que: Métrica agregada con predicado
+
+  - id: TC-02
+    enunciado: "¿Qué columnas tiene fact_settlement_batch y qué significa cada una?"
+    correcta: describe_table
+    por_que: Pregunta por esquema, no por datos
+
+  - id: TC-03
+    enunciado: "Enséñame diez filas de dim_merchant para hacerme una idea"
+    correcta: sample_table
+    por_que: Muestra sin predicado
+
+  - id: TC-04
+    enunciado: "Antes de lanzarla, ¿cuánto va a escanear esta consulta?"
+    correcta: explain_cost
+    por_que: Pregunta explícita por coste
+
+  - id: TC-05
+    enunciado: "Importe total liquidado en julio, por comercio"
+    correcta: run_query
+    por_que: Agregación con predicado temporal
+
+  - id: TC-06
+    enunciado: "¿fact_dispute tiene una fila por disputa o por etapa?"
+    correcta: describe_table
+    por_que: El grano de la tabla es esquema, no dato
+
+  - id: TC-07
+    enunciado: "Top 10 comercios por volumen procesado en 2026"
+    correcta: run_query
+    por_que: Ranking calculado
+
+  - id: TC-08
+    enunciado: "¿Qué pinta tienen los valores de device_class?"
+    correcta: sample_table
+    por_que: Forma de los valores, no cálculo
+
+  - id: TC-09
+    enunciado: "¿Esta consulta se me sale del presupuesto?"
+    correcta: explain_cost
+    por_que: Pregunta por consumo frente al asignado
+
+  - id: TC-10
+    enunciado: "¿Cuántos clientes activos hay?"
+    correcta: run_query
+    por_que: Definición del glosario, pero es un cálculo
+
+  - id: TC-11
+    enunciado: "¿En qué moneda está amount_minor?"
+    correcta: describe_table
+    por_que: Significado de una columna
+
+  - id: TC-12
+    enunciado: "Un vistazo rápido a ref_decline_reason"
+    correcta: sample_table
+    por_que: Tabla de referencia pequeña, sin condición
+
+  - id: TC-13
+    enunciado: "Ticket medio por país emisor"
+    correcta: run_query
+    por_que: Media agrupada
+
+  - id: TC-14
+    enunciado: "¿Por qué clave hay que unir dim_merchant?"
+    correcta: describe_table
+    por_que: Las claves son metadato
+
+  - id: TC-15
+    enunciado: "Dime el coste del join de intentos con líneas de cesta sin filtro de fecha"
+    correcta: explain_cost
+    por_que: Pide el coste de una consulta concreta
+
+  - id: TC-16
+    enunciado: "Motivos de rechazo más frecuentes en agosto"
+    correcta: run_query
+    por_que: Recuento agrupado con predicado
+
+  # ---------------------------------------------------------------------------
+  # Los cuatro AMBIGUOS A PROPÓSITO. Sin ellos la prueba sería trivial: los
+  # dieciséis de arriba se resuelven con una palabra clave, y una descripción mala
+  # también los acertaría. Estos cuatro son los que miden el diseño.
+  # ---------------------------------------------------------------------------
+  - id: TC-17
+    enunciado: "¿Cuántas filas tiene fact_payment_attempt?"
+    correcta: describe_table
+    aceptable_con_penalizacion: run_query
+    ambiguo: true
+    por_que: >-
+      El catálogo publica el conteo. `run_query` es defendible, pero paga un escaneo
+      de 66 M de filas para leer un dato que ya está publicado.
+
+  - id: TC-18
+    enunciado: "Enséñame los pagos de ayer"
+    correcta: run_query
+    ambiguo: true
+    por_que: >-
+      «Enséñame» empuja a `sample_table`, pero «de ayer» es un predicado y
+      `sample_table` no filtra. Distingue la forma verbal del contenido de la petición.
+
+  - id: TC-19
+    enunciado: "Quiero entender la tabla de liquidaciones"
+    correcta: describe_table
+    ambiguo: true
+    por_que: >-
+      Es correcto encadenar después `sample_table`, pero el primer movimiento sobre
+      una tabla desconocida es el esquema. Mide si el modelo ordena o adivina.
+
+  - id: TC-20
+    enunciado: "¿Merece la pena que lance esto?"
+    correcta: explain_cost
+    ambiguo: true
+    por_que: >-
+      No nombra coste ni presupuesto. Mide si la descripción de `explain_cost` cubre
+      la intención y no solo la palabra clave.

@@ -22,6 +22,9 @@ MODEL_ROLE ?= generador
 # informe porque cambia el número; para volver a medirlo con razonador:
 #   make eval-refresh REFRESH_FLAGS=
 REFRESH_FLAGS ?= --no-think
+# El JUEZ NUNCA es el modelo que genera: usar el mismo infla la métrica de forma
+# sistemática, y en `models.lock` está evitado por diseño y no por disciplina.
+JUDGE_ROLE ?= juez
 
 .DEFAULT_GOAL := help
 .PHONY: help up down warm lint typecheck imports test-fast test test-int \
@@ -29,6 +32,7 @@ REFRESH_FLAGS ?= --no-think
         bench bench-guard cost-calibration mutation \
         attack-dev attack-holdout attack-mut pii-suite \
         mcp-conformance test-parity gate-fast gate-full done report clean \
+        eval-toolchoice-refresh \
         dataset dataset-full dataset-traps contracts catalog arch-checks goals guard-property \
         statistics budget-invariant
 
@@ -138,6 +142,7 @@ arch-checks:
 	$(UV) python scripts/check_resultset_eq.py
 	$(UV) python scripts/check_failclosed.py
 	$(UV) python scripts/check_role_source.py
+	$(UV) python scripts/check_mask_path.py
 	$(UV) python scripts/check_rule_coverage.py
 	$(UV) python scripts/check_rules_registry.py
 	$(UV) python scripts/check_attack_coverage.py
@@ -159,10 +164,18 @@ eval-recovery:
 eval-refresh:
 	$(UV) python scripts/eval_recovery.py --refresh --model-role $(MODEL_ROLE) $(REFRESH_FLAGS)
 
-eval eval-toolchoice:
+# `G-TOOL-CHOICE`: al modelo se le dan SOLO las cuatro descripciones. Determinista
+# y gratis desde casetes. Si el número baja de 18 se reescribe la DESCRIPCIÓN, no el
+# umbral: el defecto es de diseño del MCP, que es lo que la prueba mide.
+eval-toolchoice:
+	$(UV) python scripts/eval_toolchoice.py
+
+eval-toolchoice-refresh:
+	$(UV) python scripts/eval_toolchoice.py --refresh --model-role $(JUDGE_ROLE)
+
+eval:
 	@echo "FASE 8: la evaluación de exactitud necesita el banco de 60 preguntas"
-	@echo "(Q-010, respondida y pendiente de las horas de Samuel). `eval-toolchoice`"
-	@echo "necesita además el servidor MCP, que es la fase 7."
+	@echo "(Q-010, respondida y pendiente de las horas de Samuel)."
 	@exit 1
 
 # --- rendimiento -------------------------------------------------------------

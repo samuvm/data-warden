@@ -1,0 +1,6 @@
+{
+  "statement": "Enséñame diez filas de dim_merchant para hacerme una idea",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "sample_table"
+}

@@ -1,0 +1,6 @@
+{
+  "statement": "¿Esta consulta se me sale del presupuesto?",
+  "kind": "base",
+  "model": "gemma4:12b-mlx",
+  "answer": "explain_cost"
+}

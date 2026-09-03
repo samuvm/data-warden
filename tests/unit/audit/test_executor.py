@@ -32,6 +32,7 @@ from datawarden.domain.types import (
 )
 from datawarden.engines import base as engine_base
 from datawarden.engines.base import RecordingEngine
+from datawarden.mask.config import MaskConfig
 from datawarden.principal import BUDGETS_PATH, POLICY_PATH
 from datawarden.principal.budgets import load_budgets
 from datawarden.principal.policy import load_policy
@@ -73,6 +74,13 @@ _CARISIMO = Statistics(
 _ANALYST = Principal(id="corpus-analyst", role=Role.ANALYST, source=RoleSource.CLI_FLAG)
 
 
+#: La máscara es OBLIGATORIA en el ejecutor desde el 2026-09-03, y sin defecto a
+#: propósito: llamaba a `screen()` y se saltaba el anillo 4, así que el único camino
+#: sancionado al motor devolvía nombres y correos reales. Un parámetro opcional habría
+#: dejado que el fallo volviera con solo olvidarse de pasarlo.
+_MASK = MaskConfig(pepper="pimienta-de-pruebas-de-treinta-y-dos-o-mas")
+
+
 def _ejecutor(stats: Statistics = _BARATO, engine: object | None = None) -> AuditedExecutor:
     return AuditedExecutor(
         engine=engine or RecordingEngine(rows=3),
@@ -81,6 +89,7 @@ def _ejecutor(stats: Statistics = _BARATO, engine: object | None = None) -> Audi
         policy=_POLICY,
         budgets=_BUDGETS,
         stats=stats,
+        mask=_MASK,
     )
 
 
@@ -258,3 +267,74 @@ def test_el_resultado_dice_si_se_ejecuto_sin_obligar_a_mirar_las_filas() -> None
     assert ejecutada.executed is True
     assert len(ejecutada.rows.rows) == 0 if ejecutada.rows is not None else False
     assert rechazada.executed is False
+
+
+# ------------------------------------- el anillo 4 · la fuga del 2026-09-03 ---
+
+
+def test_el_camino_auditado_enmascara_y_no_solo_valida() -> None:
+    """**Este test existe porque el ejecutor NO enmascaraba, y era una fuga real.**
+
+    Llamaba a `screen()` —anillos 2 y 3— y se saltaba el 4. Como `AuditedExecutor` es
+    el ÚNICO camino sancionado al motor (I-06), el sistema entero devolvía nombres y
+    correos REALES a `analyst`, un rol para el que la política dice `mask`. Y el
+    registro lo estaba diciendo todo el rato con un `columns_masked: []` que nadie
+    leía.
+
+    `G-PII-LEAK` pasaba con 0 fugas en 177 comprobaciones porque `pii_suite.py` medía
+    `screen_and_mask()`, que es correcto y **no es el camino por el que se ejecuta**.
+    La suite se cambió el mismo día para medir por aquí.
+
+    Se asierta sobre el ÁRBOL y sobre `masked_columns`, nunca sobre la cadena de SQL:
+    comparar SQL como texto engaña (`docs/spec/resultset-equality.md`).
+    """
+    from sqlglot import expressions as exp
+
+    resultado = _ejecutor().run("SELECT first_name FROM dim_customer", principal=_ANALYST)
+
+    assert resultado.query is not None
+    assert resultado.query.masked_columns == ("dim_customer.first_name",)
+    proyeccion = resultado.query.ast.find(exp.Select).expressions[0]
+    assert not isinstance(proyeccion, exp.Column), (
+        "la proyección sigue siendo una columna desnuda: el anillo 4 no reescribió nada"
+    )
+
+
+def test_lo_enmascarado_queda_en_el_registro_como_evidencia() -> None:
+    """`columns_masked` no es decoración: es lo que permite auditar que se enmascaró.
+
+    Vacío mientras el ejecutor se saltaba el anillo 4, y era una descripción exacta
+    de lo que pasaba.
+    """
+    ejecutor = _ejecutor()
+
+    resultado = ejecutor.run("SELECT first_name FROM dim_customer", principal=_ANALYST)
+
+    assert resultado.entry.record.columns_masked == ("dim_customer.first_name",)
+
+
+def test_un_rol_que_puede_ver_la_columna_no_la_recibe_enmascarada() -> None:
+    """Enmascarar de más también es un fallo: `admin` tiene `allow` sobre el nombre."""
+    admin = Principal(id="jefa", role=Role.ADMIN, source=RoleSource.CLI_FLAG)
+
+    resultado = _ejecutor().run("SELECT first_name FROM dim_customer", principal=admin)
+
+    assert resultado.query is not None
+    assert resultado.query.masked_columns == ()
+
+
+def test_no_se_puede_construir_un_ejecutor_sin_mascara() -> None:
+    """**La mitad del arreglo es que `mask` no tenga valor por defecto.**
+
+    Con un parámetro opcional, el mismo fallo vuelve el día que alguien construya un
+    ejecutor y se olvide de pasarlo — y volvería en silencio, que es lo peor.
+    """
+    with pytest.raises(TypeError, match="mask"):
+        AuditedExecutor(  # type: ignore[call-arg]
+            engine=RecordingEngine(rows=1),
+            store=AuditStore(":memory:"),
+            schema=_SCHEMA,
+            policy=_POLICY,
+            budgets=_BUDGETS,
+            stats=_BARATO,
+        )

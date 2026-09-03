@@ -1,0 +1,228 @@
+{
+  "metas": {
+    "G-TOOL-CHOICE": {
+      "adicionales": {
+        "escenarios del conjunto": 20.0
+      },
+      "command": "make eval-toolchoice",
+      "detail": {
+        "baseline_hits": 18,
+        "baseline_reason": "Descripciones deliberadamente pobres: dicen qué hace la herramienta por dentro y no qué devuelve, y ninguna dice cuándo NO usarla ni a cuál ir en su lugar.",
+        "margin_over_baseline": 2,
+        "misses": [],
+        "model": {
+          "digest": "117d0d84cf2a",
+          "role": "juez",
+          "tag": "gemma4:12b-mlx"
+        },
+        "problems": [],
+        "provenance": "agente_propuesto",
+        "results": [
+          {
+            "ambiguous": false,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-01",
+            "statement": "Tasa de aprobación por adquirente de la semana pasada",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "describe_table",
+            "chosen_baseline": "describe_table",
+            "expected": "describe_table",
+            "hit": true,
+            "id": "TC-02",
+            "statement": "¿Qué columnas tiene fact_settlement_batch y qué significa cada una?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "sample_table",
+            "chosen_baseline": "sample_table",
+            "expected": "sample_table",
+            "hit": true,
+            "id": "TC-03",
+            "statement": "Enséñame diez filas de dim_merchant para hacerme una idea",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "explain_cost",
+            "chosen_baseline": "explain_cost",
+            "expected": "explain_cost",
+            "hit": true,
+            "id": "TC-04",
+            "statement": "Antes de lanzarla, ¿cuánto va a escanear esta consulta?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-05",
+            "statement": "Importe total liquidado en julio, por comercio",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "describe_table",
+            "chosen_baseline": "sample_table",
+            "expected": "describe_table",
+            "hit": true,
+            "id": "TC-06",
+            "statement": "¿fact_dispute tiene una fila por disputa o por etapa?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-07",
+            "statement": "Top 10 comercios por volumen procesado en 2026",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "sample_table",
+            "chosen_baseline": "sample_table",
+            "expected": "sample_table",
+            "hit": true,
+            "id": "TC-08",
+            "statement": "¿Qué pinta tienen los valores de device_class?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "explain_cost",
+            "chosen_baseline": "explain_cost",
+            "expected": "explain_cost",
+            "hit": true,
+            "id": "TC-09",
+            "statement": "¿Esta consulta se me sale del presupuesto?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-10",
+            "statement": "¿Cuántos clientes activos hay?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "describe_table",
+            "chosen_baseline": "describe_table",
+            "expected": "describe_table",
+            "hit": true,
+            "id": "TC-11",
+            "statement": "¿En qué moneda está amount_minor?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "sample_table",
+            "chosen_baseline": "sample_table",
+            "expected": "sample_table",
+            "hit": true,
+            "id": "TC-12",
+            "statement": "Un vistazo rápido a ref_decline_reason",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-13",
+            "statement": "Ticket medio por país emisor",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "describe_table",
+            "chosen_baseline": "describe_table",
+            "expected": "describe_table",
+            "hit": true,
+            "id": "TC-14",
+            "statement": "¿Por qué clave hay que unir dim_merchant?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "explain_cost",
+            "chosen_baseline": "explain_cost",
+            "expected": "explain_cost",
+            "hit": true,
+            "id": "TC-15",
+            "statement": "Dime el coste del join de intentos con líneas de cesta sin filtro de fecha",
+            "tolerated": false
+          },
+          {
+            "ambiguous": false,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-16",
+            "statement": "Motivos de rechazo más frecuentes en agosto",
+            "tolerated": false
+          },
+          {
+            "ambiguous": true,
+            "chosen": "describe_table",
+            "chosen_baseline": "run_query",
+            "expected": "describe_table",
+            "hit": true,
+            "id": "TC-17",
+            "statement": "¿Cuántas filas tiene fact_payment_attempt?",
+            "tolerated": false
+          },
+          {
+            "ambiguous": true,
+            "chosen": "run_query",
+            "chosen_baseline": "run_query",
+            "expected": "run_query",
+            "hit": true,
+            "id": "TC-18",
+            "statement": "Enséñame los pagos de ayer",
+            "tolerated": false
+          },
+          {
+            "ambiguous": true,
+            "chosen": "describe_table",
+            "chosen_baseline": "describe_table",
+            "expected": "describe_table",
+            "hit": true,
+            "id": "TC-19",
+            "statement": "Quiero entender la tabla de liquidaciones",
+            "tolerated": false
+          },
+          {
+            "ambiguous": true,
+            "chosen": "explain_cost",
+            "chosen_baseline": "explain_cost",
+            "expected": "explain_cost",
+            "hit": true,
+            "id": "TC-20",
+            "statement": "¿Merece la pena que lance esto?",
+            "tolerated": false
+          }
+        ],
+        "reviewed_by": null,
+        "tools_contract_sha256": "8c4eba3179d860bb3c14f4a1c8f20a3a0beab6636cf3aa64b6e2527a85a8c5dd"
+      },
+      "value": 20.0
+    }
+  }
+}

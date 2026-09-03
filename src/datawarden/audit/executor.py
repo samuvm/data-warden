@@ -29,7 +29,6 @@ from typing import Any
 from datawarden.audit.store import AuditStore, Entry
 from datawarden.catalog.statistics import Statistics
 from datawarden.catalog.types import CatalogSchema
-from datawarden.cost.screen import screen
 from datawarden.domain.types import (
     Principal,
     RejectionReason,
@@ -38,6 +37,8 @@ from datawarden.domain.types import (
     ValidatedQuery,
 )
 from datawarden.engines.base import Engine
+from datawarden.mask.config import MaskConfig
+from datawarden.mask.pipeline import screen_and_mask
 from datawarden.principal.budgets import BudgetBook
 from datawarden.principal.policy import AccessPolicy
 
@@ -87,6 +88,7 @@ class AuditedExecutor:
         policy: AccessPolicy,
         budgets: BudgetBook,
         stats: Statistics,
+        mask: MaskConfig,
         dialect: str = "duckdb",
     ) -> None:
         self.engine = engine
@@ -95,6 +97,14 @@ class AuditedExecutor:
         self.policy = policy
         self.budgets = budgets
         self.stats = stats
+        # **`mask` ES OBLIGATORIO Y NO TIENE VALOR POR DEFECTO, y eso es la mitad del
+        # arreglo.** Este ejecutor llamaba a `screen()` —anillos 2 y 3— y se saltaba
+        # el 4: el único camino sancionado al motor devolvía nombres y correos
+        # REALES a `analyst`, y el registro lo decía con un `columns_masked: []` que
+        # nadie leía. Un parámetro opcional habría dejado que el mismo fallo volviera
+        # con solo olvidarse de pasarlo; sin defecto, no se puede construir un
+        # ejecutor que no enmascare.
+        self.mask = mask
         self.dialect = dialect
 
     def run(
@@ -124,13 +134,18 @@ class AuditedExecutor:
             "trace_id": trace_id,
         }
 
-        result = screen(
+        # LOS CUATRO ANILLOS, no dos. `screen()` valida y presupuesta; el
+        # enmascarado es el anillo 4 y va DESPUÉS del presupuesto a propósito:
+        # reescribir antes cambiaría el árbol que el estimador tarifó y el coste
+        # publicado dejaría de ser el de lo ejecutado.
+        result = screen_and_mask(
             sql,
             principal=principal,
             schema=self.schema,
             policy=self.policy,
             budgets=self.budgets,
             stats=self.stats,
+            config=self.mask,
             dialect=self.dialect,
         )
 

@@ -166,6 +166,9 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (1, "check_resultset_eq.py", "G-RESULTSET-EQ"),
     (2, "check_failclosed.py", "I-04 · un solo except ancho"),
     (2, "check_role_source.py", "I-05 · el rol no sale de un dato"),
+    # Nace de la fuga del 2026-09-03: el ejecutor auditado se saltaba el anillo 4.
+    # `G-PII-LEAK` pasaba porque la suite medía otro camino. Esto impide la reincidencia.
+    (4, "check_mask_path.py", "el unico camino al motor pasa por el anillo 4"),
     (2, "check_rule_coverage.py", "RULES §3 · el caso es la unidad"),
     (2, "check_rules_registry.py", "I-01 · ninguna regla desaparece"),
     (2, "check_attack_coverage.py", "I-14 · la matriz sin filas vacías"),

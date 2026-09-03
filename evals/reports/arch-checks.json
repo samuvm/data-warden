@@ -47,6 +47,17 @@
       },
       "value": 0
     },
+    "G-MASK-PATH": {
+      "adicionales": {},
+      "command": "python scripts/check_mask_path.py",
+      "detail": {
+        "checked": [
+          "audit/executor.py"
+        ],
+        "problems": []
+      },
+      "value": 0
+    },
     "G-NO-RAW-SQL": {
       "adicionales": {},
       "command": "python scripts/check_no_raw_sql.py",
