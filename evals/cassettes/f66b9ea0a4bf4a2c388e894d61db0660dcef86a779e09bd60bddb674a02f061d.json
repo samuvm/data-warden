@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "WITH a AS (SELECT customer_sk AS n FROM dim_customer), b AS (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM a))))) SELECT n FROM b LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "el mismo recuento pero pasando por una cte y cinco subconsultas",
+  "rejection_code": "nesting_too_deep",
+  "sql": "SELECT customer_sk AS n FROM dim_customer LIMIT 10",
+  "thinking": false
+}

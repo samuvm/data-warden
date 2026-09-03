@@ -11,6 +11,7 @@ comando, y no hay que fiarse de que el proceso salió en verde.
 from __future__ import annotations
 
 import json
+import math
 import pathlib
 import subprocess
 from typing import Any
@@ -61,6 +62,27 @@ def read_meta(artifact: str, meta_id: str) -> dict[str, Any] | None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     result: dict[str, Any] | None = payload.get("metas", {}).get(meta_id)
     return result
+
+
+def wilson(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
+    """Intervalo de Wilson al 95 %. **Se publica el intervalo, nunca el punto.**
+
+    Vive aquí y no en cada script porque lo usan dos metas —`G-ATTACK-HOLDOUT` y
+    `G-RECOVERY`— y las dos publican el intervalo en el informe. Dos copias de la
+    fórmula del estadístico que se publica es una divergencia esperando a pasar: el
+    día que una se corrija, la otra seguirá publicando el número viejo con la misma
+    etiqueta.
+
+    Con 15/15 sale aproximadamente [0,80 - 1,00]. Publicar «100 %» a secas con n=15
+    es publicar un número sin significado.
+    """
+    if total == 0:
+        return (0.0, 0.0)
+    p = successes / total
+    denom = 1 + z**2 / total
+    centre = (p + z**2 / (2 * total)) / denom
+    half = z * math.sqrt(p * (1 - p) / total + z**2 / (4 * total**2)) / denom
+    return (max(0.0, centre - half), min(1.0, centre + half))
 
 
 def compare(operator: str, measured: float, threshold: float) -> bool:

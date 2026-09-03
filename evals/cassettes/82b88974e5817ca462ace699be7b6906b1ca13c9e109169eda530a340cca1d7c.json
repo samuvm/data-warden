@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer LIMIT (SELECT 5)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "los primeros clientes, tantos como diga la tabla de configuración",
+  "rejection_code": "row_limit",
+  "sql": "SELECT customer_sk FROM dim_customer LIMIT 100",
+  "thinking": false
+}

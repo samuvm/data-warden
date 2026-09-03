@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT t.total AS total FROM (SELECT sum(x.v) AS total FROM (SELECT y.v AS v FROM (SELECT z.v AS v FROM (SELECT w.v AS v FROM (SELECT amount_eur_minor AS v FROM fact_payment_attempt) AS w) AS z) AS y) AS x) AS t LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "el importe total de los pagos, calculado paso a paso",
+  "rejection_code": "nesting_too_deep",
+  "sql": "WITH payments AS (SELECT amount_eur_minor AS v FROM fact_payment_attempt), step1 AS (SELECT SUM(v) AS total FROM payments), final_result AS (SELECT total FROM step1) SELECT total FROM final_result",
+  "thinking": false
+}

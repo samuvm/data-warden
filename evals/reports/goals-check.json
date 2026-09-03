@@ -54,7 +54,7 @@
       "axiom": false,
       "blocking_from": 1,
       "id": "G-RESULTSET-EQ",
-      "measured": 82,
+      "measured": 87,
       "operator": ">=",
       "passed": true,
       "threshold": 12,
@@ -104,7 +104,7 @@
       "axiom": false,
       "blocking_from": 2,
       "id": "G-GUARD-P95",
-      "measured": 0.837,
+      "measured": 0.824,
       "operator": "<=",
       "passed": true,
       "threshold": 25,
@@ -179,9 +179,29 @@
       "passed": true,
       "threshold": 100,
       "unit": "porcentaje"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 6,
+      "id": "G-RECOVERY",
+      "measured": 0.8571,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 0.7,
+      "unit": "ratio"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 6,
+      "id": "G-RECOVERY-COV",
+      "measured": 100.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 100,
+      "unit": "porcentaje"
     }
   ],
-  "milestone": 5,
+  "milestone": 6,
   "passed": true,
   "problems": []
 }

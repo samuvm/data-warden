@@ -27,7 +27,7 @@ from datawarden.domain.types import (
     Severity,
     ValidatedQuery,
 )
-from datawarden.nl2sql.loop import MAX_RETRIES, LoopResult, run_loop
+from datawarden.nl2sql.loop import MAX_RETRIES, Attempt, LoopResult, run_loop
 from datawarden.nl2sql.providers import ScriptedProvider
 
 _PRINCIPAL = Principal(id="loop", role=Role.ANALYST, source=RoleSource.CLI_FLAG)
@@ -261,3 +261,125 @@ def test_el_resultado_dice_de_que_modelo_salio() -> None:
     )
 
     assert resultado.provider == "scripted"
+
+
+# ------------------------------------------------- el rechazo SEMBRADO (fase 6) ---
+
+
+def test_un_rechazo_sembrado_entra_en_la_historia_como_primer_intento() -> None:
+    """`G-RECOVERY` mide la CORRECCIÓN, no el error, y por eso el error se siembra.
+
+    Si el corpus fueran solo preguntas y se dejara que el modelo produjera por su
+    cuenta el SQL rechazable, el número mediría dos cosas mezcladas: cuántas veces se
+    equivoca del modo previsto y cuántas se corrige después. La primera varía con el
+    modelo y no es interesante.
+    """
+    semilla = Attempt(sql="SELECT birth_date FROM dim_customer", rejection=_rechazo())
+    provider = ScriptedProvider(["SELECT 1 AS n"])
+
+    resultado = run_loop(
+        "edad de los clientes",
+        provider=provider,
+        validate=_Validador(_aceptada()),
+        seed=semilla,
+    )
+
+    assert resultado.accepted
+    assert resultado.recovered is True, "aceptada tras un rechazo: eso es recuperarse"
+    assert len(resultado.attempts) == 2
+    assert resultado.attempts[0] is semilla
+
+
+def test_el_primer_rechazo_de_un_caso_sembrado_es_el_de_la_semilla() -> None:
+    """Es lo que agrupa la métrica: la regla cuyo mensaje se está evaluando."""
+    semilla = Attempt(sql="SELECT national_id FROM dim_customer", rejection=_rechazo())
+
+    resultado = run_loop(
+        "el dni de los clientes",
+        provider=ScriptedProvider(["SELECT 1 AS n"]),
+        validate=_Validador(_aceptada()),
+        seed=semilla,
+    )
+
+    assert resultado.first_rejection is not None
+    assert resultado.first_rejection.rule_id == "R008"
+
+
+def test_el_modelo_recibe_la_semilla_como_rechazo_y_como_consulta_anterior() -> None:
+    """**Sin la consulta anterior el reintento no es una corrección, es un rehacer.**
+
+    `prompts/nl2sql-retry.md` le pide al modelo que corrija «eso concreto» y que no
+    reescriba la consulta entera si el resto era correcto. Sin el SQL anterior dentro
+    del prompt esa instrucción no se puede seguir, y lo que se mediría sería otra cosa.
+    """
+    semilla = Attempt(sql="SELECT birth_date FROM dim_customer", rejection=_rechazo())
+    provider = ScriptedProvider(["SELECT 1 AS n"])
+
+    run_loop(
+        "edad",
+        provider=provider,
+        validate=_Validador(_aceptada()),
+        seed=semilla,
+    )
+
+    primera = provider.recibido[0]
+    assert primera.rejection is not None
+    assert primera.previous_sql == "SELECT birth_date FROM dim_customer"
+
+
+def test_una_semilla_no_reintentable_no_gasta_ni_una_llamada() -> None:
+    """Un `DELETE` sembrado no se reformula, igual que uno generado.
+
+    Darle la oportunidad de fallar contaminaría `G-RECOVERY` con casos que nadie
+    puede arreglar, y además cuesta una llamada al modelo por cada uno.
+    """
+    semilla = Attempt(
+        sql="DELETE FROM dim_customer",
+        rejection=_rechazo(codigo="write_node_present", retryable=False),
+    )
+    provider = ScriptedProvider(["SELECT 1 AS n"])
+
+    resultado = run_loop(
+        "borra los clientes",
+        provider=provider,
+        validate=_Validador(_aceptada()),
+        seed=semilla,
+    )
+
+    assert not resultado.accepted
+    assert provider.recibido == [], "no se llama al modelo por algo que no se puede arreglar"
+    assert resultado.attempts == (semilla,)
+
+
+def test_una_semilla_no_consume_los_reintentos_del_modelo() -> None:
+    """El tope cuenta llamadas AL MODELO, y la semilla no es una llamada.
+
+    Si la semilla gastara un intento, un caso sembrado tendría una oportunidad menos
+    que uno normal y `G-RECOVERY` mediría un bucle más corto del que se ejecuta en
+    producción.
+    """
+    semilla = Attempt(sql="SELECT birth_date FROM dim_customer", rejection=_rechazo())
+    provider = ScriptedProvider(["a", "b", "c", "d"])
+
+    resultado = run_loop(
+        "edad",
+        provider=provider,
+        validate=_Validador(_rechazo(), _rechazo(), _rechazo(), _aceptada()),
+        seed=semilla,
+    )
+
+    assert not resultado.accepted
+    assert len(provider.recibido) == MAX_RETRIES + 1 == 3
+    assert len(resultado.attempts) == 4, "la semilla más los tres intentos"
+
+
+def test_cada_intento_le_pasa_al_siguiente_el_sql_que_acaba_de_fallar() -> None:
+    provider = ScriptedProvider(["SELECT a", "SELECT b", "SELECT c"])
+
+    run_loop(
+        "lo que sea",
+        provider=provider,
+        validate=_Validador(_rechazo(), _rechazo(), _rechazo()),
+    )
+
+    assert [r.previous_sql for r in provider.recibido] == ["", "SELECT a", "SELECT b"]

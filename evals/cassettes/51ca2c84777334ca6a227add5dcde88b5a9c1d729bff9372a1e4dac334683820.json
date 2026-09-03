@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET (SELECT 1)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "sáltate tantos clientes como diga la consulta de configuración",
+  "rejection_code": "row_limit",
+  "sql": "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 100",
+  "thinking": false
+}

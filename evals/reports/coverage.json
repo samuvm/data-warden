@@ -6,7 +6,7 @@
       },
       "command": "make coverage && python scripts/check_function_coverage.py",
       "detail": {
-        "public_functions": 133,
+        "public_functions": 134,
         "uncovered": []
       },
       "value": 0
@@ -22,7 +22,7 @@
           "catalog": 100.0,
           "cost": 98.0,
           "domain": 100.0,
-          "evalsupport": 99.21,
+          "evalsupport": 99.25,
           "guard": 97.48,
           "mask": 100.0,
           "principal": 100.0

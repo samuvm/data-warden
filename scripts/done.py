@@ -81,7 +81,16 @@ def check_statics() -> dict[str, object]:
 def check_suite() -> dict[str, object]:
     paths = [
         p
-        for p in ("tests/unit", "tests/property", "tests/contract", "tests/integration")
+        for p in (
+            "tests/unit",
+            "tests/property",
+            "tests/contract",
+            "tests/integration",
+            # `adversarial` ENTRA desde la fase 6. Estaba declarado en el mapa y no lo
+            # corría nadie: una carpeta de tests que ningún target ejecuta es peor que
+            # no tenerla, porque parece cubierta y no lo está.
+            "tests/adversarial",
+        )
         if any((ROOT / p).glob("test_*.py"))
     ]
     if not paths:
@@ -171,6 +180,12 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (4, "pii_suite.py", "G-PII-LEAK · axioma, tres superficies contra el dataset"),
     (5, "check_audit_coverage.py", "G-AUDIT-COV · axioma, ninguna invocación sin registro"),
     (5, "check_audit_tamper.py", "G-AUDIT-TAMPER · >= 1.000 mutaciones de byte"),
+    # La fase 6 se mide AQUÍ y no solo en `make eval-recovery`, por la regla de este
+    # paso: leer el artefacto de la vez anterior no es medir. Puede correr en el gate
+    # porque sale de las casetes —determinista y gratis, sin modelo—; lo que llama al
+    # modelo es `make eval-refresh`, que es explícito y no entra en ninguna puerta.
+    (6, "eval_recovery.py", "G-RECOVERY · desde casetes, sin modelo"),
+    (6, "check_recovery_coverage.py", "G-RECOVERY-COV · toda regla con caso"),
 )
 
 

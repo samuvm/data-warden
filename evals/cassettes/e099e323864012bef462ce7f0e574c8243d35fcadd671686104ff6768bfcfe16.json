@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 5 LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "los países que tienen cinco clientes o menos",
+  "rejection_code": "group_too_small",
+  "sql": "SELECT country_code, COUNT(*) AS n FROM dim_customer GROUP BY country_code HAVING COUNT(*) >= 5 ORDER BY n ASC LIMIT 100",
+  "thinking": false
+}

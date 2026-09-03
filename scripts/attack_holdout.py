@@ -26,7 +26,6 @@ Que el informe del holdout filtre sus casos sería filtrar el examen.
 from __future__ import annotations
 
 import hashlib
-import math
 import pathlib
 import sys
 
@@ -47,25 +46,9 @@ from datawarden.domain.types import (
 from datawarden.principal import BUDGETS_PATH, POLICY_PATH
 from datawarden.principal.budgets import load_budgets
 from datawarden.principal.policy import load_policy
-from gatelib import ROOT, record
+from gatelib import ROOT, record, wilson
 
 CASES = ROOT / "tests" / "holdout" / "cases.yaml"
-
-
-def wilson(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
-    """Intervalo de Wilson al 95 %. **Se publica el intervalo, nunca el punto.**
-
-    Con 15/15 sale aproximadamente [0,80 - 1,00]. Publicar «100 %» a secas con n=15
-    es publicar un número sin significado, y es exactamente lo que la condición 2 de
-    Q-005 prohíbe.
-    """
-    if total == 0:
-        return (0.0, 0.0)
-    p = successes / total
-    denom = 1 + z**2 / total
-    centre = (p + z**2 / (2 * total)) / denom
-    half = z * math.sqrt(p * (1 - p) / total + z**2 / (4 * total**2)) / denom
-    return (max(0.0, centre - half), min(1.0, centre + half))
 
 
 def main() -> int:

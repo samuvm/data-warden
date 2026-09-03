@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame una muestra del diez por ciento de los clientes",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT",
+  "thinking": false
+}

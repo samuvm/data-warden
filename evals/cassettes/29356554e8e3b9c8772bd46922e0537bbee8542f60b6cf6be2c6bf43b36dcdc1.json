@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT current_setting('memory_limit') AS s",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuánta memoria tiene configurada el motor",
+  "rejection_code": "function_not_allowed",
+  "sql": "SELECT 0 AS current_memory_limit_bytes",
+  "thinking": false
+}

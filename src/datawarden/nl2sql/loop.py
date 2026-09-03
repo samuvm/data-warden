@@ -97,8 +97,17 @@ def run_loop(
     max_retries: int = MAX_RETRIES,
     prompt_id: str = "nl2sql",
     prompt_version: str = "1",
+    seed: Attempt | None = None,
 ) -> LoopResult:
-    """Genera, valida y reintenta con el mensaje. Nunca lanza, nunca ejecuta."""
+    """Genera, valida y reintenta con el mensaje. Nunca lanza, nunca ejecuta.
+
+    **`seed` es un intento que YA OCURRIÓ**, con su SQL y el rechazo que se llevó.
+    Existe porque `G-RECOVERY` no mide si el modelo se equivoca del modo previsto
+    —eso varía con el modelo y no es interesante—, mide si SE CORRIGE. Sembrando el
+    rechazo, el denominador es fijo y lo único que queda por medir es la corrección.
+    Entra en la historia como primer intento, así que `recovered` y `first_rejection`
+    salen solos y significan lo mismo que en el camino normal.
+    """
     name = getattr(provider, "name", "unknown")
     if not question.strip():
         return LoopResult(
@@ -113,12 +122,27 @@ def run_loop(
 
     attempts: list[Attempt] = []
     rejection: RejectionReason | None = None
+    previous_sql = ""
 
-    for attempt_number in range(1, max_retries + 2):
+    if seed is not None:
+        attempts.append(seed)
+        rejection = seed.rejection
+        previous_sql = seed.sql
+        if rejection is not None and not rejection.retryable:
+            # Un rechazo sembrado que no se puede reformular tampoco se reintenta.
+            # Sembrarlo y darle la oportunidad de fallar contaminaría la métrica
+            # con casos que nadie puede arreglar, que es lo mismo que ya se evita
+            # en el camino normal.
+            return LoopResult(
+                query=None, rejection=rejection, attempts=tuple(attempts), provider=name
+            )
+
+    for attempt_number in range(len(attempts) + 1, len(attempts) + max_retries + 2):
         request = Request(
             question=question,
             attempt=attempt_number,
             rejection=rejection,
+            previous_sql=previous_sql,
             prompt_id=prompt_id,
             prompt_version=prompt_version,
         )
@@ -151,6 +175,7 @@ def run_loop(
             )
 
         rejection = verdict
+        previous_sql = sql
         attempts.append(Attempt(sql=sql, rejection=verdict))
         if not verdict.retryable:
             # NO SE REINTENTA lo que no se puede reformular. Un `DELETE` no se

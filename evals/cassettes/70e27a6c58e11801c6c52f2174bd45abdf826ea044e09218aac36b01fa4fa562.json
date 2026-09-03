@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT SUM(1) AS synthetic_index FROM (SELECT customer_sk FROM dim_customer WHERE is_business_account = 0) AS t1 CROSS JOIN (SELECT customer_sk FROM dim_customer WHERE is_business_account = 1) AS t2",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "calcula un índice sintético sumando un uno por cada una de las dos mil doscientas señales del cliente",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT SUM(1) AS synthetic_index FROM dim_customer WHERE is_business_account = 0 UNION ALL SELECT SUM(1) AS synthetic_index FROM dim_customer WHERE is_business_account = 1",
+  "thinking": false
+}

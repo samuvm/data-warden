@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT country_code, avg(age_years) AS media FROM v_customer GROUP BY country_code LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "la edad media de los clientes por país",
+  "rejection_code": "column_policy",
+  "sql": "SELECT country_code, AVG(age_band) AS media_edad FROM dim_customer GROUP BY country_code LIMIT 100",
+  "thinking": false
+}

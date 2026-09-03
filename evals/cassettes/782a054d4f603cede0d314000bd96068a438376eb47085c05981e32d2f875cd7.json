@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S0' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S1' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S2' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S3' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S4' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S5' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S6' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S7' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S8' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S9' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S10'",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "el recuento de pagos de cada uno de los once estados de autorización",
+  "rejection_code": "set_operation_branch",
+  "sql": "SELECT auth_status, COUNT(*) AS n_payments FROM fact_payment_attempt GROUP BY auth_status ORDER BY auth_status",
+  "thinking": false
+}

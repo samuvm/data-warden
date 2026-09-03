@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer LIMIT 0",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "ninguna fila, solo quiero comprobar que la consulta es válida",
+  "rejection_code": "row_limit",
+  "sql": "SELECT customer_sk FROM dim_customer LIMIT 1",
+  "thinking": false
+}

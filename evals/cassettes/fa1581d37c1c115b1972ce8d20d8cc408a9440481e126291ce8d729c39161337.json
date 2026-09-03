@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT card_type, count(*) AS n FROM dim_card GROUP BY card_type LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántas tarjetas hay de cada tipo",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT card_scheme AS card_type FROM dim_card GROUP BY card_scheme",
+  "thinking": false
+}

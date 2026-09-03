@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT customer_sk AS n FROM dim_customer)))))) LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame los identificadores de cliente, envueltos capa a capa",
+  "rejection_code": "nesting_too_deep",
+  "sql": "WITH c1 AS (SELECT customer_sk, 1 AS level FROM dim_customer),\nc2 AS (SELECT customer_sk, level + 1 AS level FROM c1 WHERE level < 8),\nc3 AS (SELECT customer_sk, level + 1 AS level FROM c2 WHERE level < 8),\nc4 AS (SELECT customer_sk, level + 1 AS level FROM c3 WHERE level < 8),\nc5 AS (SELECT customer_sk, level + 1 AS level FROM c4 WHERE level < 8),\nc6 AS (SELECT customer_sk, level + 1 AS level FROM c5 WHERE level < 8),\nc7 AS (SELECT customer_sk, level + 1 AS level FROM c6 WHERE level < 8)\nSELECT customer_sk FROM c7",
+  "thinking": false
+}
