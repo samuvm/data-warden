@@ -1,13 +1,90 @@
 {
   "metas": {
+    "G-MCP-CONFORM": {
+      "adicionales": {},
+      "command": "make mcp-conformance",
+      "detail": {
+        "checks": [
+          {
+            "detail": "ninguno",
+            "name": "sin-sesiones-ni-handshake",
+            "ok": true
+          },
+          {
+            "detail": "supportedVersions=['2026-07-28']",
+            "name": "server-discover",
+            "ok": true
+          },
+          {
+            "detail": "['2026-07-28']",
+            "name": "version-de-la-spec",
+            "ok": true
+          },
+          {
+            "detail": "resultType=complete",
+            "name": "result-type",
+            "ok": true
+          },
+          {
+            "detail": "ttlMs=3600000",
+            "name": "ttl-ms",
+            "ok": true
+          },
+          {
+            "detail": "cacheScope=public",
+            "name": "cache-scope",
+            "ok": true
+          },
+          {
+            "detail": "['run_query', 'describe_table', 'sample_table', 'explain_cost'] vs contrato ['run_query', 'describe_table', 'sample_table', 'explain_cost']",
+            "name": "tools-list-determinista",
+            "ok": true
+          },
+          {
+            "detail": "https://json-schema.org/draft/2020-12/schema",
+            "name": "input-schema-2020-12",
+            "ok": true
+          },
+          {
+            "detail": "4/4 herramientas",
+            "name": "output-schema-oneof-rows-o-rechazo",
+            "ok": true
+          },
+          {
+            "detail": "4 herramientas, sin descripción útil: []",
+            "name": "cuatro-herramientas-descritas",
+            "ok": true
+          },
+          {
+            "detail": "InputRequiredResult ok",
+            "name": "mrtr-en-lugar-de-sampling",
+            "ok": true
+          }
+        ],
+        "spec": "2026-07-28",
+        "total": 11
+      },
+      "value": 11.0
+    },
     "G-ROLE-SOURCE": {
       "adicionales": {},
       "command": "python scripts/check_role_source.py",
       "detail": {
-        "files_checked": 62,
+        "files_checked": 64,
         "problems": []
       },
       "value": 0
+    },
+    "G-ROLE-SPOOF": {
+      "adicionales": {},
+      "command": "pytest tests/adversarial/test_role_spoofing.py",
+      "detail": {
+        "como_se_mide": "se despacha por `dispatch()`, que es el `tools/call` del servidor, con `_meta` y `arguments` envenenados, y se exige que la respuesta sea BYTE A BYTE la misma que la de la petición limpia del mismo principal. No se comprueba que exista una comprobación.",
+        "suite": "tests/adversarial/test_role_spoofing.py",
+        "tests_failed": 0,
+        "tests_passed": 32
+      },
+      "value": 0.0
     }
   }
 }

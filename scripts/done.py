@@ -189,6 +189,9 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     # modelo es `make eval-refresh`, que es explícito y no entra en ninguna puerta.
     (6, "eval_recovery.py", "G-RECOVERY · desde casetes, sin modelo"),
     (6, "check_recovery_coverage.py", "G-RECOVERY-COV · toda regla con caso"),
+    (7, "mcp_conformance.py", "G-MCP-CONFORM · los 11 puntos de la spec 2026-07-28"),
+    (7, "check_role_spoof.py", "G-ROLE-SPOOF · axioma, `_meta` es dato y no autoridad"),
+    (7, "eval_toolchoice.py", "G-TOOL-CHOICE · desde casetes, sin modelo"),
 )
 
 
