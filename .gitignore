@@ -50,6 +50,9 @@ CLAUDE.md
 .claude/
 docs/CONSTITUCION.md
 docs/PARA-SAMUEL.md
+# Los documentos de buzon con fecha salen igual que el buzon: son preguntas al
+# humano, no documentacion del proyecto. Sin esto, un `git add -A` los publica.
+docs/PENDIENTE-*.md
 docs/BORRADOR-RESPUESTAS-Q003-Q010.md
 docs/DECISIONES-GLOBALES-APLICADAS.md
 docs/PLAN.md
