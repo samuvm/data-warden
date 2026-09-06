@@ -245,7 +245,14 @@ dataset-full:
 
 # --- puertas -----------------------------------------------------------------
 # gate-fast: lo que tiene que pasar en cada turno. Segundos, no minutos.
-gate-fast: lint typecheck test-fast
+#
+# `imports` ENTRA aquí desde el 2026-09-06, y entra por un fallo real: al escribir
+# el servidor MCP se rompió el contrato I-06 y no salió hasta que Samuel corrió
+# `make done` dos días después, porque el contrato de capas solo se comprobaba en
+# `gate-full` y en `done`. Cuesta **0,08 s**. Un contrato de arquitectura que solo
+# corre al cerrar una fase se rompe al principio y se descubre al final, que es
+# cuando más caro sale arreglarlo.
+gate-fast: lint typecheck imports test-fast
 	@echo ""
 	@echo "gate-fast VERDE"
 

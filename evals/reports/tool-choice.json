@@ -16,7 +16,7 @@
           "tag": "gemma4:12b-mlx"
         },
         "problems": [],
-        "provenance": "agente_propuesto",
+        "provenance": "agente_propuesto_revisado_humano",
         "results": [
           {
             "ambiguous": false,
@@ -219,7 +219,7 @@
             "tolerated": false
           }
         ],
-        "reviewed_by": null,
+        "reviewed_by": "Samuel Viciana Moreno",
         "tools_contract_sha256": "8c4eba3179d860bb3c14f4a1c8f20a3a0beab6636cf3aa64b6e2527a85a8c5dd"
       },
       "value": 20.0

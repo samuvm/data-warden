@@ -1902,3 +1902,85 @@ codigo de salida: 1        · y la linea base NO se la traga (grep: 0)
   metas. El snapshot nuevo es `.snapshots/milestone-6-20260903T160202Z`.
 
 **Siguiente.** El servidor MCP, que es lo que estaba haciendo cuando esto apareció.
+
+---
+
+## 2026-09-06 · fase 7 · el contrato I-06 castigaba usar el camino correcto
+
+**Qué se intentó.**
+Nada nuevo. Samuel aplicó P-009 y Q-008 —`G-TOOL-CHOICE` de `>= 18` a `== 20`,
+`thresholds.lock` regenerado, `provenance: agente_propuesto_revisado_humano` sin
+cambiar ninguna casilla de la columna «correcta»— y al correr `make done
+MILESTONE=6` salió ROJO en el paso 1.
+
+**Qué falló, y es mío.**
+
+```
+Al motor solo se llega por la auditoría (I-06) BROKEN
+datawarden.mcp is not allowed to import datawarden.engines:
+-   datawarden.mcp.server -> datawarden.audit.executor (l.37)
+    datawarden.audit.executor -> datawarden.engines.base (l.39)
+```
+
+**Cómo se me escapó, que es la parte que importa.** Comprobé `lint-imports` con
+`| tail -2` y lo que salió fue el DETALLE del contrato roto, no el resumen. Lo leí
+como si dijera que estaba bien. Y `gate-fast` —lo único que corro en cada turno— no
+incluye `imports`, así que no volvió a aparecer hasta que Samuel cerró una fase dos
+días después. Un truncado mal elegido más un gate que no cubría el caso.
+
+**El diagnóstico, y no es lo que parecía.** El contrato no estaba cazando un atajo:
+estaba castigando a un adaptador **por usar el camino obligatorio**. I-06 dice que
+`AuditedExecutor` es el único camino al motor; `mcp/server.py` lo usa, que es
+exactamente lo que se le pide. `import-linter` marca por defecto también las cadenas
+INDIRECTAS, así que cualquier módulo que use el ejecutor rompía el contrato. Se
+escribió cuando nada de `src/` usaba todavía el ejecutor, y por eso la
+sobre-restricción no se notaba.
+
+**El arreglo: `allow_indirect_imports = true`, y NO es un aflojamiento.** Se apoya en
+un dato medido, no en confianza:
+
+```
+$ grep -rn "from datawarden.engines" src/
+audit/executor.py        -> from datawarden.engines.base import Engine
+engines/duckdb_engine.py -> from datawarden.engines.base import count_execution
+```
+
+**El único módulo que importa el motor de forma directa es `audit/executor.py`.**
+Como toda cadena indirecta tiene que terminar en un import directo, todas desembocan
+por fuerza en `audit`: el embudo que I-06 exige sigue existiendo. El día que un
+segundo módulo importe el motor directamente, el embudo desaparece y la nota del
+contrato deja de ser cierta — por eso está escrita ahí y no aquí.
+
+**Verificado rompiéndolo.** Plantando `from datawarden.engines.base import Engine` en
+`mcp/server.py`, el contrato sigue saliendo `BROKEN` y `lint-imports` devuelve 1. Un
+check que no se prueba rompiendo no es un check; es la tercera vez esta semana que la
+prueba de romperlo es lo que decide si el arreglo vale.
+
+**Y `imports` entra en `gate-fast`.** Cuesta **0,08 s** medidos. Un contrato de
+arquitectura que solo se comprueba en `gate-full` y en `make done` se rompe al
+principio y se descubre al final, que es cuando más caro sale.
+
+**Números.**
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-TOOL-CHOICE` | == 20 (subido por P-009) | **20 / 20**, línea base 18, margen +2 | `make eval-toolchoice` |
+| Contratos de capas | 4 kept, 0 broken | **4 / 0** | `make imports` |
+
+`make done MILESTONE=6` **VERDE** con los 20 umbrales. Snapshot
+`.snapshots/milestone-6-20260906T190525Z`.
+
+**Decisiones.**
+- **P-009 queda aplicada por Samuel** (GOALS.yaml + sello), y no cambió ninguna
+  casilla de Q-008: estuvo de acuerdo con los 20 escenarios, incluidos los cuatro
+  ambiguos. La columna «correcta» ya es criterio humano y el `AVISO` de
+  autopuntuación ha dejado de imprimirse.
+- **`docs/PENDIENTE-*.md` al `.gitignore`.** La otra sesión dejó un documento de
+  buzón sin ignorar; un `git add -A` lo habría publicado, contra la regla de que el
+  buzón sale de git. De paso, esa revisión cazó un error real en mi propia P-009: yo
+  ofrecía un margen `>= 3` cuando el medido es 2, y ese umbral habría puesto el gate
+  en rojo el día de aprobarlo. Corregido en el buzón.
+
+**Siguiente.** El transporte stdio, que es lo único que separa a Q-009 de ser
+posible: hoy `warden --help` solo ofrece `catalog` y `audit`, así que no hay nada que
+apuntar desde Claude Desktop.

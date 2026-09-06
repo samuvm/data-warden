@@ -317,9 +317,31 @@ forbidden_modules = ["datawarden.engines", "duckdb", "pyiceberg"]
 # Sin esto, «ninguna invocación sin auditoría» es una frase del README. Con esto,
 # el día que alguien importe el motor desde el CLI para «una consulta rápida», el
 # paso 1 de `make done` sale rojo antes de que ese atajo llegue a existir.
+#
+# `allow_indirect_imports = true` · 2026-09-06, y NO es un aflojamiento.
+#
+# El invariante prohíbe LLEGAR AL MOTOR SIN PASAR POR LA AUDITORÍA, no prohíbe
+# usar `AuditedExecutor` — que es justo lo contrario: es el camino obligatorio.
+# Sin esta opción, el contrato marcaba en rojo la cadena
+# `mcp.server -> audit.executor -> engines.base`, o sea, castigaba a un adaptador
+# **por usar el camino correcto**. Se escribió cuando nada de `src/` usaba todavía
+# el ejecutor, así que la sobre-restricción no se notaba.
+#
+# Y sigue siendo estricto por una razón MEDIDA, no por confianza: el único módulo
+# de todo `src/` que importa `datawarden.engines` de forma directa es
+# `audit/executor.py`. Comprobado con `grep -rn "from datawarden.engines" src/`.
+# Como toda cadena indirecta tiene que terminar en un import directo, **todas
+# desembocan por fuerza en `audit`**, que es exactamente el embudo que I-06 exige.
+# El día que un segundo módulo importe el motor directamente, el embudo deja de
+# existir y esta nota deja de ser cierta: por eso está escrita.
+#
+# Verificado plantando `from datawarden.engines.base import Engine` en
+# `mcp/server.py`: el contrato SIGUE saliendo roto. Un check que no se prueba
+# rompiendo no es un check.
 [[tool.importlinter.contracts]]
 name = "Al motor solo se llega por la auditoría (I-06)"
 type = "forbidden"
+allow_indirect_imports = true
 source_modules = [
   "datawarden.domain",
   "datawarden.principal",
