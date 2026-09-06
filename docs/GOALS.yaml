@@ -561,8 +561,8 @@ metas:
   - id: G-TOOL-CHOICE
     nombre: "Las descripciones de las tools bastan para elegir bien"
     umbral:
-      operador: ">="
-      valor: 18
+      operador: "=="
+      valor: 20
       unidad: count
       adicionales:
         - etiqueta: "escenarios del conjunto"

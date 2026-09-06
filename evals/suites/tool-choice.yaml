@@ -24,9 +24,9 @@
 # =============================================================================
 
 version: 1
-provenance: agente_propuesto        # -> agente_propuesto_revisado_humano cuando Samuel corrija
-revisado_por: null
-revisado_el: null
+provenance: agente_propuesto_revisado_humano        # -> agente_propuesto_revisado_humano cuando Samuel corrija
+revisado_por: Samuel Viciana Moreno
+revisado_el: 06/09/2026:20:54_55
 origen: "docs/PARA-SAMUEL.md · Q-008, respondida por Samuel el 2026-09-02"
 
 herramientas: [run_query, describe_table, sample_table, explain_cost]
