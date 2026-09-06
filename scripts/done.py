@@ -190,6 +190,10 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (6, "eval_recovery.py", "G-RECOVERY · desde casetes, sin modelo"),
     (6, "check_recovery_coverage.py", "G-RECOVERY-COV · toda regla con caso"),
     (7, "mcp_conformance.py", "G-MCP-CONFORM · los 11 puntos de la spec 2026-07-28"),
+    # El servidor CONTESTANDO por stdio. Nace de que `mcp_conformance` daba 11/11
+    # mientras `run_query` reventaba: validaba la forma de lo publicado, no que el
+    # servidor supiera responder.
+    (7, "check_mcp_live.py", "el servidor MCP contestando por stdio, cliente real"),
     (7, "check_role_spoof.py", "G-ROLE-SPOOF · axioma, `_meta` es dato y no autoridad"),
     (7, "eval_toolchoice.py", "G-TOOL-CHOICE · desde casetes, sin modelo"),
 )

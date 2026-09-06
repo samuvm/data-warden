@@ -97,8 +97,122 @@ El dataset **no se versiona** — son 7,5 GB. Se genera, y sale idéntico byte a
 Y para mirar los datos con las manos:
 
 ```bash
-duckdb datagen/out/dev/cierzo-dev.duckdb
+duckdb datagen/out/cierzo-dev.duckdb
 ```
+
+## Instalarlo en un cliente MCP
+
+Data Warden habla **MCP 2026-07-28** por **stdio**. Eso significa que **no hay nada que
+levantar**: el cliente lanza el proceso cuando lo necesita y lo mata al cerrarse. No hay
+demonio, no hay puerto, no hay `make up`. DuckDB es embebido, así que tampoco hay
+servidor de base de datos — y **no hace falta ningún modelo local**: las cuatro
+herramientas reciben SQL, y quien lo escribe es el modelo del cliente.
+
+### 1 · Prepara los datos, una vez
+
+```bash
+cd data-warden
+uv sync
+make dataset PROFILE=dev      # 15 s · 3,1 M filas · genera datagen/out/cierzo-dev.duckdb
+uv run warden catalog build   # el catálogo se GENERA, nunca se escribe a mano
+```
+
+> El `.duckdb` pesa 268 KB porque son **vistas sobre los Parquet, con rutas absolutas**.
+> Los ficheros de `datagen/out/` tienen que seguir ahí, y el servidor solo funciona en la
+> máquina donde se generaron. En otra, se vuelve a generar: sale idéntico byte a byte.
+
+### 2 · Elige la pimienta y el rol
+
+```bash
+export DATAWARDEN_MASK_PEPPER="$(openssl rand -hex 24)"   # 48 caracteres; el mínimo son 32
+echo "$DATAWARDEN_MASK_PEPPER"                            # guárdala: es tu configuración
+```
+
+**No hay valor por defecto y no lo va a haber**: una pimienta por defecto es una pimienta
+pública, y el algoritmo de enmascarado está publicado en `docs/spec/policy.yaml`. Si
+cambia, los valores hasheados cambian con ella.
+
+El rol sale de `WARDEN_ROLE` y **lo fija quien instala el servidor**, nunca quien
+pregunta. Vale `analyst`, `ops`, `finance` o `admin`; si falta o no se reconoce, se usa
+`analyst`, que es el más restringido. Para ver el sistema haciendo su trabajo, usa
+`analyst`.
+
+### 3 · Comprueba antes de instalar
+
+```bash
+make mcp-live
+```
+
+Levanta el servidor como lo hará el cliente y le habla JSON-RPC de verdad. Ocho
+comprobaciones, todas en verde antes de tocar la configuración de nada.
+
+### 4 · Añádelo a Claude Desktop
+
+Edita `~/Library/Application Support/Claude/claude_desktop_config.json` — si no existe,
+créalo con exactamente esto:
+
+```json
+{
+  "mcpServers": {
+    "data-warden": {
+      "command": "/Users/TU_USUARIO/.local/bin/uv",
+      "args": ["run", "warden", "mcp", "serve"],
+      "cwd": "/RUTA/ABSOLUTA/A/data-warden",
+      "env": {
+        "DATAWARDEN_MASK_PEPPER": "la-que-generaste-en-el-paso-2",
+        "WARDEN_ROLE": "analyst"
+      }
+    }
+  }
+}
+```
+
+Tres cosas que fallan si se hacen «como siempre»:
+
+- **`command` tiene que ser la ruta ABSOLUTA de `uv`.** Claude Desktop no hereda el
+  `PATH` de tu terminal, así que `"uv"` a secas no se encuentra. La tuya:
+  `which uv`.
+- **`cwd` tiene que ser la raíz del repositorio.** El servidor busca ahí el catálogo, la
+  política y `datagen/out/`.
+- **La pimienta va en `env`**, no en el sistema: Claude Desktop tampoco hereda tus
+  variables de entorno.
+
+Reinicia Claude Desktop del todo (⌘Q, no cerrar la ventana).
+
+### 5 · Pruébalo
+
+Pregúntale algo normal:
+
+> *¿cuántos clientes hay por país?*
+
+Y después pídele algo que **no** debería poder darte:
+
+> *dame los clientes nacidos antes de 1990*
+
+Lo segundo tiene que salir **rechazado**, con la regla que saltó y qué usar en su lugar:
+
+```
+R008 · column dim_customer.birth_date is masked for role analyst: it may only appear
+       as a direct projection, and it appears in a WHERE predicate
+       → use dim_customer.age_band instead
+```
+
+**Eso es el producto.** No que acierte: que cuando no puede, lo diga y diga por qué.
+
+### Si algo no arranca
+
+El servidor escribe el motivo en `stderr` y Claude Desktop lo guarda en
+`~/Library/Logs/Claude/mcp-server-data-warden.log`.
+
+| Lo que dice | Qué pasa |
+|---|---|
+| `no existe datagen/out/cierzo-dev.duckdb` | Falta el paso 1. El almacén no se inventa vacío: si arrancara, «no encuentro los datos» y «no hay filas» serían indistinguibles |
+| `la pimienta tiene N caracteres y el mínimo es 32` | El `env` del paso 4 |
+| `no hay catálogo generado` | Falta `uv run warden catalog build` |
+| El servidor no aparece en Claude | Casi siempre `command` sin ruta absoluta, o `cwd` mal |
+
+`uv run warden mcp serve` en una terminal **se queda callado y sin devolver el prompt**.
+Es lo correcto: está escuchando JSON-RPC por la entrada estándar. `Ctrl-C` para salir.
 
 ## Los números, medidos
 

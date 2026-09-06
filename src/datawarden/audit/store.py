@@ -21,6 +21,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import sqlite3
+import threading
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -142,7 +143,19 @@ class AuditStore:
     """La cadena, persistida. `":memory:"` para los tests unitarios."""
 
     def __init__(self, path: str) -> None:
-        self.connection = sqlite3.connect(path, isolation_level=None)
+        # `check_same_thread=False` + CERROJO, y el cerrojo no es por los hilos: lo
+        # exige la propia cadena. `append()` LEE la cabeza (`seq`, `chain_hash`) y
+        # luego ESCRIBE encadenando contra ella. Dos escrituras simultáneas leerían
+        # el mismo `prev_hash` y producirían dos registros hermanos: la cadena
+        # dejaría de ser una cadena y `verify()` lo cantaría después, cuando ya no
+        # se puede saber cuál era el bueno.
+        #
+        # Lo de los hilos vino de rebote y era real: el SDK de MCP ejecuta las tools
+        # síncronas en un hilo de trabajo, y SQLite se negaba —«objects created in a
+        # thread can only be used in that same thread»—. Se descubrió conduciendo el
+        # servidor con un cliente MCP de verdad; en proceso no aparecía.
+        self._lock = threading.RLock()
+        self.connection = sqlite3.connect(path, isolation_level=None, check_same_thread=False)
         # WAL no aplica a `:memory:` y SQLite lo ignora sin protestar; se pide
         # igual para que el camino de código sea EL MISMO en test y en producción.
         if path != ":memory:":
@@ -170,6 +183,29 @@ class AuditStore:
         registro borrado: la comprobación de consecutividad de `verify()` dejaría de
         significar nada.
         """
+        with self._lock:
+            return self._append_locked(
+                principal_id=principal_id,
+                role=role,
+                role_source=role_source,
+                status=status,
+                question_digest=question_digest,
+                sql_digest=sql_digest,
+                **optional,
+            )
+
+    def _append_locked(
+        self,
+        *,
+        principal_id: str,
+        role: Role,
+        role_source: RoleSource,
+        status: Status,
+        question_digest: str,
+        sql_digest: str,
+        **optional: Any,
+    ) -> Entry:
+        """El cuerpo de `append`, ya bajo el cerrojo. Leer la cabeza y encadenar."""
         row = self.connection.execute(
             "SELECT seq, chain_hash FROM audit_log ORDER BY seq DESC LIMIT 1"
         ).fetchone()
@@ -225,11 +261,15 @@ class AuditStore:
         """Toda la cadena, en orden de `seq`."""
         # S608: mismo motivo que en `append` — columnas de una constante, cero
         # entrada. Y la misma tupla, para que leer y escribir no puedan divergir.
-        cursor = self.connection.execute(
-            f"SELECT {','.join(_COLUMNS)} FROM audit_log ORDER BY seq"  # noqa: S608
-        )
+        with self._lock:
+            # El `fetchall()` va DENTRO del cerrojo: un cursor de SQLite consumido
+            # fuera vuelve a tocar la conexión, que es justo lo que se está
+            # serializando.
+            raws = self.connection.execute(
+                f"SELECT {','.join(_COLUMNS)} FROM audit_log ORDER BY seq"  # noqa: S608
+            ).fetchall()
         entries: list[Entry] = []
-        for raw in cursor.fetchall():
+        for raw in raws:
             fields = dict(zip(_COLUMNS, raw, strict=True))
             chain_hash = str(fields.pop("chain_hash"))
             entries.append(Entry(record=_record_from(fields), chain_hash=chain_hash))
@@ -244,7 +284,8 @@ class AuditStore:
         return verify(self.rows())
 
     def count(self) -> int:
-        row = self.connection.execute("SELECT count(*) FROM audit_log").fetchone()
+        with self._lock:
+            row = self.connection.execute("SELECT count(*) FROM audit_log").fetchone()
         return int(row[0])
 
     def count_by_status(self) -> dict[Status, int]:
@@ -255,14 +296,17 @@ class AuditStore:
         informe a distinguir «cero» de «no medido».
         """
         counts = dict.fromkeys(Status, 0)
-        for value, total in self.connection.execute(
-            "SELECT status, count(*) FROM audit_log GROUP BY status"
-        ):
+        with self._lock:
+            filas = self.connection.execute(
+                "SELECT status, count(*) FROM audit_log GROUP BY status"
+            ).fetchall()
+        for value, total in filas:
             counts[Status(value)] = int(total)
         return counts
 
     def close(self) -> None:
-        self.connection.close()
+        with self._lock:
+            self.connection.close()
 
 
 def _record_from(fields: dict[str, Any]) -> AuditRecord:

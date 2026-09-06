@@ -32,7 +32,7 @@ JUDGE_ROLE ?= juez
         bench bench-guard cost-calibration mutation \
         attack-dev attack-holdout attack-mut pii-suite \
         mcp-conformance test-parity gate-fast gate-full done report clean \
-        eval-toolchoice-refresh \
+        eval-toolchoice-refresh mcp-live \
         dataset dataset-full dataset-traps contracts catalog arch-checks goals guard-property \
         statistics budget-invariant
 
@@ -225,6 +225,13 @@ pii-suite:
 # y falla contra uno nuevo, que es la peor forma de fallar.
 mcp-conformance:
 	$(UV) python scripts/mcp_conformance.py
+	$(UV) python scripts/check_mcp_live.py
+
+# El servidor CONTESTANDO por stdio, con un cliente MCP de verdad. Existe porque
+# `mcp-conformance` daba 11/11 mientras `run_query` reventaba en todas las llamadas:
+# validaba la forma de lo que el servidor publica, no que supiera responder.
+mcp-live:
+	$(UV) python scripts/check_mcp_live.py
 
 test-parity:
 	@echo "FASE 9: no hay segundo motor todavía."

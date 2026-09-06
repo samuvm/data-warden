@@ -4,8 +4,8 @@ Los subcomandos aparecen cuando existe la pieza que ejecutan. Un CLI que promete
 `warden query` antes de que haya guard es peor que uno que no promete nada: quien
 lo prueba concluye que el proyecto no funciona, y tiene razón.
 
-Hoy: `catalog build` y `catalog show` (fase 0), y `audit verify | reconcile | anchor`
-(fase 5).
+Hoy: `catalog build` y `catalog show` (fase 0), `audit verify | reconcile | anchor`
+(fase 5) y `mcp serve` (fase 7).
 """
 
 from __future__ import annotations
@@ -176,6 +176,40 @@ def _cmd_audit_anchor(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_mcp_serve(args: argparse.Namespace) -> int:
+    """Arranca el servidor MCP sobre stdio. Lo lanza el CLIENTE, no tú.
+
+    **Este comando no se ejecuta a mano en el día a día.** Se pone en la
+    configuración del cliente MCP —Claude Desktop, Cursor— y es él quien lo lanza
+    cuando lo necesita y lo mata al cerrarse. Ejecutarlo en una terminal se queda
+    esperando en silencio, que es exactamente lo que debe hacer: está escuchando
+    JSON-RPC por la entrada estándar.
+
+    **Todo lo que puede fallar falla AQUÍ, antes de decir que está listo**, y el
+    motivo se escribe en `stderr`. En stdio, `stdout` ES el canal del protocolo:
+    un mensaje de error ahí corrompe el flujo y el cliente desconecta con un fallo
+    que no se parece en nada a su causa.
+    """
+    from datawarden.audit.factory import MissingDatasetError
+    from datawarden.mcp.runtime import serve_stdio
+
+    try:
+        serve_stdio(
+            database=pathlib.Path(args.database),
+            audit_db=pathlib.Path(args.audit_db),
+        )
+    except MissingDatasetError as falta:
+        print(f"warden mcp serve: {falta}", file=sys.stderr)
+        return 1
+    except ValueError as mal:
+        # La pimienta del enmascarado, típicamente. Sin ella no se arranca: enmascarar
+        # con una clave que todo el mundo conoce produce la apariencia de protección
+        # sin la protección.
+        print(f"warden mcp serve: {mal}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="warden", description=__doc__)
     parser.add_argument("-V", "--version", action="store_true", help="versión y salir")
@@ -211,6 +245,22 @@ def build_parser() -> argparse.ArgumentParser:
     anchor = audit_sub.add_parser("anchor", help="emite la punta de la cadena")
     anchor.add_argument("--database", default=str(DEFAULT_AUDIT_DB))
     anchor.set_defaults(func=_cmd_audit_anchor)
+
+    mcp = sub.add_parser("mcp", help="el servidor MCP (fase 7)")
+    mcp_sub = mcp.add_subparsers(dest="subcommand", required=True)
+
+    serve = mcp_sub.add_parser("serve", help="habla MCP por stdio; lo lanza el cliente")
+    serve.add_argument(
+        "--database",
+        default=str(DEFAULT_DATABASE),
+        help="el almacén DuckDB. Se genera con `make dataset PROFILE=dev`",
+    )
+    serve.add_argument(
+        "--audit-db",
+        default=str(DEFAULT_AUDIT_DB),
+        help="dónde se escribe la cadena de auditoría",
+    )
+    serve.set_defaults(func=_cmd_mcp_serve)
 
     return parser
 
