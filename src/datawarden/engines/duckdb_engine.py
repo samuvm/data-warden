@@ -12,6 +12,7 @@ Régimen: **contrato y snapshot, no cobertura de línea** (`docs/RULES.md §2`).
 from __future__ import annotations
 
 import pathlib
+import threading
 from typing import Any
 
 from datawarden.domain.types import ResultSet, ValidatedQuery
@@ -36,6 +37,16 @@ class DuckDBEngine:
         # un usuario: son la instalación de una clave, y llevan la pimienta dentro.
         self._setup_sql = setup_sql
         self._connection: Any = None
+        # UN CERROJO, y una sola conexión. No es paranoia de concurrencia: el
+        # servidor MCP ejecuta las tools en un hilo de trabajo y una conexión de
+        # DuckDB usada desde dos hilos a la vez es comportamiento indefinido.
+        #
+        # **Y no vale `.cursor()` por llamada, que sería lo idiomático.** Un cursor
+        # de DuckDB abre una sesión nueva, y la macro `warden_hash` que instala
+        # `setup_sql` es TEMPORAL: vive en el esquema de sesión. Con un cursor por
+        # llamada, la macro no existiría y toda columna hasheada fallaría — o peor,
+        # dejaría de enmascararse. Una conexión, serializada.
+        self._lock = threading.Lock()
 
     def _connect(self) -> Any:
         if self._connection is None:
@@ -58,9 +69,12 @@ class DuckDBEngine:
         DuckDB y Athena darían resultados distintos para la misma pregunta.
         """
         count_execution()
-        cursor = self._connect().execute(query.sql())
-        columns = tuple(d[0] for d in (cursor.description or []))
-        rows = cursor.fetchall()
+        with self._lock:
+            # Conectar y consumir el cursor van juntos bajo el cerrojo: un cursor
+            # leído fuera vuelve a tocar la conexión, que es lo que se serializa.
+            cursor = self._connect().execute(query.sql())
+            columns = tuple(d[0] for d in (cursor.description or []))
+            rows = cursor.fetchall()
         truncated = len(rows) > query.max_rows
         return ResultSet(
             columns=columns,

@@ -1984,3 +1984,99 @@ principio y se descubre al final, que es cuando más caro sale.
 **Siguiente.** El transporte stdio, que es lo único que separa a Q-009 de ser
 posible: hoy `warden --help` solo ofrece `catalog` y `audit`, así que no hay nada que
 apuntar desde Claude Desktop.
+
+---
+
+## 2026-09-06 · fase 7 · el transporte stdio, y el servidor no sabía contestar
+
+**Qué se intentó.**
+Escribir el transporte stdio para que Q-009 sea posible: hoy `warden --help` solo
+ofrecía `catalog` y `audit`, así que no había nada que apuntar desde Claude Desktop.
+
+**El diseño, dictado por un contrato.** `mcp/runtime.py` necesita un
+`AuditedExecutor`, y para construirlo hace falta un `DuckDBEngine` — que `mcp/` NO
+puede importar: lo prohíbe «Al motor solo se llega por la auditoría (I-06)». La
+salida estaba escrita desde la fase 5, en un comentario del propio CLI: *«el día que
+exista `warden query`, su motor lo construirá una factoría de `audit/`, no este
+fichero»*. Eso es `audit/factory.py`. Con ella, `mcp/`, `http/` y el CLI comparten un
+único sitio desde el que se llega al motor, en vez de tres.
+
+**EL FALLO · `G-MCP-CONFORM` decía 11/11 y el servidor no contestaba una sola
+consulta.** Al conducirlo con un cliente MCP de verdad por stdio:
+
+```
+UnexpectedToolError: Error executing tool run_query
+  causa: ProgrammingError · SQLite objects created in a thread can only be used in
+         that same thread (creado en 8322343296, usado desde 6117191680)
+```
+
+El SDK ejecuta las tools síncronas en un **hilo de trabajo**. `AuditStore` abría su
+conexión en el hilo principal y `DuckDBEngine` la suya en el primero que llamara.
+`describe_table` funcionaba —no toca el motor— y `run_query` reventaba siempre.
+
+**Y el check de conformidad daba verde**, porque validaba la FORMA de lo que el
+servidor publica —`resultType`, `ttlMs`, el `oneOf`, el orden de `tools/list`— y todo
+eso estaba bien. Nadie comprobaba que supiera responder. **Es la tercera vez esta
+semana que el mismo error de método produce un verde falso**: antes fue `G-PII-LEAK`
+midiendo `screen_and_mask()` en vez del ejecutor, y `G-SECRETS` comparándose contra
+un fichero que la propia medida reescribía. Conviene escribirlo con todas las letras:
+*no basta con medir un anillo; hay que medirlo por el camino que se ejecuta.*
+
+**El arreglo, y el cerrojo no es por los hilos.** `append()` LEE la cabeza de la
+cadena (`seq`, `chain_hash`) y luego ESCRIBE encadenando contra ella: dos escrituras
+simultáneas leerían el mismo `prev_hash` y producirían dos registros hermanos. **La
+cadena exige serialización por sí misma**, y lo de los hilos vino de rebote. En el
+motor, un cerrojo y **una sola conexión**: `.cursor()` por llamada sería lo idiomático
+y estaría mal, porque abre sesión nueva y la macro `warden_hash` es TEMPORAL — con un
+cursor por llamada no existiría, y las columnas hasheadas dejarían de enmascararse.
+
+**`scripts/check_mcp_live.py`**: levanta `warden mcp serve` como proceso hijo y le
+habla JSON-RPC con el cliente del SDK. Ocho comprobaciones de lo que un usuario nota
+el primer minuto, incluida la que vale: **el rechazo llega con su regla y su
+alternativa, y NO como error de protocolo**.
+
+**Números.**
+
+| Qué | Resultado | Comando |
+|---|---|---|
+| Protocolo negociado | **2026-07-28** | `make mcp-live` |
+| Servidor contestando por stdio | **8 / 8** | ídem |
+| `G-MCP-CONFORM` | **11 / 11** | `make mcp-conformance` |
+| `G-PII-LEAK` *(axioma)* | **0 fugas / 177** | `make pii-suite` |
+| `make done MILESTONE=6` | **VERDE**, 20 metas | — |
+
+Lo que ve un cliente real, textual:
+
+```
+run_query agregada     -> [['ES', 23908], ['FR', 10488], ['DE', 9888]]
+columna enmascarada    -> [[None], ['***'], ['***']]  masked=['dim_customer.first_name']
+R008 · column dim_customer.birth_date is masked for role analyst: it may only appear
+       as a direct projection, and it appears in a WHERE predicate
+       -> use dim_customer.age_band instead
+DELETE FROM dim_customer -> R010 · reintentable: False
+```
+
+**El gate cazó lo suyo, y me gusta que lo hiciera.** `build_executor` entró sin test y
+`G-COV-FUNC` salió rojo en el paso 4. Va a `tests/integration/` y no a unitarios
+porque construye un motor (I-13), y el test que importa comprueba **contra datos** que
+la máscara instalada por la factoría enmascara de verdad: es lo único que prueba que
+`setup_sql` y el enmascarador comparten pimienta.
+
+**Decisiones.**
+- **Nada se imprime en `stdout`.** En stdio, `stdout` ES el canal del protocolo: un
+  `print` de depuración corrompe el flujo JSON-RPC y el cliente desconecta con un
+  error que no se parece en nada a su causa. Los errores van a `stderr` y el servidor
+  falla AL ARRANCAR, nunca en la primera consulta — un servidor que arranca y revienta
+  después es peor, porque el cliente ya dijo que estaba conectado.
+- **Las descripciones de las tools salen del CONTRATO**, no de los docstrings. Es lo
+  que mide `G-TOOL-CHOICE`; un docstring editado «para que quede mejor» movería lo que
+  ve el cliente sin mover el número.
+- **README con la sección de instalación entera**, incluidas las tres cosas que fallan
+  si se hacen «como siempre»: `command` sin ruta absoluta de `uv` —Claude Desktop no
+  hereda el `PATH`—, `cwd` que no es la raíz, y la pimienta fuera de `env`. Y se
+  corrigió una ruta equivocada que ya estaba: `datagen/out/dev/cierzo-dev.duckdb` no
+  existe; es `datagen/out/cierzo-dev.duckdb`.
+
+**Siguiente.** Q-009 ya se puede hacer: `make mcp-live` en verde es la prueba de que
+hay algo que instalar. Falta de la fase 7 para poder cerrarla: `http/` con FastAPI,
+Streamable HTTP, MRTR para el presupuesto `soft` y `traceparent` a OTel.

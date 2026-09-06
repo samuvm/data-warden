@@ -6,7 +6,7 @@
       },
       "command": "make coverage && python scripts/check_function_coverage.py",
       "detail": {
-        "public_functions": 134,
+        "public_functions": 135,
         "uncovered": []
       },
       "value": 0
@@ -18,7 +18,7 @@
       "command": "make coverage && python scripts/check_line_coverage.py",
       "detail": {
         "por_paquete": {
-          "audit": 100.0,
+          "audit": 99.14,
           "catalog": 100.0,
           "cost": 98.0,
           "domain": 100.0,

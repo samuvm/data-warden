@@ -66,11 +66,63 @@
       },
       "value": 11.0
     },
+    "G-MCP-LIVE": {
+      "adicionales": {},
+      "command": "python scripts/check_mcp_live.py",
+      "detail": {
+        "checks": [
+          {
+            "detail": "2026-07-28",
+            "name": "protocolo-2026-07-28",
+            "ok": true
+          },
+          {
+            "detail": "['run_query', 'describe_table', 'sample_table', 'explain_cost']",
+            "name": "tools-list-en-orden",
+            "ok": true
+          },
+          {
+            "detail": "['warden://catalog']",
+            "name": "recurso-catalogo",
+            "ok": true
+          },
+          {
+            "detail": "[['ES', 23908], ['FR', 10488], ['DE', 9888]]",
+            "name": "run_query-devuelve-filas",
+            "ok": true
+          },
+          {
+            "detail": "valores=['***', '***'] masked=['dim_customer.first_name']",
+            "name": "columna-mask-sale-enmascarada",
+            "ok": true
+          },
+          {
+            "detail": "R008 -> dim_customer.age_band",
+            "name": "rechazo-accionable-con-alternativa",
+            "ok": true
+          },
+          {
+            "detail": "is_error=False",
+            "name": "rechazo-no-es-error-de-protocolo",
+            "ok": true
+          },
+          {
+            "detail": "R010 retryable=False",
+            "name": "escritura-parada-y-no-reintentable",
+            "ok": true
+          }
+        ],
+        "como_se_mide": "se levanta `warden mcp serve` como proceso hijo y se le habla JSON-RPC por stdio con el cliente del SDK, igual que hace Claude Desktop. No se inspecciona ninguna estructura en proceso.",
+        "passed": 8,
+        "total": 8
+      },
+      "value": 0.0
+    },
     "G-ROLE-SOURCE": {
       "adicionales": {},
       "command": "python scripts/check_role_source.py",
       "detail": {
-        "files_checked": 64,
+        "files_checked": 66,
         "problems": []
       },
       "value": 0
