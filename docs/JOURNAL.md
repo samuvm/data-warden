@@ -2200,3 +2200,82 @@ disfraz distinto:
 
 **Lección, la misma de siempre y van cuatro: no basta con medir; hay que medir lo que se
 ejecuta, con el comando que se documenta y en las condiciones en que corre.**
+
+---
+
+## 2026-09-07 · Q-009 · hallazgo 4 · el servidor era indescubrible, y el rechazo mandaba a un sitio al que no se podía ir
+
+**Qué pasó.** El servidor arrancó, cargó las cuatro herramientas y el guard rechazó
+correctamente. Y aun así el modelo no pudo contestar «¿cuántos clientes hay por país?»,
+porque **no tenía forma de saber qué tablas existen**. Su rastro, entero:
+
+```
+describe_table{table: "customers"}       -> R004 relation_out_of_scope
+describe_table{table: "clientes"}        -> R004
+describe_table{table: "warden://catalog"}-> R004
+run_query{information_schema.tables}     -> R014 system_schema_access
+describe_table{table: "payments"}        -> R004
+describe_table{table: "pagos"}           -> R004
+```
+
+Y se rindió: *«no hay herramienta de lectura de recursos MCP disponible… dime los
+nombres de las tablas del catálogo y lanzo el conteo»*.
+
+**El diagnóstico, y es de diseño.** El catálogo se servía **solo como recurso MCP**. Los
+recursos son **opcionales** para un cliente; las herramientas no. Un servidor cuyo único
+camino de descubrimiento es un recurso es indescubrible en cualquier cliente que no los
+lea — y eso no lo decide el servidor.
+
+**Lo que más me molesta no es el callejón: es el mensaje.** El rechazo de R004 decía
+*«read the catalog resource and use one of the relations it lists»*. **Una acción que
+ese cliente no podía ejecutar.** Un mensaje accionable que nombra algo irrealizable no
+es accionable, y este proyecto entero se sostiene sobre esa promesa: *el valor no está
+en la tasa de acierto, está en la garantía sobre el fallo.* Aquí la garantía falló en
+sus propios términos, y con el guard funcionando perfectamente.
+
+Nótese además que R014 hizo lo correcto —bloquear `information_schema`— y al hacerlo
+cerró la última salida. Cada anillo se comportó bien por separado; el agujero estaba
+entre ellos.
+
+**Arreglado.**
+- **`describe_table` SIN argumentos devuelve la lista de tablas.** Es el camino de
+  descubrimiento que funciona en cualquier cliente, porque es una herramienta. Se hace
+  ahí y no en una quinta herramienta: el contrato declara cuatro, `G-TOOL-CHOICE` mide
+  esas cuatro, y «qué hay en el almacén» y «qué hay en esta tabla» son la misma
+  pregunta a dos granos.
+- **La sugerencia del rechazo nombra algo ejecutable**: *«call describe_table with no
+  arguments to see the tables that exist»*. El mensaje del GUARD no se toca —no debe
+  saber qué es una herramienta MCP—; el que cambia es el del adaptador, que sí habla
+  el idioma del cliente.
+- **Las instrucciones del servidor lo dicen lo primero.** Es lo que el modelo lee al
+  conectar: *«EMPIEZA llamando a `describe_table` SIN argumentos»*.
+- **El recurso `warden://catalog` se queda**: para quien sí lo lee, es el catálogo
+  entero de una vez.
+- **`check_mcp_live` sube a 10** con las dos comprobaciones que faltaban: que se puedan
+  descubrir las tablas sin saber nada, y que la sugerencia de una tabla inventada
+  nombre una acción ejecutable.
+
+**De rebote, `G-SECRETS` se puso rojo y se arregló mejor de lo que estaba.** Cambiar el
+contrato cambió su `sha256` en el informe, y `detect-secrets` marcó el hexadecimal
+desnudo. La salida fácil era ampliar la línea base; la buena es que **un digest lleve
+su etiqueta**: `sha256:…` para los shas de fichero y `ollama:…` para el identificador
+del modelo —que no es un sha256, y decir que lo es sería cómodo y falso—. Con eso dejan
+de ser hexadecimal puro. **La línea base baja de 14 a 10**: quitadas las cuatro que yo
+mismo había añadido, porque el falso positivo ya no existe. Quitar entradas siempre es
+más estricto; añadirlas es lo que hay que auditar.
+
+**Números.**
+
+| Qué | Antes | Después |
+|---|---|---|
+| `check_mcp_live` | 8/8 (sin probar descubrimiento) | **10/10** |
+| Tablas descubribles sin saber nada | 0 | **32** |
+| `G-TOOL-CHOICE` | 20/20 | **20/20** con la descripción nueva, línea base 18 |
+| `.secrets.baseline` | 14 entradas | **10** |
+| `make done MILESTONE=6` | — | **VERDE**, 20 metas |
+
+**Lección.** Van cuatro hallazgos de Q-009 y **ninguno lo habría encontrado yo solo**.
+Este es el más caro de los cuatro y el más difícil de ver desde dentro: yo probaba con
+un cliente que sí lee recursos, así que para mí el catálogo siempre estuvo ahí. El
+valor de la prueba no era comprobar que el servidor funciona —funcionaba—, sino que
+alguien que no lo escribió pudiera usarlo.

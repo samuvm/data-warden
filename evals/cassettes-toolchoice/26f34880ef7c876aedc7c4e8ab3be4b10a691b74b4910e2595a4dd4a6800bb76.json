@@ -1,0 +1,6 @@
+{
+  "statement": "¿Merece la pena que lance esto?",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "explain_cost"
+}

@@ -50,7 +50,14 @@ SERVER_VERSION: Final = "0.7.0"
 
 INSTRUCTIONS: Final = (
     "Almacén analítico de pagos con guard por AST, presupuesto y enmascarado por rol. "
-    "Escribe SQL `SELECT` de DuckDB contra las tablas del recurso `warden://catalog`. "
+    # EMPIEZA POR AQUÍ, y va lo primero por un motivo medido: en Q-009 un cliente sin
+    # lectura de recursos MCP dejó al modelo adivinando nombres de tabla a ciegas
+    # —`customers`, `clientes`, `pagos`— hasta rendirse. Los recursos son OPCIONALES
+    # para un cliente; las herramientas no.
+    "EMPIEZA llamando a `describe_table` SIN argumentos: devuelve las tablas que "
+    "existen. Después `describe_table` con una de ellas para ver sus columnas. "
+    "Solo entonces escribe SQL `SELECT` de DuckDB en `run_query`. "
+    "No inventes nombres de tabla: los que no estén en esa lista se rechazan. "
     "Un rechazo NO es un error: trae la regla que saltó, qué pasó y qué hacer en su "
     "lugar. Léelo y corrige eso concreto; no intentes rodearlo, está comprobado."
 )

@@ -97,6 +97,21 @@ def cassette_provenance(directory: pathlib.Path) -> dict[str, object]:
     return {"count": count, "models": sorted(models), "modes": sorted(modes, key=str)}
 
 
+def model_ref(digest: str) -> str:
+    """El digest del modelo, ETIQUETADO con de dónde sale.
+
+    Doce caracteres hexadecimales desnudos en un artefacto versionado los marca
+    `detect-secrets` como cadena de alta entropía, y cada vez que cambia el modelo
+    entraría un falso positivo nuevo en la línea base. Esa fricción acaba enseñando a
+    ampliar la línea base sin auditar, que es justo lo que `G-SECRETS` impide.
+
+    No se etiqueta `sha256:` porque **no lo es**: es el identificador que Ollama da al
+    peso, y decir que es un sha256 sería más cómodo y falso. `models.lock` es público
+    y versionado: aquí no hay nada que ocultar, solo que nombrar.
+    """
+    return f"ollama:{digest}"
+
+
 def models_lock(role: str) -> tuple[str, str]:
     """El tag y el digest de un rol de `models.lock`. **Fijado por digest, no por tag.**
 
@@ -293,17 +308,25 @@ def main() -> int:
         "model": {
             "role": args.model_role,
             "tag": tag,
-            "digest": digest,
+            "digest": model_ref(digest),
             "thinking": thinking,
             "temperature": LocalProvider.temperature,
             "seed": LocalProvider.seed,
         },
         "prompts": [
-            {"id": prompt.prompt_id, "version": prompt.version, "sha256": prompt.sha256},
+            # Etiquetado `sha256:` por el mismo motivo que en `eval_toolchoice.py`:
+            # un hexadecimal desnudo en un artefacto versionado es un falso positivo
+            # de `detect-secrets` en cada medida, y esa fricción acaba enseñando a
+            # ampliar la línea base sin auditar.
+            {
+                "id": prompt.prompt_id,
+                "version": prompt.version,
+                "sha256": f"sha256:{prompt.sha256}",
+            },
             {
                 "id": retry_prompt.prompt_id,
                 "version": retry_prompt.version,
-                "sha256": retry_prompt.sha256,
+                "sha256": f"sha256:{retry_prompt.sha256}",
             },
         ],
         "provider": "local (refrescado)" if args.refresh else "recorded (casetes)",

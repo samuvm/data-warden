@@ -87,6 +87,16 @@
             "ok": true
           },
           {
+            "detail": "32 tablas · ['bridge_customer_device', 'bridge_merchant_account_manager', 'dim_card']…",
+            "name": "descubrir-tablas-sin-saber-nada",
+            "ok": true
+          },
+          {
+            "detail": "call describe_table with no arguments to see the tables that",
+            "name": "rechazo-sugiere-algo-ejecutable",
+            "ok": true
+          },
+          {
             "detail": "[['ES', 23908], ['FR', 10488], ['DE', 9888]]",
             "name": "run_query-devuelve-filas",
             "ok": true
@@ -113,8 +123,8 @@
           }
         ],
         "como_se_mide": "se levanta `warden mcp serve` como proceso hijo y se le habla JSON-RPC por stdio con el cliente del SDK, igual que hace Claude Desktop. No se inspecciona ninguna estructura en proceso.",
-        "passed": 8,
-        "total": 8
+        "passed": 10,
+        "total": 10
       },
       "value": 0.0
     },

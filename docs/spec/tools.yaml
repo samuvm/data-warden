@@ -31,7 +31,7 @@
 # como un motivo que leer.
 # =============================================================================
 
-version: 1
+version: 2
 estado: BORRADOR          # BORRADOR | FIRMADO — solo Samuel escribe FIRMADO
 generado_por: agente
 generado_el: 2026-09-03
@@ -64,7 +64,9 @@ herramientas:
       Devuelve la ficha publicada de una tabla: sus columnas con el tipo y el
       significado de cada una, el grano —qué representa una fila—, las claves por
       las que se une con otras, y el número de filas que el catálogo tiene
-      registrado. No lee ni una fila del almacén y no cuesta escaneo.
+      registrado. Llamada SIN argumentos devuelve la lista de tablas que existen,
+      que es por donde se empieza cuando no se conoce el almacén. No lee ni una fila
+      y no cuesta escaneo.
       Es el primer movimiento razonable sobre una tabla que no se conoce, antes de
       pedir datos de ella. No la uses cuando la respuesta exija calcular algo sobre
       los valores o filtrar por una condición: eso es run_query.
