@@ -1,0 +1,6 @@
+{
+  "statement": "¿Por qué clave hay que unir dim_merchant?",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "describe_table"
+}

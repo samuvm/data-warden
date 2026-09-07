@@ -1,0 +1,6 @@
+{
+  "statement": "¿Qué pinta tienen los valores de device_class?",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "sample_table"
+}

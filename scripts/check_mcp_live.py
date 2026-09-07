@@ -98,6 +98,37 @@ async def exercise() -> list[tuple[str, bool, str]]:
         uris = [str(r.uri) for r in (await client.list_resources()).resources]
         checks.append(("recurso-catalogo", "warden://catalog" in uris, str(uris)))
 
+        # 0 · SE PUEDE DESCUBRIR EL ALMACÉN SIN SABER NADA. Es lo que fallaba en
+        #     Q-009: el catálogo solo estaba como recurso MCP, el cliente no tenía
+        #     lectura de recursos, y el modelo acabó adivinando `customers`,
+        #     `clientes`, `pagos` hasta rendirse. Los recursos son OPCIONALES para un
+        #     cliente; las herramientas no.
+        out = await client.call_tool("describe_table", {})
+        body = (out.structured_content or {}).get("result") or {}
+        tablas = [fila[0] for fila in body.get("rows", [])]
+        checks.append(
+            (
+                "descubrir-tablas-sin-saber-nada",
+                len(tablas) > 20 and "dim_customer" in tablas,
+                f"{len(tablas)} tablas · {tablas[:3]}…",
+            )
+        )
+
+        # 0.bis · Y EL RECHAZO DE UNA TABLA INVENTADA NOMBRA ALGO QUE SE PUEDE HACER.
+        #     Decía «read the catalog resource», que en ese cliente era imposible. Un
+        #     mensaje accionable que nombra una acción irrealizable no es accionable,
+        #     y este proyecto se sostiene sobre esa promesa.
+        out = await client.call_tool("describe_table", {"table": "clientes"})
+        rej = (out.structured_content or {}).get("rejected") or {}
+        sugerencia = str(rej.get("suggestion", ""))
+        checks.append(
+            (
+                "rechazo-sugiere-algo-ejecutable",
+                rej.get("rule_id") == "R004" and "describe_table" in sugerencia,
+                sugerencia[:60],
+            )
+        )
+
         # 1 · una consulta normal DEVUELVE FILAS. Es lo que fallaba.
         out = await client.call_tool(
             "run_query",

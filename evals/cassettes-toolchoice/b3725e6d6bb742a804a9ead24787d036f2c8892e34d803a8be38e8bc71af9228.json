@@ -1,0 +1,6 @@
+{
+  "statement": "Dime el coste del join de intentos con líneas de cesta sin filtro de fecha",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "explain_cost"
+}

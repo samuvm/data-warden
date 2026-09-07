@@ -11,7 +11,7 @@
         "margin_over_baseline": 2,
         "misses": [],
         "model": {
-          "digest": "117d0d84cf2a",
+          "digest": "ollama:117d0d84cf2a",
           "role": "juez",
           "tag": "gemma4:12b-mlx"
         },
@@ -220,7 +220,7 @@
           }
         ],
         "reviewed_by": "Samuel Viciana Moreno",
-        "tools_contract_sha256": "8c4eba3179d860bb3c14f4a1c8f20a3a0beab6636cf3aa64b6e2527a85a8c5dd"
+        "tools_contract_sha256": "sha256:e45c6663aadb195a54dde42a49efd88a9a17f47bfd3989a4b5536e0307d3387a"
       },
       "value": 20.0
     }

@@ -594,7 +594,7 @@
         "corpus": 42,
         "max_retries": 2,
         "model": {
-          "digest": "203e30078279",
+          "digest": "ollama:203e30078279",
           "role": "generador",
           "seed": 20260903,
           "tag": "qwen3.5:9b-mlx",
@@ -652,12 +652,12 @@
         "prompts": [
           {
             "id": "nl2sql",
-            "sha256": "cf5bb72ab1eb80bad12f01f33236e72e1ccf9575a035606c069bda465b3b5e0a",
+            "sha256": "sha256:cf5bb72ab1eb80bad12f01f33236e72e1ccf9575a035606c069bda465b3b5e0a",
             "version": "1"
           },
           {
             "id": "nl2sql-retry",
-            "sha256": "cad02d6435c0d7626ad66ed02b3741fd8af6da60cda8f9085caa93a4b6fd96d8",
+            "sha256": "sha256:cad02d6435c0d7626ad66ed02b3741fd8af6da60cda8f9085caa93a4b6fd96d8",
             "version": "1"
           }
         ],

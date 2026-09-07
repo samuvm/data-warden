@@ -131,7 +131,7 @@ def main() -> int:
     parser.add_argument("--model-role", default="juez")
     args = parser.parse_args()
 
-    from eval_recovery import models_lock
+    from eval_recovery import model_ref, models_lock
 
     suite = yaml.safe_load(SUITE.read_text(encoding="utf-8"))
     tools = yaml.safe_load(TOOLS.read_text(encoding="utf-8"))
@@ -200,8 +200,14 @@ def main() -> int:
         detail={
             "provenance": suite["provenance"],
             "reviewed_by": suite.get("revisado_por"),
-            "model": {"role": args.model_role, "tag": tag, "digest": digest},
-            "tools_contract_sha256": hashlib.sha256(TOOLS.read_bytes()).hexdigest(),
+            "model": {"role": args.model_role, "tag": tag, "digest": model_ref(digest)},
+            # ETIQUETADO `sha256:`, y no es adorno. Un hexadecimal desnudo en un
+            # artefacto versionado lo marca `detect-secrets` como cadena de alta
+            # entropía, y cada cambio del contrato metía un falso positivo nuevo en
+            # la línea base. Una fricción así acaba enseñando a añadir sin auditar,
+            # que es justo lo que `G-SECRETS` existe para impedir. Con la etiqueta
+            # deja de ser hexadecimal puro, y de paso dice qué algoritmo es.
+            "tools_contract_sha256": "sha256:" + hashlib.sha256(TOOLS.read_bytes()).hexdigest(),
             # LA LÍNEA BASE VA EN EL INFORME. Sin ella, 20/20 se lee como un triunfo
             # cuando la señal real es el margen sobre no haber diseñado nada.
             "baseline_hits": hits["base"],

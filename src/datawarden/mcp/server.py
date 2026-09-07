@@ -203,8 +203,17 @@ def tool_specs(contract: dict[str, Any]) -> tuple[ToolSpec, ...]:
         },
         "describe_table": {
             "type": "object",
-            "required": ["table"],
-            "properties": {"table": {"type": "string"}},
+            # `table` NO es obligatorio: sin él se devuelve la LISTA de tablas, que es
+            # el único camino de descubrimiento que funciona en cualquier cliente.
+            # Los recursos MCP son opcionales para un cliente; las herramientas no.
+            "properties": {
+                "table": {
+                    "type": "string",
+                    "description": (
+                        "La tabla a describir. Omítelo para ver la lista de tablas que existen."
+                    ),
+                }
+            },
             "additionalProperties": False,
         },
         "sample_table": {
@@ -377,8 +386,29 @@ class WardenTools:
         sql = f"SELECT {projection} FROM {found.name} LIMIT {int(limit)}"  # noqa: S608
         return to_payload(self._executor.run(sql, principal=self._principal))
 
-    def describe_table(self, table: str) -> dict[str, Any]:
-        """La ficha publicada de una tabla. **No lee ni una fila y no cuesta escaneo.**"""
+    def _list_tables(self) -> dict[str, Any]:
+        """Las relaciones publicadas. El punto de entrada cuando no se conoce nada."""
+        return _list_tables_payload(self._executor.schema)
+
+    def describe_table(self, table: str | None = None) -> dict[str, Any]:
+        """La ficha de una tabla — o, SIN ARGUMENTO, la lista de las que hay.
+
+        **Sin el caso «sin argumento» este servidor era indescubrible**, y se vio en
+        Q-009 con un cliente real: el catálogo se servía solo como recurso MCP, el
+        cliente no tenía herramienta para leer recursos, y el modelo acabó adivinando
+        nombres a ciegas —`customers`, `clientes`, `payments`, `pagos`— hasta rendirse.
+
+        Lo peor no era el callejón: era que el rechazo decía *«read the catalog
+        resource»*, **una acción que ese cliente no podía ejecutar**. Un mensaje
+        accionable que nombra algo que no se puede hacer no es accionable, y este
+        proyecto se sostiene precisamente sobre esa promesa.
+
+        Los recursos MCP son OPCIONALES para un cliente; las herramientas no. Así que
+        el camino de descubrimiento tiene que existir como herramienta. El recurso se
+        queda: para quien sí lo lee, es el catálogo entero de una vez.
+        """
+        if table is None or not table.strip():
+            return self._list_tables()
         found = self._executor.schema.table(table.lower())
         if found is None:
             return _unknown_relation(table)
@@ -396,6 +426,21 @@ class WardenTools:
                 "columns_masked": [],
             },
         }
+
+
+def _list_tables_payload(schema: Any) -> dict[str, Any]:
+    """Las relaciones publicadas, con su grano. Es el punto de entrada al almacén."""
+    published = schema.published()
+    return {
+        "outcome": "rows",
+        "result": {
+            "columns": ["table", "kind", "columns"],
+            "rows": [[t.name, t.kind, len(t.columns)] for t in published.tables],
+            "row_count": len(published.tables),
+            "truncated": False,
+            "columns_masked": [],
+        },
+    }
 
 
 def dispatch(
@@ -461,7 +506,13 @@ def _unknown_relation(table: str) -> dict[str, Any]:
             "rule_id": "R004",
             "code": "relation_out_of_scope",
             "message": f"relation {table.lower()} is not in the generated catalog",
-            "suggestion": "read the catalog resource and use one of the relations it lists",
+            # LA SUGERENCIA NOMBRA ALGO QUE EL CLIENTE PUEDE HACER. Decir «lee el
+            # recurso del catálogo» es inútil en un cliente sin lectura de recursos,
+            # y así se quedó tirado un modelo real en Q-009.
+            "suggestion": (
+                "call describe_table with no arguments to see the tables that exist, "
+                "then describe the one you need"
+            ),
             "severity": "security",
             "position": "statement",
             "subject": table.lower(),

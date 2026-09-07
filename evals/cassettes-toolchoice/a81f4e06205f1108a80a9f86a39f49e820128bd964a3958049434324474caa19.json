@@ -1,0 +1,6 @@
+{
+  "statement": "¿Cuántos clientes activos hay?",
+  "kind": "real",
+  "model": "gemma4:12b-mlx",
+  "answer": "run_query"
+}
