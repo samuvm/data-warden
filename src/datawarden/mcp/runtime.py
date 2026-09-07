@@ -25,8 +25,13 @@ from __future__ import annotations
 import pathlib
 from typing import Any, Final
 
+from mcp.server.mcpserver import Context
+from mcp.types import InputRequiredResult
+
 from datawarden.mcp import server as warden
-from datawarden.mcp.principal import from_server_process
+from datawarden.principal.budgets import Decision
+from datawarden.service.principal import from_server_process
+from datawarden.service.tools import WardenTools
 
 #: La raíz del repositorio, DEDUCIDA DEL PAQUETE y no del directorio de trabajo.
 #:
@@ -116,7 +121,7 @@ def build_server(
     )
     # EL ROL SALE DEL PROCESO, que lo fija quien instala el servidor en su cliente.
     # Nunca de `_meta` ni de `arguments`: `G-ROLE-SPOOF` es un axioma.
-    tools = warden.WardenTools(executor=executor, principal=from_server_process())
+    tools = WardenTools(executor=executor, principal=from_server_process())
 
     hint = CacheHint(ttl_ms=warden.TTL_MS, scope=warden.CACHE_SCOPE)
     server = MCPServer(
@@ -144,7 +149,150 @@ def build_server(
     return server
 
 
-def _register(server: Any, tools: warden.WardenTools, spec: warden.ToolSpec) -> None:
+#: El identificador de la pregunta dentro de `input_requests`. Uno solo: esta ronda
+#: pregunta una cosa y nada más.
+_CONFIRM_ID: Final = "confirm_soft_budget"
+
+#: El estado opaco que el servidor manda y el cliente devuelve. Sirve para distinguir
+#: «ronda uno» de «el cliente ya contestó», que es lo único que hace falta recordar.
+_CONFIRM_STATE: Final = "soft-budget-confirmation"
+
+
+def _peticion_de_confirmacion(sql: str) -> InputRequiredResult:
+    """La ronda 1 de MRTR: **el servidor DEVUELVE la pregunta, no la llama.**
+
+    Aquí estaba mi error, y es exactamente el que `docs/STACK.md` avisa cuando dice que
+    «el código de ejemplo de 2025 no compila». Lo implementé primero con `ctx.elicit()`,
+    que es el patrón viejo: el servidor abre una petición HACIA el cliente. La spec
+    2026-07-28 **eliminó las sesiones**, así que no hay canal de vuelta y el SDK lo dijo
+    con todas las letras — `NoBackChannelError: this transport context has no
+    back-channel for server-initiated requests`.
+
+    Por eso la spec puso **MRTR** en su lugar: el servidor responde a la llamada con un
+    `InputRequiredResult`, el cliente contesta y vuelve a llamar, y la segunda ronda lee
+    `ctx.input_responses`. Sin estado en el servidor, que es la idea entera del cambio.
+    """
+    from mcp.types import ElicitRequest
+    from mcp_types import ElicitRequestFormParams
+
+    return InputRequiredResult(
+        input_requests={
+            _CONFIRM_ID: ElicitRequest(
+                params=ElicitRequestFormParams(
+                    message=(
+                        "Esta consulta pasa del presupuesto blando de tu rol: va a "
+                        "escanear más de lo habitual y todavía no se ha ejecutado. "
+                        "¿La lanzo igualmente?"
+                    ),
+                    requested_schema={
+                        "type": "object",
+                        "properties": {
+                            "proceed": {
+                                "type": "boolean",
+                                "title": "Lanzar la consulta cara",
+                                "description": (
+                                    "true la ejecuta; false la deja sin ejecutar. "
+                                    f"Consulta: {sql[:200]}"
+                                ),
+                            }
+                        },
+                        "required": ["proceed"],
+                    },
+                )
+            )
+        },
+        request_state=_CONFIRM_STATE,
+    )
+
+
+def _confirmado(responses: Any) -> bool:
+    """Si el cliente dijo que sí. Declinar, cancelar o no contestar es que no.
+
+    **Fail-closed en la dirección barata:** ante cualquier respuesta que no sea un
+    `accept` con `proceed: true`, la consulta cara no se lanza. Equivocarse aquí cuesta
+    una repetición; equivocarse al revés cuesta un escaneo que nadie pidió.
+    """
+    if not isinstance(responses, dict):
+        return False
+    answer = responses.get(_CONFIRM_ID)
+    if getattr(answer, "action", None) != "accept":
+        return False
+    content = getattr(answer, "content", None) or {}
+    return bool(content.get("proceed"))
+
+
+def _mrtr_run_query(tools: WardenTools) -> Any:
+    """`run_query` con **MRTR**: preguntar antes de gastar, no rechazar después.
+
+    El presupuesto `soft` ejecutaba con un aviso que nadie leía. Un umbral blando que no
+    pregunta no es blando: es decorativo. La spec 2026-07-28 retiró `sampling` y
+    `elicitation` y puso el patrón de múltiples idas y vueltas en su sitio, y encaja
+    exactamente con esto.
+
+    **Se pregunta ANTES de invocar nada**, lo que deja intacto el contrato de auditoría:
+    la consulta se audita cuando de verdad ocurre, con los mismos cuatro estados.
+    Sondear el coste no llega al motor —es lo mismo que hace `explain_cost`—, así que no
+    inventa un quinto estado.
+
+    **Y si el cliente no entiende MRTR**, recibe un resultado `input_required` que la
+    spec define y no ejecuta nada. No se le rompe: se le pide algo que no sabe dar. El
+    presupuesto `soft` es un control de COSTE; el `hard` sigue rechazando solo, y
+    `G-BUDGET-ESCAPE` —el axioma— no depende de esto.
+    """
+
+    async def run_query(
+        question_sql: str,
+        ctx: Context[Any, Any],
+        question: str | None = None,
+    ) -> dict[str, Any] | InputRequiredResult:
+        # **EL TIPO DE RETORNO SE DECLARA, no se deja en `Any`.** El SDK lo usa para dos
+        # cosas: rechaza una herramienta con salida estructurada cuyo retorno no sabe
+        # serializar —`InvalidSignature: return type Any is not serializable`— y detecta
+        # por la anotación que esta herramienta puede pedir entrada. Sin declararlo, el
+        # servidor ni siquiera arranca, que es lo correcto: mejor no arrancar que
+        # arrancar y romperse en la primera consulta cara.
+        if tools.budget_decision(question_sql) is not Decision.CONFIRM:
+            return tools.run_query(question_sql, question=question)
+        if ctx.request_state != _CONFIRM_STATE:
+            return _peticion_de_confirmacion(question_sql)
+        if not _confirmado(ctx.input_responses):
+            return _no_confirmada()
+        return tools.run_query(question_sql, question=question)
+
+    return run_query
+
+
+def _no_confirmada() -> dict[str, Any]:
+    """La consulta no se lanzó porque no se confirmó. **No es un fallo, es una decisión.**
+
+    Se devuelve con la forma de un rechazo —la misma que el guard— para que el cliente
+    no tenga que tratar dos formas distintas del suceso «no hay filas y este es el
+    motivo». Y `retryable: true`, porque confirmar es exactamente lo que hay que hacer
+    para que ocurra.
+    """
+    return {
+        "outcome": "rejected",
+        "rejected": {
+            "rule_id": "BUDGET",
+            "code": "not_confirmed",
+            "message": (
+                "the query exceeds the soft budget for this role and the confirmation "
+                "was declined, so it was not run"
+            ),
+            "suggestion": (
+                "narrow the query — a date range or fewer columns usually does it — or "
+                "run it again and confirm"
+            ),
+            "severity": "policy",
+            "position": "statement",
+            "subject": "soft budget",
+            "alternative": None,
+            "retryable": True,
+        },
+    }
+
+
+def _register(server: Any, tools: WardenTools, spec: warden.ToolSpec) -> None:
     """Cuelga una herramienta con la descripción del CONTRATO, no con su docstring.
 
     La descripción es lo que `G-TOOL-CHOICE` mide, así que tiene que salir del mismo
@@ -152,7 +300,9 @@ def _register(server: Any, tools: warden.WardenTools, spec: warden.ToolSpec) -> 
     lo que ve el cliente sin mover el número, que es la peor forma de que una métrica
     deje de significar algo.
     """
-    method = getattr(tools, spec.name)
+    # `run_query` se registra envuelto en MRTR; las otras tres, directas. Solo esa
+    # gasta presupuesto, así que solo esa tiene algo que preguntar.
+    method = _mrtr_run_query(tools) if spec.name == "run_query" else getattr(tools, spec.name)
     server.add_tool(
         method,
         name=spec.name,

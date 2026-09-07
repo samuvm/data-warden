@@ -99,7 +99,11 @@ testable = [
 ]
 # Adaptadores: contrato y snapshot, NO cobertura de línea. Medirles cobertura
 # premia envolver el adaptador en tests que no prueban nada.
-adapters = ["engines", "mcp", "http"]
+# `service` es adaptador por el mismo motivo que `mcp` y `http`: orquesta piezas ya
+# probadas y les da forma, sin decidir política. Se prueba por CONTRATO —que los dos
+# transportes den byte a byte lo mismo— y no por cobertura de línea, que premiaría
+# envolverlo en tests que no prueban nada.
+adapters = ["engines", "mcp", "http", "service"]
 # Se MIDEN, no se testean. TDD PROHIBIDO: un test unitario sobre la salida de un
 # modelo mide el modelo, no el código.
 measured_only = ["nl2sql", "agent", "prompts"]
@@ -351,6 +355,7 @@ source_modules = [
   "datawarden.mask",
   "datawarden.nl2sql",
   "datawarden.agent",
+  "datawarden.service",
   "datawarden.mcp",
   "datawarden.http",
 ]
@@ -362,6 +367,11 @@ type = "layers"
 layers = [
   "datawarden.mcp | datawarden.http",
   "datawarden.agent",
+  # `service` DEBAJO de los dos transportes y encima de la auditoría. Nació de que
+  # `http` importaba `mcp` y el contrato lo marcó: son hermanos de capa, así que uno
+  # no puede depender del otro. Si el transporte HTTP necesitara al MCP para existir,
+  # se destruiría justo lo que `http/` viene a demostrar.
+  "datawarden.service",
   "datawarden.nl2sql",
   "datawarden.audit",
   "datawarden.mask",
