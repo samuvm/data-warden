@@ -2121,3 +2121,32 @@ python3 -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config
 **Pendiente de Samuel:** el cronómetro de «cero a primera consulta respondida» y la
 captura del rechazo. El atasco de arriba entra en el número: es tiempo real que costó
 seguir el documento.
+
+---
+
+## 2026-09-06 · Q-009 · hallazgo 2 · el marcador de la pimienta parecía un valor
+
+**Qué pasó.** Samuel pegó el bloque en `claude_desktop_config.json` y dejó
+`"DATAWARDEN_MASK_PEPPER": "PEGA_AQUI_TU_PIMIENTA"` —el marcador que le di en el
+chat— sin sustituir. Mide **21 caracteres** y el mínimo son 32.
+
+**Cazado ANTES del reinicio, y esa es la parte interesante.** No lo encontró la app:
+lo encontró una comprobación del bloque hecha a mano porque él no podía reiniciar
+Claude Desktop en ese momento. Si hubiera reiniciado, el servidor se habría negado a
+arrancar con el mensaje correcto —*«la pimienta tiene 21 caracteres y el mínimo es
+32»*— y le habría costado un ciclo de reinicio y una búsqueda en
+`~/Library/Logs/Claude/` descubrirlo.
+
+**El sistema hizo lo correcto y aun así el documento falló.** Negarse a arrancar con
+una pimienta corta es exactamente lo que `mask/config.py` promete: una pimienta corta
+o pública no es menos protección, es ninguna. Pero un README que ofrece un marcador
+con pinta de valor —minúsculas, guiones, sin delimitadores— invita a pegarlo tal cual.
+
+**Arreglado:** el marcador pasa a `<<<SUSTITUYE-ESTO-POR-LA-PIMIENTA-DEL-PASO-2>>>`,
+imposible de confundir con un valor, y el README trae una comprobación de la longitud
+**antes** de reiniciar, junto a la del JSON válido. Las dos comparten el mismo motivo:
+lo que se descubre después de un reinicio cuesta un reinicio.
+
+**Nota para el número de Q-009:** este atasco no lo sufrió Samuel —se evitó antes—,
+así que no entra en el cronómetro. Entra en la lista de defectos del documento, que
+es la otra mitad de lo que la prueba produce.

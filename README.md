@@ -164,7 +164,7 @@ Este es el bloque a añadir:
       "args": ["run", "warden", "mcp", "serve"],
       "cwd": "/RUTA/ABSOLUTA/A/data-warden",
       "env": {
-        "DATAWARDEN_MASK_PEPPER": "la-que-generaste-en-el-paso-2",
+        "DATAWARDEN_MASK_PEPPER": "<<<SUSTITUYE-ESTO-POR-LA-PIMIENTA-DEL-PASO-2>>>",
         "WARDEN_ROLE": "analyst"
       }
     }
@@ -191,6 +191,18 @@ final:
 }
 ```
 
+> **Sustituye de verdad la pimienta.** Dejar el texto de ejemplo es el error más
+> fácil de cometer y el servidor **se negará a arrancar**: el mínimo son 32 caracteres
+> y el marcador no llega. Eso es correcto —una pimienta corta o pública no es menos
+> protección, es ninguna— pero te cuesta un reinicio descubrirlo. Compruébalo antes:
+>
+> ```bash
+> python3 -c "import json,os,sys; d=json.load(open(os.path.expanduser(
+>   '~/Library/Application Support/Claude/claude_desktop_config.json')));
+>   p=d['mcpServers']['data-warden']['env']['DATAWARDEN_MASK_PEPPER'];
+>   print('pimienta de', len(p), 'caracteres ·', 'OK' if len(p)>=32 else 'DEMASIADO CORTA')"
+> ```
+>
 > **Comprueba que el JSON sigue siendo válido antes de reiniciar.** Una coma de más o
 > de menos y Claude Desktop ignora el fichero entero **en silencio**: no verás un error,
 > verás que no aparece ninguna herramienta.
