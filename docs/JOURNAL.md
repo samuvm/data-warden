@@ -2080,3 +2080,44 @@ la máscara instalada por la factoría enmascara de verdad: es lo único que pru
 **Siguiente.** Q-009 ya se puede hacer: `make mcp-live` en verde es la prueba de que
 hay algo que instalar. Falta de la fase 7 para poder cerrarla: `http/` con FastAPI,
 Streamable HTTP, MRTR para el presupuesto `soft` y `traceparent` a OTel.
+
+---
+
+## 2026-09-06 · Q-009 · hallazgo 1 · el README solo contemplaba el fichero vacío
+
+**Qué pasó.** Samuel siguió el README hasta el paso 4 y se paró ahí. Su
+`claude_desktop_config.json` **ya existía** —con `coworkUserFilesPath`,
+`preferences`, carpetas de confianza, media pantalla de ajustes de la app— y el
+README decía, literalmente: *«si no existe, créalo con exactamente esto»*, seguido de
+un JSON completo con `mcpServers` como única clave.
+
+Su pregunta, textual: *«se me indica que si no tengo el archivo que lo genere pero no
+qué pasa si ya lo tienes, dónde meto lo que se me indica en el README»*.
+
+**Por qué es un defecto y no un despiste.** El caso que el README cubría —fichero
+inexistente— es el RARO. Cualquiera que ya use Claude Desktop tiene ese fichero con
+contenido. Y el modo de fallo si alguien hace lo que el README dice es de los peores:
+sustituir el fichero **borra su configuración de la app**, y no hay aviso ni deshacer.
+
+Un segundo modo de fallo iba detrás y tampoco estaba escrito: una coma de más o de
+menos al pegar el bloque y **Claude Desktop ignora el fichero entero en silencio**. No
+sale un error: sale que no aparece ninguna herramienta, que se parece mucho a «el
+servidor está roto» y no lo está.
+
+**Esto es exactamente para lo que existe Q-009**, y por qué la respondió diciendo que
+lo hiciera él y sin ayuda del agente: yo escribí el README con mi
+`claude_desktop_config.json` de referencia en la cabeza, que era el caso vacío. La
+prueba encuentra lo que el autor no puede ver.
+
+**Arreglado en el README:** `mcpServers` se presenta como **una clave más del nivel
+superior**, con los dos casos —fichero que existe y fichero que no— y la diferencia de
+la coma final entre uno y otro; un aviso explícito de no sustituir el fichero; y la
+comprobación de que el JSON sigue siendo válido antes de reiniciar:
+
+```bash
+python3 -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.json > /dev/null
+```
+
+**Pendiente de Samuel:** el cronómetro de «cero a primera consulta respondida» y la
+captura del rechazo. El atasco de arriba entra en el número: es tiempo real que costó
+seguir el documento.
