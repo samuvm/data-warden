@@ -2279,3 +2279,81 @@ Este es el más caro de los cuatro y el más difícil de ver desde dentro: yo pr
 un cliente que sí lee recursos, así que para mí el catálogo siempre estuvo ahí. El
 valor de la prueba no era comprobar que el servidor funciona —funcionaba—, sino que
 alguien que no lo escribió pudiera usarlo.
+
+---
+
+## 2026-09-07 · Q-009 · funciona de punta a punta, y el número de minutos NO se puede publicar
+
+**Qué funcionó.** Con los cuatro hallazgos arreglados, un cliente MCP real resolvió la
+pregunta en tres pasos y sin adivinar ni una vez:
+
+```
+describe_table{}              -> 32 tablas
+describe_table{dim_customer}  -> 28 columnas
+run_query{...}                -> 31 filas · ES 23.908, FR 10.488, DE 9.888…
+```
+
+Y `LIMIT` no lo escribió el modelo: su SQL acababa en `ORDER BY clientes DESC`. Lo
+inyectó R006 según el `max_rows` del rol, y por eso `truncated: false`.
+
+**LA PRUEBA DE LA TESIS, y salió mejor de lo que esperaba.** Pedido *«dame los clientes
+nacidos antes de 1990»*:
+
+1. R008 rechazó el `WHERE birth_date`, con `dim_customer.age_band` como alternativa.
+2. El modelo **tomó la alternativa** y respondió con el reparto real por franja,
+   diciendo qué parte era exacta y cuál no se podía partir sin `birth_date`.
+3. Repetida la pregunta, **se negó a rodear la regla**, con estas palabras:
+   *«sacarlo sin filtro para luego cortar por 1990 por mi cuenta sería rodear
+   exactamente la regla que lo bloquea, así que no lo voy a hacer»*.
+
+El tercer punto es el resultado. No es que el guard bloqueara —eso ya se sabía—: es que
+el mensaje explicó lo suficiente como para que el cliente **entendiera el motivo y
+declinara el rodeo**. Es la instrucción del servidor y el `suggestion` accionable
+trabajando juntos, y es exactamente lo que `G-RECOVERY` mide en frío.
+
+**EL NÚMERO DE MINUTOS NO SE PUEDE PUBLICAR, y conviene escribir por qué.**
+
+Samuel propone «de 0 a conectado en 5 minutos», razonando que ese habría sido el tiempo
+*si el README hubiera estado bien*. El razonamiento es sensato y el número es
+probablemente correcto. **Y aun así no es publicable**, por la regla que este proyecto
+se aplica a sí mismo en todo lo demás:
+
+> «Un número sin comando que lo reproduzca no es un número.»
+
+Cinco minutos es un **contrafactual**: describe una ejecución que no ocurrió. La que sí
+ocurrió duró mucho más y se topó con cuatro defectos. Y Q-009 pedía literalmente *«de
+cero a primera consulta respondida en N minutos siguiendo solo el README»* — el README
+que se siguió no es el de ahora.
+
+Publicarlo sería exactamente el mismo error de método que ya ha aparecido cuatro veces
+esta semana: **describir una medida que no se hizo por el camino que se hizo.** Sería
+peor aquí, además, porque este número es de los que van al README y a una entrevista.
+
+**Lo que SÍ se puede publicar, medido hoy sobre un clon limpio del repositorio:**
+
+```
+git clone                3 s
+uv sync                  1 s      (con caché caliente; en frío, minutos)
+make dataset PROFILE=dev 31 s
+warden catalog build     31 s
+make mcp-live             2 s     -> 10/10, el servidor contestando por stdio
+------------------------------
+TOTAL                    68 s
+```
+
+**68 segundos de clon a servidor contestando**, reproducible con esos cinco comandos.
+Es un número honesto y acotado: **mide la máquina, no a la persona leyendo el README**,
+y hay que decirlo con esas palabras al publicarlo.
+
+**Cómo se consigue el número de verdad**, si se quiere: una segunda pasada desde cero
+con el README ya corregido, hecha por **alguien que no sea Samuel** —él ya conoce las
+respuestas y está contaminado como sujeto—. Es media hora de otra persona, y entonces
+el número tendría el mismo derecho a publicarse que los demás del proyecto.
+
+**El resultado real de Q-009 no son los minutos: son los cuatro defectos.** Un README
+que borraba la configuración de Claude Desktop, un marcador que parecía un valor, una
+clave `cwd` que el cliente ignora, y un servidor indescubrible con un mensaje que
+mandaba a un sitio al que no se podía ir. Ninguno lo habría encontrado yo, y los cuatro
+estaban en el camino de la primera persona que lo instalara.
+
+**Pendiente de D-08:** la captura del rechazo. Es la que convierte.
