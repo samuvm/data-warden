@@ -148,11 +148,16 @@ comprobaciones, todas en verde antes de tocar la configuración de nada.
 
 ### 4 · Añádelo a Claude Desktop
 
-Edita `~/Library/Application Support/Claude/claude_desktop_config.json` — si no existe,
-créalo con exactamente esto:
+Edita `~/Library/Application Support/Claude/claude_desktop_config.json`.
+
+**Casi seguro que ese fichero YA EXISTE y tiene cosas dentro** —preferencias, carpetas
+de confianza, ajustes de la app—. No lo sustituyas: **`mcpServers` es una clave más del
+nivel superior**, hermana de las que ya haya. Si borras el resto, pierdes tu
+configuración de Claude Desktop.
+
+Este es el bloque a añadir:
 
 ```json
-{
   "mcpServers": {
     "data-warden": {
       "command": "/Users/TU_USUARIO/.local/bin/uv",
@@ -163,9 +168,37 @@ créalo con exactamente esto:
         "WARDEN_ROLE": "analyst"
       }
     }
-  }
+  },
+```
+
+**Si el fichero ya existe**, pégalo justo después de la primera `{`, y fíjate en la
+coma del final. Queda así —lo demás es tuyo y no se toca—:
+
+```json
+{
+  "mcpServers": { ... el bloque de arriba ... },
+  "coworkUserFilesPath": "...",
+  "preferences": { ... lo que ya tenías ... }
 }
 ```
+
+**Si el fichero NO existe**, créalo con el bloque envuelto en llaves y **sin** la coma
+final:
+
+```json
+{
+  "mcpServers": { ... el bloque de arriba, sin la coma ... }
+}
+```
+
+> **Comprueba que el JSON sigue siendo válido antes de reiniciar.** Una coma de más o
+> de menos y Claude Desktop ignora el fichero entero **en silencio**: no verás un error,
+> verás que no aparece ninguna herramienta.
+>
+> ```bash
+> python3 -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.json > /dev/null \
+>   && echo "JSON válido"
+> ```
 
 Tres cosas que fallan si se hacen «como siempre»:
 
