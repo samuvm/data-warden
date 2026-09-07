@@ -25,6 +25,7 @@ import asyncio
 import os
 import pathlib
 import sys
+from typing import Any
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
@@ -33,6 +34,15 @@ from gatelib import ROOT, record
 #: La pimienta del gate. No es un secreto: es una constante de medida, la misma que
 #: usa `pii_suite.py`, y está en la línea base auditada de `detect-secrets`.
 GATE_PEPPER = "pimienta-del-gate-solo-para-medir-g-pii-leak"
+
+#: Una consulta MEDIDA en 377 MB para `analyst`, entre su presupuesto blando (300 MB) y
+#: el duro (600 MB). Es la única franja donde MRTR tiene algo que preguntar: por debajo
+#: se ejecuta y por encima se rechaza. Si los presupuestos se recalibran, esto deja de
+#: caer en la franja y el check lo dice — que es lo que se quiere.
+SOFT_BUDGET_SQL = (
+    "SELECT p.amount_eur_minor, p.risk_score, m.trade_name "
+    "FROM fact_payment_attempt AS p JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk"
+)
 DATABASE = ROOT / "datagen" / "out" / "cierzo-dev.duckdb"
 
 
@@ -81,7 +91,22 @@ async def exercise() -> list[tuple[str, bool, str]]:
     )
     checks: list[tuple[str, bool, str]] = []
 
-    async with Client(params) as client:
+    pedido: list[str] = []
+
+    def responde(decision: str) -> Any:
+        """Un cliente que contesta a MRTR. Es lo único que prueba que se pregunta."""
+
+        async def callback(_ctx: object, _params: object) -> Any:
+            from mcp.types import ElicitResult
+
+            pedido.append(decision)
+            if decision == "decline":
+                return ElicitResult(action="decline")
+            return ElicitResult(action="accept", content={"proceed": True})
+
+        return callback
+
+    async with Client(params, elicitation_callback=responde("decline")) as client:
         checks.append(
             (
                 "protocolo-2026-07-28",
@@ -128,6 +153,40 @@ async def exercise() -> list[tuple[str, bool, str]]:
                 sugerencia[:60],
             )
         )
+
+        # 0.ter · MRTR · el presupuesto `soft` PREGUNTA antes de gastar.
+        #     La spec 2026-07-28 retiró sampling y elicitation y puso el patrón de
+        #     petición de entrada en su sitio. Antes, `soft` ejecutaba con un aviso que
+        #     nadie leía: un umbral blando que no pregunta no es blando, es decorativo.
+        #     Aquí el cliente DECLINA, así que la consulta no debe ejecutarse.
+        out = await client.call_tool("run_query", {"question_sql": SOFT_BUDGET_SQL})
+        body = out.structured_content or {}
+        rej = body.get("rejected") or {}
+        checks.append(
+            (
+                "mrtr-pregunta-antes-de-gastar",
+                bool(pedido)
+                and body.get("outcome") == "rejected"
+                and rej.get("code") == "not_confirmed",
+                f"preguntado={bool(pedido)} · {body.get('outcome')}/{rej.get('code')}",
+            )
+        )
+
+        # 0.quater · y el camino del SÍ: confirmada, la consulta cara SÍ se ejecuta.
+        #     Sin esto, «no se ejecuta» podría estar pasando por cualquier motivo y el
+        #     check no sabría distinguir una confirmación que funciona de una tubería
+        #     rota que nunca ejecuta nada.
+        async with Client(params, elicitation_callback=responde("accept")) as otro:
+            out = await otro.call_tool("run_query", {"question_sql": SOFT_BUDGET_SQL})
+            body = out.structured_content or {}
+            filas = (body.get("result") or {}).get("rows", [])
+            checks.append(
+                (
+                    "mrtr-confirmada-si-se-ejecuta",
+                    body.get("outcome") == "rows" and bool(filas),
+                    f"{body.get('outcome')} · {len(filas)} filas",
+                )
+            )
 
         # 1 · una consulta normal DEVUELVE FILAS. Es lo que fallaba.
         out = await client.call_tool(

@@ -8,6 +8,78 @@ puede leer después.
 Los números que aparecen aquí están **medidos**, con su comando al lado, y viven en
 `evals/reports/`. Un número sin comando que lo reproduzca no es un número.
 
+## [0.7.0] · fase 7 · 2026-09-07 · **cerrada**
+
+HTTP y MCP 2026-07-28. El mismo guard, presupuesto, enmascarado y auditoría servidos por
+dos transportes que no se conocen entre sí.
+
+### Añadido
+
+- **`warden mcp serve`, MCP 2026-07-28 por stdio.** El cliente lanza el proceso: no hay
+  demonio, no hay puerto y **no hace falta ningún modelo** — las herramientas reciben
+  SQL y quien lo escribe es el modelo del cliente.
+- **`http/` con FastAPI**, y va antes que MCP en `PLAN.md` por el argumento: si las
+  mismas cuatro operaciones se sirven por dos transportes sin tocar `guard/`, `cost/`,
+  `mask/` ni `audit/`, «el dominio no depende del transporte» deja de ser una frase.
+  Hay un test de contrato que lo exige comparando **resultsets normalizados**, y otro
+  que exige que **ninguno de los dos importe al otro**.
+- **`service/`, una capa nueva que nació de un contrato roto.** `http` importaba `mcp` y
+  `lint-imports` lo marcó: son hermanos de capa. Las cuatro operaciones bajaron a donde
+  no pertenecen a ningún transporte.
+- **MRTR para el presupuesto `soft`.** Antes ejecutaba con un aviso que nadie leía; un
+  umbral blando que no pregunta es decorativo. Ahora el servidor **devuelve** una
+  petición de confirmación y solo ejecuta si el cliente dice que sí.
+- **`traceparent` desde `_meta` al registro de auditoría**, validado contra W3C Trace
+  Context y acotado. Es dato transportado y jamás autoridad.
+- **`describe_table` sin argumentos lista las 32 tablas.** Es el único camino de
+  descubrimiento que funciona en cualquier cliente: los recursos MCP son opcionales.
+
+### Corregido
+
+- **El único camino auditado al motor no enmascaraba.** `AuditedExecutor` llamaba a
+  `screen()` y se saltaba el anillo 4: devolvía nombres y correos **reales** a
+  `analyst`. `G-PII-LEAK` —axioma— pasaba porque `pii_suite.py` medía
+  `screen_and_mask()`, un camino que el sistema no usa para ejecutar.
+- **`G-SECRETS` no podía dar rojo.** `detect-secrets scan --baseline X` reescribe X, así
+  que la medida era su propia referencia. Comprobado plantando una clave RSA.
+- **El mensaje del guard era un canal de inyección de prompt**, y fabricaba secciones
+  del documento idénticas a las de verdad.
+- **El contrato I-06 castigaba usar el camino obligatorio**, marcando en rojo a un
+  adaptador por llamar a `AuditedExecutor`.
+- **Claude Desktop ignora `cwd`**, y el servidor dependía de él. Ahora las rutas se
+  resuelven desde la raíz del paquete.
+- **SQLite y DuckDB reventaban desde el hilo de trabajo del SDK.** El cerrojo del
+  almacén no es por los hilos: `append()` lee la cabeza de la cadena y luego escribe, así
+  que la cadena **exige** serialización por sí misma.
+
+### Medido
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-MCP-CONFORM` | == 11 | **11 / 11** | `make mcp-conformance` |
+| `G-ROLE-SPOOF` *(axioma)* | == 0 | **0** en 32 casos | `pytest tests/adversarial/test_role_spoofing.py` |
+| `G-TOOL-CHOICE` | == 20 *(subido por P-009)* | **20 / 20**, línea base 18 | `make eval-toolchoice` |
+| Servidor contestando por stdio | — | **12 / 12** | `make mcp-live` |
+| De clon limpio a servidor contestando | — | **68 s** | `clone · uv sync · dataset · catalog · mcp-live` |
+
+### Límite declarado
+
+- **Los 68 segundos miden la MÁQUINA, no a la persona leyendo el README.** El número de
+  Q-009 —«de cero a primera consulta siguiendo solo el README»— no está medido: la
+  primera pasada se topó con cuatro defectos del documento, ya corregidos, y nadie ha
+  vuelto a hacerla desde cero. Se publicará cuando alguien que no escribió el README lo
+  siga entero.
+- **Q-009 encontró cuatro defectos y ninguno los habría encontrado el autor**: un README
+  que borraba la configuración de Claude Desktop, un marcador que parecía un valor, una
+  clave `cwd` que el cliente ignora, y un servidor indescubrible cuyo rechazo mandaba a
+  un sitio al que no se podía ir.
+- **MRTR necesita un cliente que lo entienda.** Uno que no lo haga recibe un resultado
+  `input_required` que la spec define y no ejecuta nada. El `soft` es un control de
+  coste; el `hard` sigue rechazando solo, y `G-BUDGET-ESCAPE` no depende de esto.
+- **`explain_cost` no deja registro de auditoría.** No llega al motor, así que I-06 no
+  aplica; pero repetirlo con distintos predicados revela cómo está particionado el
+  almacén. Auditarlo exige un estado nuevo en el contrato, y eso se propone, no se hace.
+
 ## [0.6.0] · fase 6 · 2026-09-03 · **cerrada**
 
 El ciclo de corrección. Un bucle propio de sesenta líneas —generar, validar, dar un

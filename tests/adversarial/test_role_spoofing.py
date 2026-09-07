@@ -34,11 +34,17 @@ from datawarden.catalog.statistics import Statistics, TableStats
 from datawarden.domain.types import Principal, Role, RoleSource
 from datawarden.engines.base import RecordingEngine
 from datawarden.mask.config import MaskConfig
-from datawarden.mcp.principal import ROLE_ENV, SPOOF_KEYS, from_server_process, spoof_attempts
-from datawarden.mcp.server import WardenTools, dispatch
+from datawarden.mcp.server import dispatch
 from datawarden.principal import BUDGETS_PATH, POLICY_PATH
 from datawarden.principal.budgets import load_budgets
 from datawarden.principal.policy import load_policy
+from datawarden.service.principal import (
+    ROLE_ENV,
+    SPOOF_KEYS,
+    from_server_process,
+    spoof_attempts,
+)
+from datawarden.service.tools import WardenTools
 
 pytestmark = pytest.mark.adversarial
 

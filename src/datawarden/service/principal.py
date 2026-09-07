@@ -1,4 +1,9 @@
-"""De dónde sale el rol bajo un protocolo SIN SESIONES. **`G-ROLE-SPOOF`, axioma.**
+"""De dónde sale el rol. **`G-ROLE-SPOOF`, axioma.**
+
+Vive en `service/` y no en `mcp/` porque **no es una cuestión de protocolo**: por HTTP
+una cabecera la elige quien llama exactamente igual que `_meta` en MCP, así que los dos
+transportes necesitan la misma respuesta. Que el motivo original venga de la spec MCP no
+lo convierte en algo de MCP.
 
 La spec MCP 2026-07-28 eliminó las sesiones (`Mcp-Session-Id`), el handshake
 `initialize` y `ping`. Eso tiene una consecuencia directa que este fichero existe
