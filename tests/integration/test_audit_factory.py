@@ -101,6 +101,14 @@ def test_el_directorio_de_la_cadena_se_crea_solo(tmp_path: pathlib.Path) -> None
     assert anidado.parent.is_dir()
 
 
-def test_la_ruta_por_defecto_de_la_cadena_esta_declarada() -> None:
-    """Que sea un valor con nombre y no un literal repetido en tres sitios."""
-    assert pathlib.Path("var/audit.sqlite3") == DEFAULT_AUDIT_DB
+def test_la_ruta_por_defecto_de_la_cadena_no_depende_del_directorio_de_trabajo() -> None:
+    """**Una cadena que cambia de sitio no es una cadena.**
+
+    Cuando el servidor lo lanza una aplicación de escritorio, el directorio de
+    trabajo lo elige ella —Claude Desktop ignora el `cwd` de la configuración, y eso
+    se descubrió en Q-009—. Con una ruta relativa, la auditoría aparecería en un
+    sitio distinto según quién arrancara el proceso.
+    """
+    assert DEFAULT_AUDIT_DB.is_absolute()
+    assert DEFAULT_AUDIT_DB.name == "audit.sqlite3"
+    assert DEFAULT_AUDIT_DB.parent.name == "var"

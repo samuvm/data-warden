@@ -28,10 +28,22 @@ from typing import Any, Final
 from datawarden.mcp import server as warden
 from datawarden.mcp.principal import from_server_process
 
+#: La raíz del repositorio, DEDUCIDA DEL PAQUETE y no del directorio de trabajo.
+#:
+#: **Esto nace de un fallo real de Q-009.** El README decía que se pusiera `cwd` en la
+#: configuración del cliente, y **Claude Desktop lo ignora**: lanzaba el proceso desde
+#: otro sitio y `uv run warden` moría con `Failed to spawn: warden`. Un servidor que
+#: lo lanza una aplicación de escritorio no puede dar por hecho su directorio de
+#: trabajo — lo elige quien lo lanza, y no hay forma de obligarle.
+#:
+#: Los artefactos generados (`schema.json`, `policy.json`, `budgets.json`) ya eran
+#: relativos al paquete y por eso no fallaron. Estos dos no lo eran.
+REPO_ROOT: Final = pathlib.Path(__file__).resolve().parents[3]
+
 #: El contrato de las herramientas. Es la MISMA fuente que mide `G-TOOL-CHOICE`: si
 #: el servidor publicara otras descripciones que las evaluadas, el número dejaría de
 #: decir algo sobre lo que un cliente ve de verdad.
-TOOLS_CONTRACT: Final = pathlib.Path("docs/spec/tools.yaml")
+TOOLS_CONTRACT: Final = REPO_ROOT / "docs" / "spec" / "tools.yaml"
 
 SERVER_NAME: Final = "data-warden"
 SERVER_VERSION: Final = "0.7.0"
@@ -81,6 +93,10 @@ def build_server(
 
     contract = load_contract(contract_path)
     specs = warden.tool_specs(contract)
+    # Una ruta relativa se resuelve contra la RAÍZ DEL REPOSITORIO, nunca contra el
+    # directorio de trabajo: quien lanza este proceso es una aplicación de escritorio
+    # y elige el suyo. Una ruta absoluta se respeta tal cual.
+    database = database if database.is_absolute() else REPO_ROOT / database
 
     # La pimienta sale del entorno y NO tiene valor por defecto: una pimienta por
     # defecto es una pimienta pública. Si falta, esto levanta aquí y el cliente ve

@@ -161,8 +161,7 @@ Este es el bloque a añadir:
   "mcpServers": {
     "data-warden": {
       "command": "/Users/TU_USUARIO/.local/bin/uv",
-      "args": ["run", "warden", "mcp", "serve"],
-      "cwd": "/RUTA/ABSOLUTA/A/data-warden",
+      "args": ["run", "--directory", "/RUTA/ABSOLUTA/A/data-warden", "warden", "mcp", "serve"],
       "env": {
         "DATAWARDEN_MASK_PEPPER": "<<<SUSTITUYE-ESTO-POR-LA-PIMIENTA-DEL-PASO-2>>>",
         "WARDEN_ROLE": "analyst"
@@ -217,8 +216,10 @@ Tres cosas que fallan si se hacen «como siempre»:
 - **`command` tiene que ser la ruta ABSOLUTA de `uv`.** Claude Desktop no hereda el
   `PATH` de tu terminal, así que `"uv"` a secas no se encuentra. La tuya:
   `which uv`.
-- **`cwd` tiene que ser la raíz del repositorio.** El servidor busca ahí el catálogo, la
-  política y `datagen/out/`.
+- **La ruta del repositorio va en `args`, con `--directory`, NO en `cwd`.** Claude
+  Desktop **ignora la clave `cwd`**: lanza el proceso desde otro sitio, `uv` no
+  encuentra el proyecto y muere con `error: Failed to spawn: warden`. `uv run
+  --directory` sí funciona porque no depende de quién lo lance.
 - **La pimienta va en `env`**, no en el sistema: Claude Desktop tampoco hereda tus
   variables de entorno.
 

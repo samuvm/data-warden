@@ -36,6 +36,25 @@ GATE_PEPPER = "pimienta-del-gate-solo-para-medir-g-pii-leak"
 DATABASE = ROOT / "datagen" / "out" / "cierzo-dev.duckdb"
 
 
+def uv_path() -> str:
+    """La ruta ABSOLUTA de `uv`, que es lo que el README exige poner en el cliente.
+
+    Claude Desktop no hereda el `PATH` de la terminal, así que `"uv"` a secas no se
+    encuentra. Aquí se resuelve para que el check use exactamente la misma forma.
+    """
+    import shutil
+
+    found = shutil.which("uv")
+    if found is None:
+        message = (
+            "no se encuentra `uv` en el PATH. Es el comando que el README pone en la "
+            "configuración del cliente MCP, así que sin él no se puede comprobar lo "
+            "que el usuario va a ejecutar de verdad."
+        )
+        raise RuntimeError(message)
+    return found
+
+
 async def exercise() -> list[tuple[str, bool, str]]:
     from mcp import Client
     from mcp.client.stdio import StdioServerParameters
@@ -43,10 +62,21 @@ async def exercise() -> list[tuple[str, bool, str]]:
     env = dict(os.environ)
     env["DATAWARDEN_MASK_PEPPER"] = GATE_PEPPER
     env["WARDEN_ROLE"] = "analyst"
+    # **EL MISMO COMANDO QUE DICE EL README, Y DESDE OTRO DIRECTORIO.**
+    #
+    # Antes esto lanzaba `sys.executable -m datawarden.cli` con `cwd=ROOT`, o sea,
+    # un comando que el README no menciona desde un directorio que el cliente no
+    # garantiza. Daba 8/8 mientras la instalación real moría con
+    # `error: Failed to spawn: warden` — porque **Claude Desktop ignora el `cwd`**
+    # de la configuración, y `uv run warden` fuera del proyecto no encuentra nada.
+    #
+    # Se lanza desde el directorio raíz del sistema a propósito: si el servidor
+    # vuelve a depender del directorio de trabajo, esto se cae aquí y no en el
+    # portátil de quien lo instala.
     params = StdioServerParameters(
-        command=sys.executable,
-        args=["-m", "datawarden.cli", "mcp", "serve", "--database", str(DATABASE)],
-        cwd=str(ROOT),
+        command=uv_path(),
+        args=["run", "--directory", str(ROOT), "warden", "mcp", "serve"],
+        cwd="/",
         env=env,
     )
     checks: list[tuple[str, bool, str]] = []

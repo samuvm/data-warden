@@ -2150,3 +2150,53 @@ lo que se descubre después de un reinicio cuesta un reinicio.
 **Nota para el número de Q-009:** este atasco no lo sufrió Samuel —se evitó antes—,
 así que no entra en el cronómetro. Entra en la lista de defectos del documento, que
 es la otra mitad de lo que la prueba produce.
+
+---
+
+## 2026-09-07 · Q-009 · hallazgo 3 · Claude Desktop ignora `cwd`, y yo probaba otro comando
+
+**Qué pasó.** Samuel reinició y el servidor no arrancó. Del log:
+
+```
+error: Failed to spawn: `warden`
+  Caused by: No such file or directory (os error 2)
+Server transport closed unexpectedly, this is likely due to the process exiting early
+```
+
+**Reproducido en tres intentos.** Con el entorno mínimo —solo las dos variables— desde
+la raíz del repositorio: **funciona**. Desde `/` o desde el `HOME`: **falla exactamente
+con ese error**. La causa no era el entorno recortado ni el `PATH`: **Claude Desktop
+ignora la clave `cwd` de la configuración**, así que `uv run warden` se ejecutaba fuera
+del proyecto y no encontraba el ejecutable.
+
+**Y el mío es peor que el suyo.** `check_mcp_live.py` daba **8/8** mientras la
+instalación real moría, porque lanzaba `sys.executable -m datawarden.cli` con
+`cwd=ROOT`: **un comando que el README no menciona, desde un directorio que el cliente
+no garantiza.** Escribí una comprobación de «el servidor contesta por stdio» que no
+probaba ni el comando ni las condiciones de la instalación que yo mismo documenté.
+
+Es la **cuarta vez** que aparece la misma forma de error, y las cuatro con el mismo
+disfraz distinto:
+
+| Meta | Medía | Lo que se ejecuta |
+|---|---|---|
+| `G-PII-LEAK` | `screen_and_mask()` | `AuditedExecutor` |
+| `G-SECRETS` | un fichero que la propia medida reescribía | la línea base versionada |
+| `G-MCP-CONFORM` | la forma de lo publicado | que el servidor sepa responder |
+| `check_mcp_live` | otro comando desde otro directorio | `uv run warden` desde donde quiera el cliente |
+
+**Arreglado en tres sitios, y ninguno sobra.**
+
+1. **El README** pasa la ruta en `args` con `uv run --directory`, no en `cwd`. Verificado
+   desde `/` con entorno mínimo: arranca.
+2. **El código deja de depender del directorio de trabajo.** `TOOLS_CONTRACT` y la ruta
+   por defecto de la cadena de auditoría se resuelven desde la raíz del PAQUETE.
+   Los artefactos generados ya lo hacían, y por eso no fallaron; estos dos no. Una
+   cadena de auditoría que aparece en un sitio distinto según quién arranque el proceso
+   no es una cadena.
+3. **`check_mcp_live.py` lanza el comando del README y desde `/`.** Si el servidor
+   vuelve a depender del directorio de trabajo, se cae en el gate y no en el portátil de
+   quien lo instala. 8/8 con esa forma.
+
+**Lección, la misma de siempre y van cuatro: no basta con medir; hay que medir lo que se
+ejecuta, con el comando que se documenta y en las condiciones en que corre.**

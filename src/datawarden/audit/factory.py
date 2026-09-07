@@ -28,7 +28,12 @@ from datawarden.mask.config import MaskConfig
 #: Dónde vive la cadena de auditoría por defecto. Se crea si no existe; lo que NO se
 #: crea sola es la base de datos del almacén, porque inventarla vacía convertiría
 #: «no encuentro los datos» en «no hay filas», que son cosas muy distintas.
-DEFAULT_AUDIT_DB: Final = pathlib.Path("var/audit.sqlite3")
+#:
+#: Relativa al PAQUETE y no al directorio de trabajo: cuando el servidor lo lanza una
+#: aplicación de escritorio, el directorio de trabajo lo elige ella. Con una ruta
+#: relativa, la cadena de auditoría aparecería en un sitio distinto cada vez — y una
+#: cadena que cambia de sitio no es una cadena.
+DEFAULT_AUDIT_DB: Final = pathlib.Path(__file__).resolve().parents[3] / "var" / "audit.sqlite3"
 
 
 class MissingDatasetError(RuntimeError):
