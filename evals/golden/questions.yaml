@@ -45,6 +45,22 @@ revisado_por: null
 revisado_el: null
 glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q-004)"
 
+# EL PERFIL DEL DATASET, y no es un detalle: decide de qué son los resultsets
+# congelados. Un banco congelado contra `dev` y medido contra `full` falla entero.
+#
+# Se elige `dev` porque es lo que usa todo lo demás del gate —`pii-suite`, el corpus
+# de recuperación, `mcp-live`— y porque `full` son 7,5 GB y ocho minutos por pasada,
+# que es una barrera real para una evaluación que tiene que poder repetirse.
+#
+# **CONSECUENCIA QUE HAY QUE SABER:** los `valor_tipico` del glosario se midieron
+# sobre `full` (294,7 M de filas), así que NO coinciden con los números de este banco
+# y no tienen por qué. Medido hoy: mediana del ticket 54,61 € aquí contra ≈43 € allí;
+# clientes sin ningún pago 6,3 % aquí contra 4,3 % allí. Comparar un número de este
+# banco con un `valor_tipico` del glosario es comparar dos perfiles. El propio
+# glosario ya lo avisa para las trampas: «full +31,94 · demo +30,32 · dev +37,87».
+perfil: dev
+perfil_alternativo_si_samuel_prefiere: "full — recongelar es `make dataset PROFILE=full` y volver a correr el check"
+
 # `docs/GOALS.yaml` :: G-EXEC-ACC exige >= 60 casos, y `PLAN.md` los estratifica:
 # 20 simples · 25 con join o agregación · 15 con ventana o subconsulta correlacionada,
 # **10 de ellos con «rechazo» como respuesta correcta**.
@@ -203,8 +219,13 @@ ejecucion:
       INTENTO». El «por intento» es exactamente la trampa: contarlo por pago da otro
       número y las dos lecturas parecen razonables.
     sql_referencia: >-
-      SELECT count(*) FILTER (WHERE auth_status = 'approved')::DOUBLE / count(*)
-      AS tasa_de_aprobacion FROM fact_payment_attempt WHERE NOT is_test
+      SELECT 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*)
+      AS tasa FROM v_attempt_dedup WHERE NOT is_test
+    nota: >-
+      CORREGIDO: la primera transcripción usaba `fact_payment_attempt` y el glosario
+      firmado dice `v_attempt_dedup` en su `se_calcula`. Es exactamente el error que
+      el glosario existe para evitar —la tabla cruda cuenta los reintentos dos veces—
+      y lo cazó releer la entrada firmada en vez de fiarme de mi lectura.
 
   - id: Q-E-04
     pregunta: cuántos clientes activos hay
@@ -216,7 +237,10 @@ ejecucion:
       El glosario firmado lo define: al menos un pago válido en los 90 días naturales
       anteriores a la FECHA DE REFERENCIA DEL DATASET, no a hoy. Esa distinción la
       pidió Samuel al firmar y es la que hace el número reproducible.
-    sql_referencia: null   # pendiente de transcribir `periodo` a su fecha exacta
+    sql_referencia: >-
+      SELECT count(DISTINCT p.customer_sk) AS clientes_activos FROM v_attempt_dedup p
+      WHERE p.auth_status = 'approved' AND NOT p.is_test
+      AND p.event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY
 
   - id: Q-E-05
     pregunta: qué comercios mueven más volumen
@@ -228,4 +252,256 @@ ejecucion:
       **ARBITRIO.** «Volumen» no está en el glosario: puede ser importe procesado o
       número de pagos, y las dos son defendibles. Y «comercios» puede querer decir la
       versión vigente o todas. Esto NO lo decide el agente.
+    sql_referencia: null
+
+  # --------------------------------------------------------------------------
+  # SEGUNDA TANDA · transcritas de entradas firmadas y EJECUTADAS contra el
+  # dataset antes de escribirse aquí. Los `se_calcula` del glosario se copian
+  # literalmente cuando existen: donde el contrato ya escribió el SQL, escribir
+  # otro sería sustituir una decisión firmada por una mía.
+  # --------------------------------------------------------------------------
+  - id: Q-E-06
+    pregunta: cuántos intentos hacen falta de media por cada pago
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "metricas.tasa_de_reintento"
+    arbitrio: false
+    por_que: "`se_calcula` firmado, copiado literalmente. Valor típico declarado: 1,063."
+    sql_referencia: >-
+      SELECT count(*)::DOUBLE / count(DISTINCT payment_intent_id) AS intentos_por_pago
+      FROM v_attempt_dedup
+
+  - id: Q-E-07
+    pregunta: qué comisión efectiva estamos cobrando
+    rol: finance
+    estrato: join_o_agregacion
+    glosario: "metricas.mdr_efectivo"
+    arbitrio: false
+    por_que: >-
+      `se_calcula` firmado. Rol `finance` a propósito: la pregunta es suya y el banco
+      tiene que ejercitar más de un rol o la política no se prueba.
+    sql_referencia: >-
+      SELECT 100.0 * sum(fee_eur_minor) / sum(gross_eur_minor) AS mdr_pct
+      FROM fact_settlement_batch
+
+  - id: Q-E-08
+    pregunta: cuánto hemos ingresado
+    rol: finance
+    estrato: join_o_agregacion
+    glosario: "definiciones_criticas.ingreso"
+    arbitrio: false
+    por_que: >-
+      **La palabra «ingresos» a secas se resuelve como `ingreso_bruto`**, y eso lo
+      dice la `regla_de_traduccion` firmada. Sin ella esta pregunta tiene tres
+      respuestas defendibles que difieren en dos órdenes de magnitud.
+    sql_referencia: >-
+      SELECT sum(fee_eur_minor) / 100.0 AS ingreso_bruto_eur FROM fact_settlement_batch
+
+  - id: Q-E-09
+    pregunta: cuánto dinero ha pasado por la pasarela
+    rol: finance
+    estrato: join_o_agregacion
+    glosario: "definiciones_criticas.ingreso"
+    arbitrio: false
+    por_que: >-
+      `volumen_procesado`. **No es dinero de CIERZO** y el glosario lo marca con un
+      campo, `es_dinero_de_cierzo: false`. Está aquí junto a Q-E-08 a propósito: las
+      dos preguntas se parecen y las respuestas se llevan un factor de 45.
+    sql_referencia: >-
+      SELECT sum(gross_eur_minor) / 100.0 AS volumen_eur FROM fact_settlement_batch
+
+  - id: Q-E-10
+    pregunta: qué nos queda después de pagar al emisor y a la red
+    rol: finance
+    estrato: join_o_agregacion
+    glosario: "definiciones_criticas.ingreso"
+    arbitrio: false
+    por_que: >-
+      `margen_neto`. El `ojo` firmado avisa: `interchange` va al banco emisor y
+      `scheme_fee` a la red, así que no son ingreso sino coste.
+    sql_referencia: >-
+      SELECT sum(fee_eur_minor - interchange_eur_minor - scheme_fee_eur_minor) / 100.0
+      AS margen_neto_eur FROM fact_settlement_batch
+
+  - id: Q-E-11
+    pregunta: cuál es el importe mediano de un pago
+    rol: analyst
+    estrato: simple
+    glosario: "metricas.ticket_medio + definiciones_criticas.pago_valido"
+    arbitrio: false
+    por_que: >-
+      El `ojo` firmado dice que la mediana y la media se separan por un factor de
+      cuatro y que publicar solo la media engaña. Por eso la pregunta pide la mediana
+      explícitamente y está al lado de Q-E-02, que pide la media.
+    sql_referencia: >-
+      SELECT median(captured_eur_minor) / 100.0 AS mediana_eur
+      FROM v_payment_intent WHERE eventually_approved
+
+  - id: Q-E-12
+    pregunta: cuántos comercios activos tenemos
+    rol: analyst
+    estrato: ventana_o_correlada
+    glosario: "definiciones_criticas.comercio_activo + definiciones_criticas.periodo"
+    arbitrio: false
+    por_que: >-
+      Tres condiciones firmadas: versión vigente, activo, y un pago válido en 30 días.
+      El `ojo` avisa de la dimensión de cambio lento: unir por `merchant_id` en vez de
+      por `merchant_sk` multiplica las filas un 53 %.
+    sql_referencia: >-
+      SELECT count(DISTINCT m.merchant_sk) AS comercios_activos FROM dim_merchant m
+      WHERE m.is_current AND m.is_active AND EXISTS (SELECT 1 FROM v_attempt_dedup p
+      WHERE p.merchant_sk = m.merchant_sk AND p.auth_status = 'approved'
+      AND NOT p.is_test
+      AND p.event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 30 DAY)
+
+  - id: Q-E-13
+    pregunta: cuáles son los motivos de rechazo más frecuentes
+    rol: analyst
+    estrato: simple
+    glosario: "granos.intento_de_autorizacion"
+    arbitrio: false
+    por_que: >-
+      El grano firmado dice que esta tabla sirve «para motivos de rechazo» y NO para
+      contar ventas. Aquí se usa para lo que el contrato dice que sirve.
+    sql_referencia: >-
+      SELECT decline_reason_code, count(*) AS n FROM v_attempt_dedup
+      WHERE auth_status <> 'approved' AND NOT is_test
+      GROUP BY decline_reason_code ORDER BY n DESC LIMIT 10
+
+  - id: Q-E-14
+    pregunta: qué tasa de contracargo tenemos
+    rol: analyst
+    estrato: ventana_o_correlada
+    glosario: "metricas.tasa_de_contracargo"
+    arbitrio: false
+    por_que: >-
+      `se_calcula` firmado. El `ojo` es la trampa: una disputa tiene varias filas, una
+      por etapa, y el importe se repite en todas — sumarlo infla el contracargo un
+      60 %. Por eso se cuenta por `stage_no = 1`.
+    sql_referencia: >-
+      SELECT 100.0 * count(DISTINCT d.payment_intent_id) / count(DISTINCT f.payment_intent_id)
+      AS tasa_pct FROM v_attempt_dedup f
+      LEFT JOIN fact_dispute d ON d.payment_intent_id = f.payment_intent_id AND d.stage_no = 1
+      WHERE f.auth_status = 'approved' AND NOT f.is_test
+
+  - id: Q-E-15
+    pregunta: cuántos pagos hubo el mes pasado
+    rol: analyst
+    estrato: ventana_o_correlada
+    glosario: "definiciones_criticas.periodo + definiciones_criticas.pago_valido"
+    arbitrio: false
+    por_que: >-
+      **La pregunta que el glosario dice que tiene dos lecturas y por eso se firmó
+      `periodo`.** «El mes pasado» es el MES NATURAL anterior a la fecha de referencia
+      del dataset, cerrado por abajo y abierto por arriba — **no** «los últimos 30
+      días», y **nunca** anclado a `current_date`, que haría caducar el resultset.
+    sql_referencia: >-
+      WITH ref AS (SELECT max(event_date) AS d FROM fact_payment_attempt)
+      SELECT count(*) AS pagos FROM v_payment_intent p, ref
+      WHERE p.eventually_approved
+      AND p.first_attempt_ts >= date_trunc('month', ref.d) - INTERVAL 1 MONTH
+      AND p.first_attempt_ts < date_trunc('month', ref.d)
+
+  - id: Q-E-16
+    pregunta: en qué países se aprueban más pagos
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "metricas.tasa_de_aprobacion"
+    arbitrio: false
+    por_que: >-
+      La métrica firmada, abierta por país. El `HAVING count(*) >= 1000` no es un
+      capricho: sin un suelo, un país con doce intentos sale primero por ruido.
+    sql_referencia: >-
+      SELECT geo_country, 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*)
+      AS tasa FROM v_attempt_dedup WHERE NOT is_test GROUP BY geo_country
+      HAVING count(*) >= 1000 ORDER BY tasa DESC LIMIT 10
+
+  - id: Q-E-17
+    pregunta: dame el top 10 de comercios por volumen liquidado
+    rol: analyst
+    estrato: ventana_o_correlada
+    glosario: "granos.lote_de_liquidacion + definiciones_criticas.ingreso"
+    arbitrio: false
+    por_que: >-
+      El grano firmado dice que el lote de liquidación es «el ÚNICO grano donde cuánto
+      nos han pagado tiene una sola respuesta». Usa una función de ventana, que es el
+      estrato que `PLAN.md` exige en 15 de los 60.
+    sql_referencia: >-
+      SELECT trade_name, volumen FROM (SELECT m.trade_name,
+      sum(s.gross_eur_minor) / 100.0 AS volumen,
+      row_number() OVER (ORDER BY sum(s.gross_eur_minor) DESC) AS puesto
+      FROM fact_settlement_batch s JOIN dim_merchant m
+      ON m.merchant_id = s.merchant_id AND m.is_current
+      GROUP BY m.trade_name) WHERE puesto <= 10
+
+  - id: Q-E-18
+    pregunta: cuántos productos lleva de media una cesta
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "granos.linea_de_cesta"
+    arbitrio: false
+    por_que: >-
+      El grano firmado avisa: unir esta tabla con la de intentos multiplica cada cesta
+      por su número de intentos. Aquí no se une con nada, que es la forma correcta.
+    sql_referencia: >-
+      SELECT avg(lineas) AS lineas_por_pago FROM (SELECT payment_intent_id,
+      count(*) AS lineas FROM fact_order_line GROUP BY payment_intent_id)
+
+  - id: Q-E-19
+    pregunta: de qué países son los clientes que han comprado alguna vez
+    rol: analyst
+    estrato: ventana_o_correlada
+    glosario: "definiciones_criticas.pago_valido"
+    arbitrio: false
+    por_que: >-
+      Subconsulta correlacionada, que es el estrato exigido. Y usa `EXISTS` en vez de
+      un `INNER JOIN` a propósito: el `ojo` de `cliente_activo` avisa de que un join
+      pierde en silencio a los clientes sin pagos.
+    sql_referencia: >-
+      SELECT c.country_code, count(*) AS n FROM dim_customer c
+      WHERE EXISTS (SELECT 1 FROM v_payment_intent p
+      WHERE p.customer_sk = c.customer_sk AND p.eventually_approved)
+      GROUP BY c.country_code ORDER BY n DESC LIMIT 10
+
+  - id: Q-E-20
+    pregunta: cuántos clientes se dieron de alta y no compraron nunca
+    rol: analyst
+    estrato: ventana_o_correlada
+    glosario: "definiciones_criticas.cliente_activo"
+    arbitrio: false
+    por_que: >-
+      **Está aquí porque el glosario lo señala como trampa:** un porcentaje de los
+      clientes no tiene ningún pago, y un `INNER JOIN` los pierde sin avisar. La
+      pregunta obliga a `NOT EXISTS`, que es la forma que no los pierde.
+    sql_referencia: >-
+      SELECT count(*) AS clientes_sin_pagos FROM dim_customer c
+      WHERE NOT EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk)
+
+  # --------------------------------------------------------------------------
+  # LOS QUE NECESITAN TU CRITERIO. No los decide el agente.
+  # --------------------------------------------------------------------------
+  - id: Q-E-21
+    pregunta: cuál es nuestro comercio más importante
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: null
+    arbitrio: true
+    por_que: >-
+      **ARBITRIO.** «Más importante» no está en el glosario y admite al menos cuatro
+      lecturas defendibles: más volumen procesado, más ingreso bruto para CIERZO, más
+      pagos, o más margen neto. Q-E-08 y Q-E-09 ya demuestran que dos de ellas se
+      llevan un factor de 45.
+    sql_referencia: null
+
+  - id: Q-E-22
+    pregunta: cómo va el negocio este trimestre
+    rol: finance
+    estrato: join_o_agregacion
+    glosario: "definiciones_criticas.periodo"
+    arbitrio: true
+    por_que: >-
+      **ARBITRIO.** `periodo` resuelve «este trimestre» —el trimestre natural que
+      contiene la fecha de referencia— pero **no** resuelve «cómo va el negocio»: no
+      hay una métrica canónica para eso. Es la clase de pregunta que un directivo hace
+      de verdad y que un sistema honesto tiene que poder decir que no entiende.
     sql_referencia: null

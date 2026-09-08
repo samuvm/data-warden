@@ -4,13 +4,16 @@
       "adicionales": {},
       "command": "python scripts/check_questions.py",
       "detail": {
-        "ejecucion": 5,
+        "ejecucion": 22,
         "estratos": {
-          "join_o_agregacion": 4,
-          "simple": 1
+          "join_o_agregacion": 13,
+          "simple": 3,
+          "ventana_o_correlada": 6
         },
         "necesitan_criterio_de_samuel": [
-          "Q-E-05"
+          "Q-E-05",
+          "Q-E-21",
+          "Q-E-22"
         ],
         "objetivo": 60,
         "problemas": [],
@@ -19,10 +22,11 @@
         "rechazos_verificados_ejecutando_el_guard": 10,
         "referencia_devuelve_cero_filas": [],
         "sin_sql_de_referencia": [
-          "Q-E-04",
-          "Q-E-05"
+          "Q-E-05",
+          "Q-E-21",
+          "Q-E-22"
         ],
-        "total": 15
+        "total": 32
       },
       "value": 0.0
     }
