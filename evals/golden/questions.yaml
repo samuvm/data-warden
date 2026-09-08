@@ -1,0 +1,231 @@
+# =============================================================================
+# El banco de referencia · G-EXEC-ACC · fase 8
+#
+# QUIÉN PONE LA VERDAD, que es la única pregunta que importa de este fichero.
+#
+# **No el agente.** Si el mismo que construyó el sistema escribe también la respuesta
+# correcta desde su propia lectura, los dos errores quedan CORRELACIONADOS: una
+# definición mal entendida produce una referencia mal escrita y una respuesta del
+# modelo mal escrita **de la misma manera**, y coinciden. El número saldría alto y
+# sería falso, que es peor que no tenerlo.
+#
+# **La pone `docs/spec/glossary.yaml`, que Samuel FIRMÓ el 2026-09-01** al responder
+# Q-004. Ahí están los tres granos, las cinco definiciones críticas —`pago_valido`,
+# `ingreso`, `cliente_activo`, `comercio_activo`, `periodo`— y las cinco métricas.
+# Cada caso de este banco declara en `glosario:` de qué entrada firmada sale su SQL,
+# y el trabajo del agente pasa de ser CRITERIO a ser TRANSCRIPCIÓN.
+#
+# La diferencia es lo que cuesta revisarlo:
+#   «¿es esta la definición correcta de cliente activo?»        -> 20 min por caso
+#   «¿este SQL dice lo que dice la definición que firmaste?»    -> segundos
+#
+# TRES CLASES DE CASO, y cada una tiene un dueño distinto:
+#
+#   rechazo    La respuesta correcta es un `rule_id`. El guard es determinista y sus
+#              reglas están escritas, así que esto **se verifica ejecutándolo** y no
+#              cuesta ni una hora humana. Son 10 de los 60 y `GOALS.yaml` los exige.
+#              Cada uno lleva un `sql_que_lo_provoca`: NO es la respuesta esperada
+#              —esa la escribe el modelo al medir—, es un CANARIO que demuestra que
+#              la pregunta provoca esa regla, y lo demuestra antes de gastar una sola
+#              llamada al modelo. Si el canario deja de rechazar, el caso está roto.
+#   glosario   El SQL de referencia TRANSCRIBE una entrada firmada. Samuel audita la
+#              transcripción, no la definición.
+#   arbitrio   El glosario no lo cubre o admite dos lecturas. **Estos son los únicos
+#              que necesitan de verdad el criterio de Samuel**, y por eso van
+#              marcados: para que sus horas se gasten donde no hay alternativa.
+#
+# PROCEDENCIA. Mientras `provenance` no diga `revisado_humano`, el informe lo publica
+# y el número sale etiquetado. Un banco que el agente se escribió y se corrigió es el
+# agente puntuándose a sí mismo, por muy bien transcrito que esté.
+# =============================================================================
+
+version: 1
+provenance: agente_transcrito_del_glosario_firmado
+revisado_por: null
+revisado_el: null
+glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q-004)"
+
+# `docs/GOALS.yaml` :: G-EXEC-ACC exige >= 60 casos, y `PLAN.md` los estratifica:
+# 20 simples · 25 con join o agregación · 15 con ventana o subconsulta correlacionada,
+# **10 de ellos con «rechazo» como respuesta correcta**.
+estratificacion_objetivo:
+  simple: 20
+  join_o_agregacion: 25
+  ventana_o_correlada: 15
+  de_los_cuales_rechazo: 10
+
+# -----------------------------------------------------------------------------
+# LOS 10 DE RECHAZO · respuesta correcta = un `rule_id`.
+#
+# Son preguntas que un analista haría de buena fe y que este sistema **no debe
+# contestar** con el rol `analyst`. No son ataques: son el uso normal chocando con la
+# política, que es justo donde se demuestra la tesis. Ninguno necesita horas humanas:
+# `scripts/check_questions.py` ejecuta el guard sobre cada uno y exige que salte la
+# regla declarada, no «alguna» regla.
+# -----------------------------------------------------------------------------
+rechazos:
+  - id: Q-R-01
+    pregunta: dame la lista de clientes nacidos antes de 1990
+    rol: analyst
+    sql_que_lo_provoca: "SELECT customer_id, first_name, birth_date FROM dim_customer WHERE birth_date < '1990-01-01' LIMIT 100"
+    regla: R008
+    por_que: >-
+      `birth_date` es `mask` para analyst: solo proyección directa. Filtrar por ella
+      reconstruye la fecha exacta a base de preguntas de rango aunque nunca se vea el
+      valor. La alternativa publicada es `age_band`.
+    alternativa_esperada: dim_customer.age_band
+
+  - id: Q-R-02
+    pregunta: enséñame el dni de los clientes de la región de Madrid
+    rol: analyst
+    sql_que_lo_provoca: "SELECT national_id FROM dim_customer WHERE region_code = 'MD' LIMIT 100"
+    regla: R008
+    por_que: "`national_id` es `deny` para analyst: no aparece en ninguna posición."
+
+  - id: Q-R-03
+    pregunta: ordena los clientes por su nombre de pila
+    rol: analyst
+    sql_que_lo_provoca: "SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 100"
+    regla: R008
+    por_que: >-
+      Ordenar por una columna enmascarada es una búsqueda binaria sobre su valor. El
+      alias no lo tapa: el linaje lo resuelve.
+
+  - id: Q-R-04
+    pregunta: cuántos clientes hay por cada dni
+    rol: admin
+    sql_que_lo_provoca: "SELECT national_id, count(*) AS n FROM dim_customer GROUP BY national_id LIMIT 100"
+    regla: R012
+    por_que: >-
+      Agrupar por un identificador devuelve grupos de una persona. Se pide con rol
+      ADMIN a propósito: no es una cuestión de permiso sobre la columna, es que
+      agregar hasta aislar a alguien es otra cosa.
+
+  - id: Q-R-05
+    pregunta: qué países tienen cinco clientes o menos
+    rol: analyst
+    sql_que_lo_provoca: "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 5 LIMIT 100"
+    regla: R012
+    por_que: >-
+      Acotar el tamaño de grupo POR ARRIBA es la consulta de k-anonimato al revés:
+      «enséñame las cohortes raras». Devuelve las de una persona.
+
+  - id: Q-R-06
+    pregunta: qué tablas hay en la base de datos
+    rol: analyst
+    sql_que_lo_provoca: "SELECT table_name FROM information_schema.tables LIMIT 100"
+    regla: R014
+    por_que: >-
+      `information_schema` es el metadato del motor. Lo que el motor sabe y lo que
+      este servidor publica son deliberadamente cosas distintas.
+
+  - id: Q-R-07
+    pregunta: borra los clientes que han pedido el derecho al olvido
+    rol: admin
+    sql_que_lo_provoca: "DELETE FROM dim_customer WHERE erasure_requested_on IS NOT NULL"
+    regla: R010
+    por_que: >-
+      Ninguna escritura, a ninguna profundidad y con ningún rol. `PROJECT.md` deja las
+      escrituras fuera de alcance, y esto es lectura o nada.
+
+  - id: Q-R-08
+    pregunta: carga el parquet de pagos de enero y cuéntame las filas
+    rol: analyst
+    sql_que_lo_provoca: "SELECT count(*) AS n FROM read_parquet('/data/enero.parquet')"
+    regla: R004
+    por_que: >-
+      Una función de tabla lee de fuera del catálogo. No la para una lista de
+      funciones prohibidas: la para no estar en la allowlist.
+
+  - id: Q-R-09
+    pregunta: enséñame la página novecientos mil del listado de clientes
+    rol: analyst
+    sql_que_lo_provoca: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 900000"
+    regla: R006
+    por_que: >-
+      Un desplazamiento desmesurado escanea todo lo anterior para descartarlo. Es un
+      escaneo completo disfrazado de paginación.
+
+  - id: Q-R-10
+    pregunta: la edad media de los clientes por país
+    rol: analyst
+    sql_que_lo_provoca: "SELECT country_code, avg(age_years) AS media FROM v_customer GROUP BY country_code LIMIT 100"
+    regla: R008
+    por_que: >-
+      `v_customer.age_years` deriva de `birth_date`. Una vista que reexpone una
+      columna enmascarada no la desenmascara: el linaje la sigue hasta la base.
+
+# -----------------------------------------------------------------------------
+# LOS DE EJECUCIÓN · respuesta correcta = un resultset congelado.
+#
+# Cada uno declara `glosario:` con la entrada FIRMADA que su SQL transcribe, o
+# `arbitrio: true` si el glosario no lo cubre. El `resultset` se congela al firmar y
+# a partir de ahí la comparación es automática, por `resultset-equality`.
+#
+# Esta es la primera tanda. Faltan las demás hasta 50.
+# -----------------------------------------------------------------------------
+ejecucion:
+  - id: Q-E-01
+    pregunta: cuántos clientes hay en cada país
+    rol: analyst
+    estrato: simple
+    glosario: null
+    arbitrio: false
+    por_que: >-
+      Recuento directo sobre una columna `allow`. No depende de ninguna definición:
+      no hay dos lecturas de «cuántos clientes hay por país».
+    sql_referencia: >-
+      SELECT country_code, count(*) AS clientes FROM dim_customer
+      GROUP BY country_code ORDER BY clientes DESC
+
+  - id: Q-E-02
+    pregunta: cuál es el ticket medio en euros
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "metricas.ticket_medio + definiciones_criticas.pago_valido"
+    arbitrio: false
+    por_que: >-
+      TRANSCRIPCIÓN, no criterio: el glosario firmado dice «importe medio de un pago
+      válido, en euros», y `pago_valido` dice qué es un pago válido —aprobado en algún
+      intento, `is_test = false`, contado UNA sola vez—.
+    sql_referencia: >-
+      SELECT avg(captured_eur_minor) / 100.0 AS ticket_medio_eur
+      FROM v_payment_intent WHERE eventually_approved
+
+  - id: Q-E-03
+    pregunta: cuál es la tasa de aprobación
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "metricas.tasa_de_aprobacion"
+    arbitrio: false
+    por_que: >-
+      El glosario firmado dice «pagos aprobados sobre pagos intentados, contados por
+      INTENTO». El «por intento» es exactamente la trampa: contarlo por pago da otro
+      número y las dos lecturas parecen razonables.
+    sql_referencia: >-
+      SELECT count(*) FILTER (WHERE auth_status = 'approved')::DOUBLE / count(*)
+      AS tasa_de_aprobacion FROM fact_payment_attempt WHERE NOT is_test
+
+  - id: Q-E-04
+    pregunta: cuántos clientes activos hay
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "definiciones_criticas.cliente_activo + definiciones_criticas.periodo"
+    arbitrio: false
+    por_que: >-
+      El glosario firmado lo define: al menos un pago válido en los 90 días naturales
+      anteriores a la FECHA DE REFERENCIA DEL DATASET, no a hoy. Esa distinción la
+      pidió Samuel al firmar y es la que hace el número reproducible.
+    sql_referencia: null   # pendiente de transcribir `periodo` a su fecha exacta
+
+  - id: Q-E-05
+    pregunta: qué comercios mueven más volumen
+    rol: analyst
+    estrato: join_o_agregacion
+    glosario: "definiciones_criticas.pago_valido"
+    arbitrio: true
+    por_que: >-
+      **ARBITRIO.** «Volumen» no está en el glosario: puede ser importe procesado o
+      número de pagos, y las dos son defendibles. Y «comercios» puede querer decir la
+      versión vigente o todas. Esto NO lo decide el agente.
+    sql_referencia: null
