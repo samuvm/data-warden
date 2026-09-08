@@ -1,0 +1,30 @@
+{
+  "metas": {
+    "G-QUESTIONS-BANK": {
+      "adicionales": {},
+      "command": "python scripts/check_questions.py",
+      "detail": {
+        "ejecucion": 5,
+        "estratos": {
+          "join_o_agregacion": 4,
+          "simple": 1
+        },
+        "necesitan_criterio_de_samuel": [
+          "Q-E-05"
+        ],
+        "objetivo": 60,
+        "problemas": [],
+        "provenance": "agente_transcrito_del_glosario_firmado",
+        "rechazos": 10,
+        "rechazos_verificados_ejecutando_el_guard": 10,
+        "referencia_devuelve_cero_filas": [],
+        "sin_sql_de_referencia": [
+          "Q-E-04",
+          "Q-E-05"
+        ],
+        "total": 15
+      },
+      "value": 0.0
+    }
+  }
+}
