@@ -4,11 +4,11 @@
       "adicionales": {},
       "command": "python scripts/check_questions.py",
       "detail": {
-        "ejecucion": 22,
+        "ejecucion": 50,
         "estratos": {
-          "join_o_agregacion": 13,
-          "simple": 3,
-          "ventana_o_correlada": 6
+          "join_o_agregacion": 22,
+          "simple": 13,
+          "ventana_o_correlada": 15
         },
         "necesitan_criterio_de_samuel": [
           "Q-E-05",
@@ -26,7 +26,7 @@
           "Q-E-21",
           "Q-E-22"
         ],
-        "total": 32
+        "total": 60
       },
       "value": 0.0
     }

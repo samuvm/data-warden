@@ -118,7 +118,32 @@ def main() -> int:
                 "que nadie firmó"
             )
 
-    # 3 · EL SQL DE REFERENCIA TIENE QUE CORRER. Uno que no corre no es referencia.
+    # 3 · EL SQL DE REFERENCIA TIENE QUE PASAR EL GUARD PARA SU ROL.
+    #
+    # Sin esto se puede escribir un caso «de ejecución» cuya referencia el sistema
+    # rechazaría: al medir, el modelo acertaría el SQL y aun así fallaría, y el
+    # número culparía al modelo de una política que el propio banco incumple.
+    for caso in ejecucion:
+        sql = caso.get("sql_referencia")
+        if not sql:
+            continue
+        who = Principal(
+            id=f"banco-{caso['id']}",
+            role=Role(caso.get("rol", "analyst")),
+            source=RoleSource.CLI_FLAG,
+        )
+        veredicto = validate(
+            str(sql), principal=who, schema=schema, policy=policy, max_rows=MAX_ROWS
+        )
+        if not isinstance(veredicto, ValidatedQuery):
+            problemas.append(
+                f"{caso['id']}: la referencia NO pasa el guard con rol "
+                f"{caso.get('rol')} · {veredicto.rule_id}/{veredicto.code}. "
+                "Un caso de ejecución cuya referencia el sistema rechazaría culparía "
+                "al modelo de una política que el banco incumple"
+            )
+
+    # 4 · Y TIENE QUE CORRER. Uno que no corre no es referencia.
     sin_sql = [c["id"] for c in ejecucion if not c.get("sql_referencia")]
     ejecutables = [c for c in ejecucion if c.get("sql_referencia")]
     vacios: list[str] = []
