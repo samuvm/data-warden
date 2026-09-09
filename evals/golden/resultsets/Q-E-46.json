@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "n"
+  ],
+  "glosario": "definiciones_criticas.pago_valido",
+  "id": "Q-E-46",
+  "perfil": "dev",
+  "pregunta": "cuántos clientes han comprado cinco veces o más",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      33706
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS n FROM (SELECT customer_sk FROM v_payment_intent WHERE eventually_approved GROUP BY customer_sk HAVING count(*) >= 5)",
+  "sql_sha256": "sha256:fc760e8edae073408702833d756e8eef273c9ada3bbe928682373a96d0affa8e"
+}

@@ -1,5 +1,434 @@
 {
   "metas": {
+    "G-EXEC-ACC": {
+      "adicionales": {
+        "límite inferior del intervalo de Wilson 95 %": 0.0608,
+        "tamaño del conjunto de referencia": 57.0
+      },
+      "command": "make eval",
+      "detail": {
+        "fallos": [
+          {
+            "acierto": false,
+            "clase": "rechazo",
+            "esperado": "R012",
+            "estrato": "join_o_agregacion",
+            "id": "Q-R-04",
+            "obtenido": null
+          },
+          {
+            "acierto": false,
+            "clase": "rechazo",
+            "esperado": "R012",
+            "estrato": "join_o_agregacion",
+            "id": "Q-R-05",
+            "obtenido": null
+          },
+          {
+            "acierto": false,
+            "clase": "rechazo",
+            "esperado": "R010",
+            "estrato": "simple",
+            "id": "Q-R-07",
+            "obtenido": null
+          },
+          {
+            "acierto": false,
+            "clase": "rechazo",
+            "esperado": "R004",
+            "estrato": "simple",
+            "id": "Q-R-08",
+            "obtenido": null
+          },
+          {
+            "acierto": false,
+            "clase": "rechazo",
+            "esperado": "R006",
+            "estrato": "simple",
+            "id": "Q-R-09",
+            "obtenido": "R008"
+          },
+          {
+            "acierto": false,
+            "clase": "rechazo",
+            "esperado": "R008",
+            "estrato": "join_o_agregacion",
+            "id": "Q-R-10",
+            "obtenido": "R004"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-01",
+            "intentos": 2,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-02",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-03",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-04",
+            "intentos": 1,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-06",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-07",
+            "intentos": 1,
+            "motivo": "la consulta generada no corrió: BinderException"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-08",
+            "intentos": 1,
+            "motivo": "cell_type"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-09",
+            "intentos": 1,
+            "motivo": "cell_type"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-10",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-11",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-12",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-13",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-14",
+            "intentos": 1,
+            "motivo": "la consulta generada no corrió: BinderException"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-15",
+            "intentos": 3,
+            "motivo": "rechazada por R002"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-16",
+            "intentos": 1,
+            "motivo": "la consulta generada no corrió: ConversionException"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-17",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-18",
+            "intentos": 1,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-19",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-20",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-24",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-25",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-26",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-27",
+            "intentos": 3,
+            "motivo": "rechazada por R004"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-28",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-30",
+            "intentos": 3,
+            "motivo": "rechazada por R004"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "simple",
+            "id": "Q-E-32",
+            "intentos": 1,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-33",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-34",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-35",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-36",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-37",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-38",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-39",
+            "intentos": 1,
+            "motivo": "la consulta generada no corrió: ConversionException"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-40",
+            "intentos": 1,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-41",
+            "intentos": 3,
+            "motivo": "rechazada por R004"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-42",
+            "intentos": 1,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-43",
+            "intentos": 2,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-44",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-45",
+            "intentos": 1,
+            "motivo": "la consulta generada no corrió: ConversionException"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-46",
+            "intentos": 1,
+            "motivo": "row_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-47",
+            "intentos": 3,
+            "motivo": "rechazada por R002"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-48",
+            "intentos": 1,
+            "motivo": "column_count"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-49",
+            "intentos": 1,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "ventana_o_correlada",
+            "id": "Q-E-50",
+            "intentos": 1,
+            "motivo": "column_count"
+          }
+        ],
+        "perfil": "dev",
+        "por_estrato": {
+          "join_o_agregacion": {
+            "aciertos": 0,
+            "n": 22
+          },
+          "simple": {
+            "aciertos": 7,
+            "n": 20
+          },
+          "ventana_o_correlada": {
+            "aciertos": 0,
+            "n": 15
+          }
+        },
+        "problemas": [],
+        "provenance": "agente_transcrito_del_glosario_firmado"
+      },
+      "value": 0.1228
+    },
     "G-QUESTIONS-BANK": {
       "adicionales": {},
       "command": "python scripts/check_questions.py",

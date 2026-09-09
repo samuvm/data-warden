@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos clientes hay en cada tramo de edad",
+  "rejection_code": null,
+  "sql": "SELECT customer_sk, age_band, COUNT(*) AS client_count FROM dim_customer GROUP BY customer_sk, age_band ORDER BY age_band",
+  "thinking": false
+}

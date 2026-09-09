@@ -2357,3 +2357,78 @@ mandaba a un sitio al que no se podía ir. Ninguno lo habría encontrado yo, y l
 estaban en el camino de la primera persona que lo instalara.
 
 **Pendiente de D-08:** la captura del rechazo. Es la que convierte.
+
+---
+
+## 2026-09-09 · fase 8 · el banco de 60, y la primera medida dice más del banco que del modelo
+
+**Qué se hizo.** El banco de referencia completo —60 casos, estratificación exacta—,
+el congelador de resultsets y el arnés `make eval`. Y la primera medida de
+`G-EXEC-ACC`, que es la métrica insignia.
+
+**El reparto de quién pone la verdad.** No el agente: `docs/spec/glossary.yaml`, que
+Samuel firmó el 2026-09-01. 38 de los 50 casos de ejecución declaran en `glosario:` la
+entrada firmada que su SQL transcribe, y donde el contrato ya trae un `se_calcula` se
+copia literalmente. El trabajo del agente pasa de CRITERIO a TRANSCRIPCIÓN, y revisar
+una transcripción cuesta segundos donde decidir una definición cuesta veinte minutos.
+
+**Tres defectos que cazó el propio banco antes de medir nada:**
+
+1. Mi transcripción de la tasa de aprobación usaba `fact_payment_attempt` y el
+   `se_calcula` firmado dice `v_attempt_dedup`. La tabla cruda cuenta los reintentos
+   como ventas —el grano firmado avisa de que sobrestima un 24 %—: era exactamente el
+   error que el glosario existe para evitar.
+2. La referencia de «cuántos pagos hubo el mes pasado» **no pasaba el guard**:
+   `R005/cartesian_join`, por anclar la fecha con una CTE y una coma. Lo cazó una
+   comprobación nueva —toda referencia tiene que pasar el guard con su rol— que añadí
+   justo antes. Un caso de ejecución cuya referencia el sistema rechazaría culparía al
+   modelo de una política que el banco incumple.
+3. Sin grabaciones, el bucle fail-closed convertía el fallo de caché en un rechazo
+   `INTERNAL` y la métrica publicaba **0,0 sobre un modelo al que nadie llegó a
+   preguntar**. Es el mismo error que ya apareció en `G-RECOVERY` y se cierra igual:
+   un `INTERNAL` es fallo de MEDIDA, no del modelo.
+
+**LA PRIMERA MEDIDA · 7/57 · ratio 0,1228 · Wilson 95 % [0,06 - 0,23].**
+
+Muy por debajo del 0,80. Y la parte importante es el diagnóstico, porque **un número
+bajo mal diagnosticado es tan inútil como uno alto falso.**
+
+| Causa | Fallos | |
+|---|---|---|
+| Forma de la respuesta · la pregunta no fija las columnas | 16 | **36 %** · defecto del BANCO |
+| Número de filas · la pregunta no fija el `LIMIT` | 7 | **16 %** · defecto del BANCO |
+| Valores distintos | 9 | 21 % · error real del modelo |
+| El SQL del modelo no corre | 5 | 11 % · error real |
+| El sistema lo rechazó | 5 | 11 % · error real |
+| Tipo distinto | 2 | 5 % |
+
+**El 52 % de los fallos son míos, no del modelo.** Mis preguntas están
+INFRA-especificadas y mis referencias SOBRE-especificadas: «cuáles son los motivos de
+rechazo más frecuentes» tiene una referencia con `LIMIT 10` y unas columnas concretas
+que la pregunta no pide. El modelo no puede adivinar diez, y fallar por eso no mide
+nada sobre él.
+
+**Y hay error real del modelo, del bueno de citar.** En «los motivos de rechazo más
+frecuentes» el modelo escribió `FROM fact_payment_attempt` donde la referencia usa
+`v_attempt_dedup`: **cayó exactamente en la trampa que el glosario documenta**, contar
+los reintentos como ventas. Ese fallo sí es la métrica funcionando.
+
+**Rechazos: 4/10.** Cuatro casos acabaron ACEPTADOS —el modelo escribió otra consulta
+que no dispara la regla— y dos dispararon una regla distinta de la declarada. Los
+cuatro aceptados hay que mirarlos uno a uno: puede que la pregunta no fuerce la
+consulta arriesgada, y entonces el defecto es del caso.
+
+**Decisión que NO toma el agente.** Arreglar esto significa reescribir preguntas para
+que determinen la forma de la respuesta, y eso cambia el banco que Samuel va a firmar.
+Hacerlo yo después de ver el resultado sería mover la vara habiendo visto el número,
+que es justo lo que la constitución no admite. **Va al buzón como P-010.**
+
+**Lo que queda medido y publicable de hoy**, con su etiqueta:
+- El banco existe, cuadra con la estratificación de `PLAN.md` y **cada referencia pasa
+  el guard con su rol y corre contra el dataset**.
+- 47 resultsets congelados sobre el perfil `dev`, con el sha de su SQL para que
+  editarlo sin recongelar se note.
+- `make eval` es determinista y gratis desde casetes; `make eval-refresh-exec` es lo
+  único que llama al modelo.
+- El informe conforma con `docs/CONTRACTS/eval-report.schema.json` y lleva dentro que
+  el banco **no está revisado**.

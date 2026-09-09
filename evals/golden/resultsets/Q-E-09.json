@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "volumen_eur"
+  ],
+  "glosario": "definiciones_criticas.ingreso",
+  "id": "Q-E-09",
+  "perfil": "dev",
+  "pregunta": "cuánto dinero ha pasado por la pasarela",
+  "rol": "finance",
+  "row_count": 1,
+  "rows": [
+    [
+      "107999282.74"
+    ]
+  ],
+  "sql_referencia": "SELECT sum(gross_eur_minor) / 100.0 AS volumen_eur FROM fact_settlement_batch",
+  "sql_sha256": "sha256:3e96d749d412144401d6bdfc6f991d2c7ea3772b937338f18377acbdfcb050c0"
+}

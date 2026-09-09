@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "mcc",
+    "mcc_description"
+  ],
+  "glosario": null,
+  "id": "Q-E-30",
+  "perfil": "dev",
+  "pregunta": "qué categorías de comercio están marcadas como de alto riesgo",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      4511,
+      "Airlines and Air Carriers"
+    ],
+    [
+      4722,
+      "Travel Agencies"
+    ],
+    [
+      5122,
+      "Drugs and Pharmaceuticals"
+    ],
+    [
+      5967,
+      "Direct Marketing, Inbound Tele"
+    ],
+    [
+      5993,
+      "Cigar Stores"
+    ],
+    [
+      6012,
+      "Financial Institutions"
+    ],
+    [
+      6051,
+      "Quasi Cash, Crypto"
+    ],
+    [
+      7011,
+      "Lodging, Hotels and Resorts"
+    ],
+    [
+      7512,
+      "Automobile Rental"
+    ],
+    [
+      7995,
+      "Betting and Wagering"
+    ]
+  ],
+  "sql_referencia": "SELECT mcc, mcc_description FROM ref_mcc WHERE is_high_risk ORDER BY mcc LIMIT 20",
+  "sql_sha256": "sha256:559c4a2fd80d4edd6c4e4d1e8ce20e73e5b8f2d32949989627edb2eb92df2c71"
+}

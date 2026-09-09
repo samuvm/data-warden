@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos clientes hay en cada país",
+  "rejection_code": null,
+  "sql": "SELECT customer_country_name, COUNT(DISTINCT d.customer_sk) AS customer_count FROM dim_customer d JOIN ref_country r ON d.country_code = r.country_code GROUP BY customer_country_name ORDER BY customer_count DESC",
+  "thinking": false
+}

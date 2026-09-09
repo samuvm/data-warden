@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cobramos más comisión a los comercios de riesgo",
+  "rejection_code": null,
+  "sql": "SELECT merchant_sk, trade_name, risk_tier, settlement_currency, fee_minor, interchange_minor, scheme_fee_minor, gross_eur_minor, net_eur_minor FROM fact_settlement_batch JOIN dim_merchant ON fact_settlement_batch.merchant_id = dim_merchant.merchant_id WHERE dim_merchant.is_current = 1 AND dim_merchant.risk_tier IS NOT NULL GROUP BY merchant_sk, trade_name, risk_tier, settlement_currency, fee_minor, interchange_minor, scheme_fee_minor, gross_eur_minor, net_eur_minor ORDER BY gross_eur_minor DESC",
+  "thinking": false
+}

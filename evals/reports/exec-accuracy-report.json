@@ -1,0 +1,59 @@
+{
+  "contract_version": "1.0.0",
+  "created_at": "2026-09-09T08:58:40.038396Z",
+  "dataset": {
+    "n_cases": 57,
+    "n_negative_cases": 10,
+    "name": "cierzo-dev",
+    "sha256": "sha256:9965a5112c210c69653bd9df1163d45aafac18d5cbeb6351c854fa5d20440842",
+    "version": 1
+  },
+  "environment": {
+    "deterministic": false,
+    "hardware": "MacBook Pro M4 Max, 36 GB unificada, macOS 26.5",
+    "models": {
+      "generador": "qwen3.5:9b-mlx (ollama:203e30078279)"
+    },
+    "python": "3.12.4",
+    "seed": 20260903
+  },
+  "metrics": [
+    {
+      "ci95": [
+        0.0608,
+        0.2325
+      ],
+      "id": "G-EXEC-ACC",
+      "n": 57,
+      "per_stratum": {
+        "join_o_agregacion": {
+          "aciertos": 0,
+          "n": 22
+        },
+        "simple": {
+          "aciertos": 7,
+          "n": 20
+        },
+        "ventana_o_correlada": {
+          "aciertos": 0,
+          "n": 15
+        }
+      },
+      "raw_path": "evals/reports/exec-accuracy.json",
+      "unit": "ratio",
+      "value": 0.1228
+    }
+  ],
+  "notes": "provenance del banco: agente_transcrito_del_glosario_firmado. Mientras no diga `revisado_humano`, el banco lo escribió el agente transcribiendo el glosario firmado y NADIE lo ha revisado: el número es el agente puntuándose contra su propia respuesta correcta.",
+  "project": "data-warden-03",
+  "prompts": [
+    {
+      "id": "nl2sql",
+      "role": "generador",
+      "sha256": "sha256:cf5bb72ab1eb80bad12f01f33236e72e1ccf9575a035606c069bda465b3b5e0a",
+      "version": "1"
+    }
+  ],
+  "run_id": "exec-20260909T085840Z",
+  "suite": "exec-accuracy"
+}

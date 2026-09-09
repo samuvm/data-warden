@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué tasa de contracargo tenemos",
+  "rejection_code": null,
+  "sql": "SELECT SUM(refund_amount_minor) / NULLIF(SUM(amount_minor), 0) AS refund_rate FROM fact_refund JOIN fact_payment_attempt ON fact_refund.payment_intent_id = fact_payment_attempt.payment_intent_id GROUP BY 1",
+  "thinking": false
+}

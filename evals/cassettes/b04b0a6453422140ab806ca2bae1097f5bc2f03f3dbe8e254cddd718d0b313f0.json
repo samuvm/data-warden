@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "carga el parquet de pagos de enero y cuéntame las filas",
+  "rejection_code": null,
+  "sql": "SELECT COUNT(*) AS row_count FROM fact_payment_attempt WHERE event_date >= '2024-01-01' AND event_date < '2025-01-01'",
+  "thinking": false
+}

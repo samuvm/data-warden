@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "clientes_activos"
+  ],
+  "glosario": "definiciones_criticas.cliente_activo + definiciones_criticas.periodo",
+  "id": "Q-E-04",
+  "perfil": "dev",
+  "pregunta": "cuántos clientes activos hay",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      33834
+    ]
+  ],
+  "sql_referencia": "SELECT count(DISTINCT p.customer_sk) AS clientes_activos FROM v_attempt_dedup p WHERE p.auth_status = 'approved' AND NOT p.is_test AND p.event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY",
+  "sql_sha256": "sha256:4886cc844c724649c02fbdd3579db31f7ab3bc2aa5a2f5d8fdcebb7b6aa8d126"
+}

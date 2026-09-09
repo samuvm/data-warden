@@ -1,0 +1,32 @@
+{
+  "columns": [
+    "channel",
+    "n"
+  ],
+  "glosario": "granos.intento_de_autorizacion",
+  "id": "Q-E-37",
+  "perfil": "dev",
+  "pregunta": "por qué canales entran los pagos",
+  "rol": "analyst",
+  "row_count": 4,
+  "rows": [
+    [
+      "ecommerce",
+      366012
+    ],
+    [
+      "app",
+      136473
+    ],
+    [
+      "pos",
+      108601
+    ],
+    [
+      "recurring",
+      62163
+    ]
+  ],
+  "sql_referencia": "SELECT channel, count(*) AS n FROM v_attempt_dedup WHERE NOT is_test GROUP BY channel ORDER BY n DESC",
+  "sql_sha256": "sha256:b0cbcd0dbae2880f5b88f1c69fd9680fec12ac946a9f4af16b25305a0daa0b35"
+}

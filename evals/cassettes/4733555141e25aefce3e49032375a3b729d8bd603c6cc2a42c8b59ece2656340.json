@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cómo se reparten los clientes por tramo de ingresos",
+  "rejection_code": null,
+  "sql": "SELECT customer_sk, income_tier, COUNT(*) AS client_count FROM dim_customer GROUP BY customer_sk, income_tier ORDER BY income_tier",
+  "thinking": false
+}

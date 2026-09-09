@@ -1,0 +1,96 @@
+{
+  "columns": [
+    "product_category",
+    "n"
+  ],
+  "glosario": "definiciones_criticas.pago_valido",
+  "id": "Q-E-34",
+  "perfil": "dev",
+  "pregunta": "qué categorías de producto generan más pagos",
+  "rol": "analyst",
+  "row_count": 20,
+  "rows": [
+    [
+      "RETAIL",
+      89004
+    ],
+    [
+      "FOOD",
+      48095
+    ],
+    [
+      "HOME",
+      45185
+    ],
+    [
+      "FASHION",
+      41193
+    ],
+    [
+      "TRAVEL",
+      39977
+    ],
+    [
+      "HEALTH",
+      39377
+    ],
+    [
+      "ELECTRONICS",
+      32549
+    ],
+    [
+      "GAMING",
+      30720
+    ],
+    [
+      "AUTOMOTIVE",
+      28763
+    ],
+    [
+      "MEDIA",
+      26344
+    ],
+    [
+      "LEISURE",
+      23848
+    ],
+    [
+      "SAAS",
+      21770
+    ],
+    [
+      "BEAUTY",
+      21455
+    ],
+    [
+      "GAMBLING",
+      17167
+    ],
+    [
+      "EDUCATION",
+      16591
+    ],
+    [
+      "NONPROFIT",
+      14169
+    ],
+    [
+      "ALCOHOL",
+      13658
+    ],
+    [
+      "FINANCIAL",
+      13259
+    ],
+    [
+      "CRYPTO",
+      8525
+    ],
+    [
+      "TOBACCO",
+      8292
+    ]
+  ],
+  "sql_referencia": "SELECT product_category, count(*) AS n FROM v_attempt_dedup WHERE auth_status = 'approved' AND NOT is_test GROUP BY product_category ORDER BY n DESC",
+  "sql_sha256": "sha256:a4b07232c8eabba0e6d115452771831517b972d6cbfa8004d073902a78e70bb3"
+}

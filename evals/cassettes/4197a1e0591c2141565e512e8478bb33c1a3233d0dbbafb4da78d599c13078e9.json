@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "hay algún comercio al que no le hayamos liquidado nunca",
+  "rejection_code": null,
+  "sql": "SELECT m.merchant_id, m.trade_name, m.country_code, m.risk_tier, d.group_sk, d.group_name\nFROM dim_merchant AS m\nLEFT JOIN dim_corporate_group AS d ON m.group_sk = d.group_sk AND d.is_ultimate_parent = 1\nWHERE m.is_active = 1\nAND NOT EXISTS (\n    SELECT 1 FROM fact_settlement_batch f WHERE f.merchant_id = m.merchant_id\n)\nORDER BY m.country_code, m.trade_name",
+  "thinking": false
+}

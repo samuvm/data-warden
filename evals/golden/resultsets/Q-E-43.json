@@ -1,0 +1,67 @@
+{
+  "columns": [
+    "trade_name",
+    "volumen",
+    "cuota"
+  ],
+  "glosario": "definiciones_criticas.ingreso",
+  "id": "Q-E-43",
+  "perfil": "dev",
+  "pregunta": "qué cuota de mercado tiene cada comercio",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      "Almacen Calma",
+      "11679889.69",
+      "10.81478450011417"
+    ],
+    [
+      "Espacio Dorada",
+      "7103546.59",
+      "6.577401636176828"
+    ],
+    [
+      "Gran Marea",
+      "5562237.09",
+      "5.150253732138813"
+    ],
+    [
+      "Mercado Islas",
+      "4999206.6",
+      "4.628925742067385"
+    ],
+    [
+      "Estudio Gaviota",
+      "4719533.12",
+      "4.369967096320365"
+    ],
+    [
+      "Boutique Retama",
+      "2732570.32",
+      "2.530174507342288"
+    ],
+    [
+      "Mercado Marea",
+      "2167360.22",
+      "2.006828346460183"
+    ],
+    [
+      "Espacio Zarza",
+      "1790246.39",
+      "1.6576465552182236"
+    ],
+    [
+      "Almacen Nube",
+      "1313012.54",
+      "1.2157604260770665"
+    ],
+    [
+      "Gran Aurora",
+      "1305152.38",
+      "1.208482451815957"
+    ]
+  ],
+  "sql_referencia": "SELECT trade_name, volumen, 100.0 * volumen / sum(volumen) OVER () AS cuota FROM (SELECT m.trade_name, sum(s.gross_eur_minor)/100.0 AS volumen FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.trade_name) ORDER BY volumen DESC LIMIT 10",
+  "sql_sha256": "sha256:4fab2b86e3253396885d4244b811818267d2aeff3708d69aa5b669df19662e11"
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuál es la tasa de aprobación",
+  "rejection_code": null,
+  "sql": "SELECT SUM(CASE WHEN auth_status = 'approved' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS approval_rate FROM fact_payment_attempt WHERE is_test = false",
+  "thinking": false
+}

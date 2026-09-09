@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "ingreso_bruto_eur"
+  ],
+  "glosario": "definiciones_criticas.ingreso",
+  "id": "Q-E-08",
+  "perfil": "dev",
+  "pregunta": "cuánto hemos ingresado",
+  "rol": "finance",
+  "row_count": 1,
+  "rows": [
+    [
+      "2350153.81"
+    ]
+  ],
+  "sql_referencia": "SELECT sum(fee_eur_minor) / 100.0 AS ingreso_bruto_eur FROM fact_settlement_batch",
+  "sql_sha256": "sha256:588f729cf39e92953834eb08ca7b36d51671c985295f51456eac142c6f81b713"
+}

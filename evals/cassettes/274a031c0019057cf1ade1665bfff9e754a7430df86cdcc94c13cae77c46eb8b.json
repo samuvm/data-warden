@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT m.merchant_sk, m.trade_name, m.risk_tier, s.fee_minor, s.interchange_minor, s.scheme_fee_minor, s.gross_eur_minor, s.net_eur_minor FROM fact_settlement_batch s JOIN dim_merchant m ON s.merchant_id = m.merchant_id WHERE m.is_current = 1 AND m.risk_tier IS NOT NULL GROUP BY m.merchant_sk, m.trade_name, m.risk_tier, m.settlement_currency, s.fee_minor, s.interchange_minor, s.scheme_fee_minor, s.gross_eur_minor, s.net_eur_minor ORDER BY s.gross_eur_minor DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cobramos más comisión a los comercios de riesgo",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT m.merchant_sk, m.trade_name, m.risk_tier, s.fee_minor, s.interchange_minor, s.scheme_fee_minor, s.gross_eur_minor, s.net_eur_minor FROM fact_settlement_batch s JOIN dim_merchant m ON s.merchant_id = m.merchant_id WHERE m.is_current = 1 AND m.risk_tier IS NOT NULL GROUP BY m.merchant_sk, m.trade_name, m.risk_tier, m.settlement_currency, s.fee_minor, s.interchange_minor, s.scheme_fee_minor, s.gross_eur_minor, s.net_eur_minor ORDER BY s.gross_eur_minor DESC",
+  "thinking": false
+}

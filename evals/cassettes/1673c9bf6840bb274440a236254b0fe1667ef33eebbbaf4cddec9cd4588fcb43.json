@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuál es el importe mediano de un pago",
+  "rejection_code": null,
+  "sql": "SELECT MEDIAN(amount_eur_minor) AS median_amount FROM fact_payment_attempt",
+  "thinking": false
+}

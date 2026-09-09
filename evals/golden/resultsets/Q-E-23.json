@@ -1,0 +1,44 @@
+{
+  "columns": [
+    "card_scheme",
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-23",
+  "perfil": "dev",
+  "pregunta": "cuántas tarjetas hay de cada esquema",
+  "rol": "analyst",
+  "row_count": 7,
+  "rows": [
+    [
+      "visa",
+      96225
+    ],
+    [
+      "mastercard",
+      70052
+    ],
+    [
+      "maestro",
+      8282
+    ],
+    [
+      "amex",
+      6784
+    ],
+    [
+      "discover",
+      1629
+    ],
+    [
+      "jcb",
+      843
+    ],
+    [
+      "unionpay",
+      678
+    ]
+  ],
+  "sql_referencia": "SELECT card_scheme, count(*) AS n FROM dim_card GROUP BY card_scheme ORDER BY n DESC",
+  "sql_sha256": "sha256:9ffbbcd64a371242a50f398880cc0a351417fe4607e9991fd576f88b94513f37"
+}

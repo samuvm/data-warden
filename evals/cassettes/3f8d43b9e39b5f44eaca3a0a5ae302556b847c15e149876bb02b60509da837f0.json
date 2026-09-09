@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT DISTINCT settlement_currency FROM fact_settlement_batch WHERE settlement_date IS NOT NULL",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "en qué monedas liquidamos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT DISTINCT settlement_currency FROM fact_settlement_batch WHERE settlement_date IS NOT NULL",
+  "thinking": false
+}

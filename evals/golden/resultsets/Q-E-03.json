@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "tasa"
+  ],
+  "glosario": "metricas.tasa_de_aprobacion",
+  "id": "Q-E-03",
+  "perfil": "dev",
+  "pregunta": "cuál es la tasa de aprobación",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      "86.1406403871376"
+    ]
+  ],
+  "sql_referencia": "SELECT 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*) AS tasa FROM v_attempt_dedup WHERE NOT is_test",
+  "sql_sha256": "sha256:f46a886dee752705fc9857b2fec673c795a28c8f6b88c001122ca307def99afb"
+}

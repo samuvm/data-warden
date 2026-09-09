@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT COUNT(*) AS payment_count FROM fact_payment_attempt JOIN dim_date ON fact_payment_attempt.event_date = dim_date.full_date WHERE dim_date.month = (SELECT month - 1 FROM dim_date WHERE full_date = CURRENT_DATE)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos pagos hubo el mes pasado",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT COUNT(*) AS payment_count FROM fact_payment_attempt JOIN dim_date ON fact_payment_attempt.event_date = dim_date.full_date WHERE dim_date.month = (SELECT month - 1 FROM dim_date WHERE full_date = CURRENT_DATE)",
+  "thinking": false
+}

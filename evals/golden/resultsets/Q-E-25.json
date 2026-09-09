@@ -1,0 +1,32 @@
+{
+  "columns": [
+    "risk_tier",
+    "n"
+  ],
+  "glosario": "definiciones_criticas.comercio_activo",
+  "id": "Q-E-25",
+  "perfil": "dev",
+  "pregunta": "cuántos comercios hay por nivel de riesgo",
+  "rol": "analyst",
+  "row_count": 4,
+  "rows": [
+    [
+      "standard",
+      183
+    ],
+    [
+      "low",
+      125
+    ],
+    [
+      "elevated",
+      54
+    ],
+    [
+      "high",
+      18
+    ]
+  ],
+  "sql_referencia": "SELECT risk_tier, count(*) AS n FROM dim_merchant WHERE is_current GROUP BY risk_tier ORDER BY n DESC",
+  "sql_sha256": "sha256:182aec4a20a5f14036ed23519fb5c058c6e0745d13e2c45c3fb450edcc088ec2"
+}

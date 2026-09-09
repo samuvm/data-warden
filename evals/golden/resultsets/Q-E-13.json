@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "decline_reason_code",
+    "n"
+  ],
+  "glosario": "granos.intento_de_autorizacion",
+  "id": "Q-E-13",
+  "perfil": "dev",
+  "pregunta": "cuáles son los motivos de rechazo más frecuentes",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      "insufficient_funds",
+      29355
+    ],
+    [
+      "do_not_honor",
+      18077
+    ],
+    [
+      "sca_required",
+      6946
+    ],
+    [
+      "exceeds_limit",
+      6385
+    ],
+    [
+      "incorrect_cvv",
+      5728
+    ],
+    [
+      "velocity_exceeded",
+      4230
+    ],
+    [
+      "issuer_unavailable",
+      4031
+    ],
+    [
+      "three_ds_failed",
+      4007
+    ],
+    [
+      "expired_card",
+      3078
+    ],
+    [
+      "transaction_timeout",
+      2609
+    ]
+  ],
+  "sql_referencia": "SELECT decline_reason_code, count(*) AS n FROM v_attempt_dedup WHERE auth_status <> 'approved' AND NOT is_test GROUP BY decline_reason_code ORDER BY n DESC LIMIT 10",
+  "sql_sha256": "sha256:f6e1e1a89e90e46387ec733c3026df79840e3e63c2ed64db81db094fd42b1233"
+}

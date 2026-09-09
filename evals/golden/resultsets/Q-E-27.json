@@ -1,0 +1,28 @@
+{
+  "columns": [
+    "currency_code",
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-27",
+  "perfil": "dev",
+  "pregunta": "en qué monedas liquidamos",
+  "rol": "analyst",
+  "row_count": 3,
+  "rows": [
+    [
+      "EUR",
+      1
+    ],
+    [
+      "GBP",
+      1
+    ],
+    [
+      "USD",
+      1
+    ]
+  ],
+  "sql_referencia": "SELECT currency_code, count(*) AS n FROM ref_currency WHERE is_settlement_currency GROUP BY currency_code ORDER BY currency_code",
+  "sql_sha256": "sha256:99e2bdfa41cb330ad8721c808b0e7fbe78f48108312c2ee9aeee46f8fa35910b"
+}

@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "mediana_eur"
+  ],
+  "glosario": "metricas.ticket_medio + definiciones_criticas.pago_valido",
+  "id": "Q-E-11",
+  "perfil": "dev",
+  "pregunta": "cuál es el importe mediano de un pago",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      "54.61"
+    ]
+  ],
+  "sql_referencia": "SELECT median(captured_eur_minor) / 100.0 AS mediana_eur FROM v_payment_intent WHERE eventually_approved",
+  "sql_sha256": "sha256:7210c9c8c14c48e5596174628034ed2615cd6bd052b5cb9c4c3f8fb8530ec0b3"
+}

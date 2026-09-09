@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-48",
+  "perfil": "dev",
+  "pregunta": "cuántos dispositivos usan más de un cliente",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      10198
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS n FROM v_shared_device WHERE distinct_customers > 1",
+  "sql_sha256": "sha256:a6451eae967f288c7361b61942d063eb2ccdefd8bc5dc51a4145f8493ccd8206"
+}

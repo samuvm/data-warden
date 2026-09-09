@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, email_domain, phone_e164, national_id, birth_date, age_band, street_address, postal_code, region_code, city_id, country_code, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, support_note, kyc_status, kyc_verified_on, erasure_requested_on, retention_expires_on, full_name, age_years, birth_date_is_implausible FROM v_customer WHERE customer_id = 900000 ORDER BY customer_id LIMIT 1",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "enséñame la página novecientos mil del listado de clientes",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, email_domain, phone_e164, national_id, birth_date, age_band, street_address, postal_code, region_code, city_id, country_code, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, support_note, kyc_status, kyc_verified_on, erasure_requested_on, retention_expires_on, full_name, age_years, birth_date_is_implausible FROM v_customer WHERE customer_id = 900000 ORDER BY customer_id LIMIT 1",
+  "thinking": false
+}

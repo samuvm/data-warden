@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "tasa_pct"
+  ],
+  "glosario": "metricas.tasa_de_contracargo",
+  "id": "Q-E-14",
+  "perfil": "dev",
+  "pregunta": "qué tasa de contracargo tenemos",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      "0.5509181106353922"
+    ]
+  ],
+  "sql_referencia": "SELECT 100.0 * count(DISTINCT d.payment_intent_id) / count(DISTINCT f.payment_intent_id) AS tasa_pct FROM v_attempt_dedup f LEFT JOIN fact_dispute d ON d.payment_intent_id = f.payment_intent_id AND d.stage_no = 1 WHERE f.auth_status = 'approved' AND NOT f.is_test",
+  "sql_sha256": "sha256:9810881a94aaf418b5362596d9624c0d5f329691837167c1efedbd85d38f2583"
+}

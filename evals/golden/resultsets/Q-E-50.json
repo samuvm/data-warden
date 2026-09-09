@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "n"
+  ],
+  "glosario": "granos.lote_de_liquidacion",
+  "id": "Q-E-50",
+  "perfil": "dev",
+  "pregunta": "hay algún comercio al que no le hayamos liquidado nunca",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      0
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS n FROM dim_merchant m WHERE m.is_current AND NOT EXISTS (SELECT 1 FROM fact_settlement_batch s WHERE s.merchant_id = m.merchant_id)",
+  "sql_sha256": "sha256:b52f3df25f09f46e0bd734d8b428509352505efb5ff0185c55e71d7a6f08d6b7"
+}

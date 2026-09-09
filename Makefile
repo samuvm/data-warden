@@ -32,7 +32,7 @@ JUDGE_ROLE ?= juez
         bench bench-guard cost-calibration mutation \
         attack-dev attack-holdout attack-mut pii-suite \
         mcp-conformance test-parity gate-fast gate-full done report clean \
-        eval-toolchoice-refresh mcp-live \
+        eval-toolchoice-refresh mcp-live eval-refresh-exec freeze \
         dataset dataset-full dataset-traps contracts catalog arch-checks goals guard-property \
         statistics budget-invariant
 
@@ -173,10 +173,20 @@ eval-toolchoice:
 eval-toolchoice-refresh:
 	$(UV) python scripts/eval_toolchoice.py --refresh --model-role $(JUDGE_ROLE)
 
-eval:
-	@echo "FASE 8: la evaluación de exactitud necesita el banco de 60 preguntas"
-	@echo "(Q-010, respondida y pendiente de las horas de Samuel)."
-	@exit 1
+# `G-EXEC-ACC`, la métrica insignia. Determinista y gratis desde casetes; el banco
+# se verifica y se congela antes de medir nada, porque una referencia que no pasa el
+# guard o que no corre no es una referencia.
+eval: 
+	$(UV) python scripts/check_questions.py
+	$(UV) python scripts/eval_exec.py
+
+# Lo único que llama al modelo.
+eval-refresh-exec:
+	$(UV) python scripts/eval_exec.py --refresh --model-role $(MODEL_ROLE)
+
+# Congela los resultsets de referencia. Sin congelar no hay medida reproducible.
+freeze:
+	$(UV) python scripts/freeze_questions.py
 
 # --- rendimiento -------------------------------------------------------------
 # AVISO: D-03 dice UN proyecto encendido cada vez. Un p95 medido con otro

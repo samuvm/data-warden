@@ -1,0 +1,28 @@
+{
+  "columns": [
+    "funding_type",
+    "n"
+  ],
+  "glosario": "definiciones_criticas.pago_valido",
+  "id": "Q-E-40",
+  "perfil": "dev",
+  "pregunta": "se paga más con débito o con crédito",
+  "rol": "analyst",
+  "row_count": 3,
+  "rows": [
+    [
+      "debit",
+      314384
+    ],
+    [
+      "credit",
+      250220
+    ],
+    [
+      "prepaid",
+      15337
+    ]
+  ],
+  "sql_referencia": "SELECT c.funding_type, count(*) AS n FROM v_attempt_dedup p JOIN dim_card c ON c.card_sk = p.card_sk WHERE p.auth_status='approved' AND NOT p.is_test GROUP BY c.funding_type ORDER BY n DESC",
+  "sql_sha256": "sha256:1d413f468986d66d89ccfaefa8427295caf74da7b3d72ac4655427808cb3fd6c"
+}
