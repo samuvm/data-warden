@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "en qué estado de verificación están los clientes",
+  "rejection_code": null,
+  "sql": "SELECT customer_sk, kyc_status FROM dim_customer",
+  "thinking": false
+}

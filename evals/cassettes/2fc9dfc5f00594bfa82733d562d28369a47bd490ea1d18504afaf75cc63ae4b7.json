@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "en qué países se aprueban más pagos",
+  "rejection_code": null,
+  "sql": "SELECT ref_country.country_name, COUNT(*) AS payment_count FROM fact_payment_attempt JOIN dim_merchant ON fact_payment_attempt.merchant_sk = dim_merchant.merchant_sk JOIN dim_date ON fact_payment_attempt.event_date = dim_date.date_key JOIN ref_country ON dim_merchant.country_code = ref_country.country_code WHERE fact_payment_attempt.auth_status = 'approved' GROUP BY ref_country.country_name ORDER BY payment_count DESC LIMIT 10",
+  "thinking": false
+}

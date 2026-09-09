@@ -1,0 +1,100 @@
+{
+  "columns": [
+    "category",
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-31",
+  "perfil": "dev",
+  "pregunta": "cuántos productos hay por categoría",
+  "rol": "analyst",
+  "row_count": 21,
+  "rows": [
+    [
+      "GROCERY",
+      298
+    ],
+    [
+      "FASHION",
+      170
+    ],
+    [
+      "ELECTRONICS",
+      144
+    ],
+    [
+      "GAMING",
+      125
+    ],
+    [
+      "BEAUTY",
+      124
+    ],
+    [
+      "FOOD",
+      110
+    ],
+    [
+      "HOME",
+      106
+    ],
+    [
+      "LEISURE",
+      100
+    ],
+    [
+      "AUTOMOTIVE",
+      93
+    ],
+    [
+      "RETAIL",
+      71
+    ],
+    [
+      "TRAVEL",
+      71
+    ],
+    [
+      "SAAS",
+      70
+    ],
+    [
+      "HEALTH",
+      66
+    ],
+    [
+      "MEDIA",
+      64
+    ],
+    [
+      "GAMBLING",
+      55
+    ],
+    [
+      "ALCOHOL",
+      33
+    ],
+    [
+      "TOBACCO",
+      31
+    ],
+    [
+      "CRYPTO",
+      19
+    ],
+    [
+      "EDUCATION",
+      18
+    ],
+    [
+      "NONPROFIT",
+      16
+    ],
+    [
+      "FINANCIAL",
+      16
+    ]
+  ],
+  "sql_referencia": "SELECT category, count(*) AS n FROM dim_product GROUP BY category ORDER BY n DESC",
+  "sql_sha256": "sha256:bcb84b53743090f935f3fe2c1904636d1faea6eac156fa5bcd6733d311ad7a76"
+}

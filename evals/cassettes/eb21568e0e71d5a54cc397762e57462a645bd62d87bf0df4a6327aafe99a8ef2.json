@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "por qué canales entran los pagos",
+  "rejection_code": null,
+  "sql": "SELECT channel FROM fact_payment_attempt GROUP BY channel ORDER BY COUNT(*) DESC",
+  "thinking": false
+}

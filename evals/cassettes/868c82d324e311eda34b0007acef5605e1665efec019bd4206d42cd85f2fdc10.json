@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántas tarjetas hay de cada esquema",
+  "rejection_code": null,
+  "sql": "SELECT card_scheme, COUNT(*) as count FROM dim_card GROUP BY card_scheme",
+  "thinking": false
+}

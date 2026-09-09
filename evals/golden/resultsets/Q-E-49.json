@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "n"
+  ],
+  "glosario": "definiciones_criticas.pago_valido",
+  "id": "Q-E-49",
+  "perfil": "dev",
+  "pregunta": "cuántos clientes distintos han hecho al menos un pago",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      83752
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS n FROM (SELECT customer_sk, row_number() OVER (PARTITION BY customer_sk ORDER BY first_attempt_ts) AS orden FROM v_payment_intent WHERE eventually_approved) WHERE orden = 1",
+  "sql_sha256": "sha256:bfcdb9baa893cbba04647d874651f0afbc6af5753d6d783b2dd2bc9fd42b5891"
+}

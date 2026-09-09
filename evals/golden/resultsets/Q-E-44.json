@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-44",
+  "perfil": "dev",
+  "pregunta": "cuántos comercios no han tenido nunca una disputa",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      100
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS n FROM dim_merchant m WHERE m.is_current AND NOT EXISTS (SELECT 1 FROM fact_dispute d WHERE d.merchant_sk = m.merchant_sk)",
+  "sql_sha256": "sha256:bdfa3a6327e13139ba8127db75659748b758880e02bf9b89e1cb691234da829c"
+}

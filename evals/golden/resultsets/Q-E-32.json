@@ -1,0 +1,40 @@
+{
+  "columns": [
+    "kyc_status",
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-32",
+  "perfil": "dev",
+  "pregunta": "en qué estado de verificación están los clientes",
+  "rol": "analyst",
+  "row_count": 6,
+  "rows": [
+    [
+      "not_required",
+      71164
+    ],
+    [
+      "verified",
+      16502
+    ],
+    [
+      "pending",
+      2295
+    ],
+    [
+      "expired",
+      1226
+    ],
+    [
+      "rejected",
+      813
+    ],
+    [
+      null,
+      1
+    ]
+  ],
+  "sql_referencia": "SELECT kyc_status, count(*) AS n FROM dim_customer GROUP BY kyc_status ORDER BY n DESC",
+  "sql_sha256": "sha256:ea2fc64723f3bfd21b98b4e844cd0d9bea527ab99ea63f6dc8eb903bf0314e8f"
+}

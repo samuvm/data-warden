@@ -1,0 +1,44 @@
+{
+  "columns": [
+    "age_band",
+    "n"
+  ],
+  "glosario": "definiciones_criticas.periodo",
+  "id": "Q-E-24",
+  "perfil": "dev",
+  "pregunta": "cuántos clientes hay en cada tramo de edad",
+  "rol": "analyst",
+  "row_count": 7,
+  "rows": [
+    [
+      "18-24",
+      7320
+    ],
+    [
+      "25-34",
+      19639
+    ],
+    [
+      "35-44",
+      20217
+    ],
+    [
+      "45-54",
+      18081
+    ],
+    [
+      "55-64",
+      14961
+    ],
+    [
+      "65+",
+      11782
+    ],
+    [
+      null,
+      1
+    ]
+  ],
+  "sql_referencia": "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band ORDER BY age_band",
+  "sql_sha256": "sha256:fdf593689f4d940d23d591577b7e0de34e0232233fc80c71db1cab9b6476bcc9"
+}

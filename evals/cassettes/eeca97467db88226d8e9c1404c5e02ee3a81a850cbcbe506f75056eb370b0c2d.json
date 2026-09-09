@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos productos lleva de media una cesta",
+  "rejection_code": null,
+  "sql": "SELECT AVG(ol.quantity) AS avg_items_per_order FROM fact_order_line ol JOIN dim_product p ON ol.product_sk = p.product_sk GROUP BY p.category, p.brand, p.subcategory",
+  "thinking": false
+}

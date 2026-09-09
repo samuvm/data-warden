@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "country_code",
+    "n"
+  ],
+  "glosario": "definiciones_criticas.pago_valido",
+  "id": "Q-E-19",
+  "perfil": "dev",
+  "pregunta": "de qué países son los clientes que han comprado alguna vez",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      "ES",
+      21888
+    ],
+    [
+      "FR",
+      9614
+    ],
+    [
+      "DE",
+      9017
+    ],
+    [
+      "GB",
+      8585
+    ],
+    [
+      "IT",
+      6653
+    ],
+    [
+      "PT",
+      4171
+    ],
+    [
+      "NL",
+      3297
+    ],
+    [
+      "PL",
+      2422
+    ],
+    [
+      "US",
+      1880
+    ],
+    [
+      "BE",
+      1842
+    ]
+  ],
+  "sql_referencia": "SELECT c.country_code, count(*) AS n FROM dim_customer c WHERE EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk AND p.eventually_approved) GROUP BY c.country_code ORDER BY n DESC LIMIT 10",
+  "sql_sha256": "sha256:69abba04a44840a12f9f7b1156a5edf345ebc884de78620cc552a81fe60b38c2"
+}

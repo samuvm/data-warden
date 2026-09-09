@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "pagos"
+  ],
+  "glosario": "definiciones_criticas.periodo + definiciones_criticas.pago_valido",
+  "id": "Q-E-15",
+  "perfil": "dev",
+  "pregunta": "cuántos pagos hubo el mes pasado",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      22969
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS pagos FROM v_payment_intent WHERE eventually_approved AND first_attempt_ts >= date_trunc('month', (SELECT max(event_date) FROM fact_payment_attempt)) - INTERVAL 1 MONTH AND first_attempt_ts < date_trunc('month', (SELECT max(event_date) FROM fact_payment_attempt))",
+  "sql_sha256": "sha256:46a9a27f483cf333078e10964ceae72340135e772f659ecce5958da3285876bd"
+}

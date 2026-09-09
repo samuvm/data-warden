@@ -1,0 +1,44 @@
+{
+  "columns": [
+    "card_scheme",
+    "tasa"
+  ],
+  "glosario": "metricas.tasa_de_aprobacion",
+  "id": "Q-E-36",
+  "perfil": "dev",
+  "pregunta": "qué esquema de tarjeta se aprueba más",
+  "rol": "analyst",
+  "row_count": 7,
+  "rows": [
+    [
+      "unionpay",
+      "89.98743192291579"
+    ],
+    [
+      "jcb",
+      "89.4384529564894"
+    ],
+    [
+      "amex",
+      "87.67610102804925"
+    ],
+    [
+      "visa",
+      "86.19793965942006"
+    ],
+    [
+      "mastercard",
+      "86.11133802460779"
+    ],
+    [
+      "maestro",
+      "84.42561019677409"
+    ],
+    [
+      "discover",
+      "83.65173288250212"
+    ]
+  ],
+  "sql_referencia": "SELECT c.card_scheme, 100.0 * count(*) FILTER (WHERE p.auth_status='approved') / count(*) AS tasa FROM v_attempt_dedup p JOIN dim_card c ON c.card_sk = p.card_sk WHERE NOT p.is_test GROUP BY c.card_scheme ORDER BY tasa DESC",
+  "sql_sha256": "sha256:f4571b9ce288acacc9d7dc62577183b0cad4b465a35cf75bdcf6f40861fed83a"
+}

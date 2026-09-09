@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuáles son los motivos de rechazo más frecuentes",
+  "rejection_code": null,
+  "sql": "SELECT decline_reason_code, COUNT(*) as rejection_count FROM fact_payment_attempt WHERE auth_status = 'declined' GROUP BY decline_reason_code ORDER BY rejection_count DESC LIMIT 10",
+  "thinking": false
+}

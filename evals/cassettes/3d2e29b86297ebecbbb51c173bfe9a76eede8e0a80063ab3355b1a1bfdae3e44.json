@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT merchant_id, SUM(amount_eur_minor) / SUM(SUM(amount_eur_minor)) OVER () AS market_share FROM fact_payment_attempt GROUP BY merchant_id",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué cuota de mercado tiene cada comercio",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT m.trade_name, SUM(f.amount_eur_minor) / SUM(SUM(f.amount_eur_minor)) OVER () AS market_share FROM fact_payment_attempt f JOIN dim_merchant m ON f.merchant_sk = m.merchant_sk GROUP BY m.trade_name",
+  "thinking": false
+}

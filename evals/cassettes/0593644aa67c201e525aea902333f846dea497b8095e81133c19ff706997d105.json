@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "de qué países son los clientes que han comprado alguna vez",
+  "rejection_code": null,
+  "sql": "SELECT DISTINCT d.country_code FROM dim_customer d JOIN ref_country r ON d.country_code = r.country_code",
+  "thinking": false
+}

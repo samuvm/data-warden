@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "geo_country",
+    "tasa"
+  ],
+  "glosario": "metricas.tasa_de_aprobacion",
+  "id": "Q-E-16",
+  "perfil": "dev",
+  "pregunta": "en qué países se aprueban más pagos",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      "SG",
+      "89.25327951564077"
+    ],
+    [
+      "PT",
+      "88.92609423582874"
+    ],
+    [
+      "ES",
+      "88.28295085477711"
+    ],
+    [
+      "PL",
+      "88.12597605413848"
+    ],
+    [
+      "MX",
+      "87.65432098765432"
+    ],
+    [
+      "GB",
+      "86.87487794252408"
+    ],
+    [
+      "FR",
+      "86.51218683873664"
+    ],
+    [
+      "SE",
+      "86.39692810922278"
+    ],
+    [
+      "DE",
+      "86.26186962212135"
+    ],
+    [
+      "BR",
+      "86.12236628849271"
+    ]
+  ],
+  "sql_referencia": "SELECT geo_country, 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*) AS tasa FROM v_attempt_dedup WHERE NOT is_test GROUP BY geo_country HAVING count(*) >= 1000 ORDER BY tasa DESC LIMIT 10",
+  "sql_sha256": "sha256:cc1dc5358361958f58b763873b0686915316ea282fb13186e077ea4da33140bf"
+}

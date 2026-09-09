@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos intentos hacen falta de media por cada pago",
+  "rejection_code": null,
+  "sql": "SELECT COUNT(*) AS avg_attempts_per_payment, payment_intent_id FROM fact_payment_attempt GROUP BY payment_intent_id",
+  "thinking": false
+}

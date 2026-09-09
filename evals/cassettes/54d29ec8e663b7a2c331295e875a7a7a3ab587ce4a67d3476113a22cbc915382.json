@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "por qué motivos nos abren disputas",
+  "rejection_code": null,
+  "sql": "SELECT DISTINCT reason_category FROM fact_dispute WHERE is_final_stage = true ORDER BY disputed_eur_minor DESC",
+  "thinking": false
+}

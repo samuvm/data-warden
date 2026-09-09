@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué comisión efectiva estamos cobrando",
+  "rejection_code": null,
+  "sql": "SELECT settlement_batch_id, gross_eur_minor, fee_eur_minor, (fee_eur_minor * 100.0 / NULLIF(gross_eur_minor, 0)) AS effective_fee_pct FROM fact_settlement_batch WHERE settlement_date >= '2024-01-01' AND settlement_date <= '2024-12-31' GROUP BY settlement_batch_id ORDER BY effective_fee_pct DESC LIMIT 10",
+  "thinking": false
+}

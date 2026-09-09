@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué categorías de producto generan más pagos",
+  "rejection_code": null,
+  "sql": "SELECT p.product_category, COUNT(*) AS payment_count\nFROM fact_payment_attempt p\nGROUP BY p.product_category\nORDER BY payment_count DESC",
+  "thinking": false
+}

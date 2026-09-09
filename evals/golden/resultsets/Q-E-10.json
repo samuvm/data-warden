@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "margen_neto_eur"
+  ],
+  "glosario": "definiciones_criticas.ingreso",
+  "id": "Q-E-10",
+  "perfil": "dev",
+  "pregunta": "qué nos queda después de pagar al emisor y a la red",
+  "rol": "finance",
+  "row_count": 1,
+  "rows": [
+    [
+      "1990195.1"
+    ]
+  ],
+  "sql_referencia": "SELECT sum(fee_eur_minor - interchange_eur_minor - scheme_fee_eur_minor) / 100.0 AS margen_neto_eur FROM fact_settlement_batch",
+  "sql_sha256": "sha256:9dde57d65b467cf8724ffb37d33578c1d92e0ff75addb42f360a49db8ef08575"
+}

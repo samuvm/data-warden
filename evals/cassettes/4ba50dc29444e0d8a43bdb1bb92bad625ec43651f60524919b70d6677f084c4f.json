@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos dispositivos usan más de un cliente",
+  "rejection_code": null,
+  "sql": "SELECT device_sk, COUNT(DISTINCT customer_sk) AS customer_count FROM bridge_customer_device WHERE n_payments > 1 GROUP BY device_sk HAVING COUNT(DISTINCT customer_sk) > 1",
+  "thinking": false
+}

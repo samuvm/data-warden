@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "lineas_por_pago"
+  ],
+  "glosario": "granos.linea_de_cesta",
+  "id": "Q-E-18",
+  "perfil": "dev",
+  "pregunta": "cuántos productos lleva de media una cesta",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      "2.3447728247728246"
+    ]
+  ],
+  "sql_referencia": "SELECT avg(lineas) AS lineas_por_pago FROM (SELECT payment_intent_id, count(*) AS lineas FROM fact_order_line GROUP BY payment_intent_id)",
+  "sql_sha256": "sha256:d59ff2cc0c763bd320de6cacb9d82f94224382c7896ce60c5f08c0d2979e4cce"
+}

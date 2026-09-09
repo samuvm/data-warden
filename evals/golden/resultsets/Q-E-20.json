@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "clientes_sin_pagos"
+  ],
+  "glosario": "definiciones_criticas.cliente_activo",
+  "id": "Q-E-20",
+  "perfil": "dev",
+  "pregunta": "cuántos clientes se dieron de alta y no compraron nunca",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      5828
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS clientes_sin_pagos FROM dim_customer c WHERE NOT EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk)",
+  "sql_sha256": "sha256:c9474614e54bd581019d42ec5ad28306c0c62de8e0a37e54136102b4c6a01453"
+}

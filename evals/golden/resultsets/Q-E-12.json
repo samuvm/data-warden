@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "comercios_activos"
+  ],
+  "glosario": "definiciones_criticas.comercio_activo + definiciones_criticas.periodo",
+  "id": "Q-E-12",
+  "perfil": "dev",
+  "pregunta": "cuántos comercios activos tenemos",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      355
+    ]
+  ],
+  "sql_referencia": "SELECT count(DISTINCT m.merchant_sk) AS comercios_activos FROM dim_merchant m WHERE m.is_current AND m.is_active AND EXISTS (SELECT 1 FROM v_attempt_dedup p WHERE p.merchant_sk = m.merchant_sk AND p.auth_status = 'approved' AND NOT p.is_test AND p.event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 30 DAY)",
+  "sql_sha256": "sha256:626700aac688e8e2bc2ea4ad8d0b59f2028fe8207007487e5d4ac79fa16cb364"
+}

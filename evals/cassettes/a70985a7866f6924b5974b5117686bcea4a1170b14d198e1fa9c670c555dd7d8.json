@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "de qué países son los comercios que más volumen liquidan",
+  "rejection_code": null,
+  "sql": "SELECT m.trade_name, c.country_name, SUM(f.amount_eur_minor) AS total_volume FROM fact_payment_attempt f JOIN dim_merchant m ON f.merchant_sk = m.merchant_sk JOIN ref_country c ON m.country_code = c.country_code GROUP BY m.trade_name, c.country_name ORDER BY total_volume DESC LIMIT 10",
+  "thinking": false
+}

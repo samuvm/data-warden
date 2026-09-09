@@ -1,0 +1,36 @@
+{
+  "columns": [
+    "income_tier",
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-28",
+  "perfil": "dev",
+  "pregunta": "cómo se reparten los clientes por tramo de ingresos",
+  "rol": "analyst",
+  "row_count": 5,
+  "rows": [
+    [
+      "budget",
+      41400
+    ],
+    [
+      "standard",
+      30360
+    ],
+    [
+      "affluent",
+      14720
+    ],
+    [
+      "premium",
+      5520
+    ],
+    [
+      null,
+      1
+    ]
+  ],
+  "sql_referencia": "SELECT income_tier, count(*) AS n FROM dim_customer GROUP BY income_tier ORDER BY n DESC",
+  "sql_sha256": "sha256:cbaa75cdf4e2a46975f00bbcc31a57a863b48ac2c4fd25c715e7663c7a2df02b"
+}

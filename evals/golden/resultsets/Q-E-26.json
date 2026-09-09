@@ -1,0 +1,28 @@
+{
+  "columns": [
+    "device_class",
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-26",
+  "perfil": "dev",
+  "pregunta": "qué tipos de dispositivo usan los clientes",
+  "rol": "analyst",
+  "row_count": 3,
+  "rows": [
+    [
+      "mobile",
+      106754
+    ],
+    [
+      "desktop",
+      52521
+    ],
+    [
+      "tablet",
+      15893
+    ]
+  ],
+  "sql_referencia": "SELECT device_class, count(*) AS n FROM dim_device GROUP BY device_class ORDER BY n DESC",
+  "sql_sha256": "sha256:48ed96f8d57a14a0500780eb395d82787b4ffe51437f50004a6d4e7e868db1ed"
+}

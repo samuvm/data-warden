@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "trade_name",
+    "volumen"
+  ],
+  "glosario": "granos.lote_de_liquidacion + definiciones_criticas.ingreso",
+  "id": "Q-E-17",
+  "perfil": "dev",
+  "pregunta": "dame el top 10 de comercios por volumen liquidado",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      "Almacen Calma",
+      "11679889.69"
+    ],
+    [
+      "Espacio Dorada",
+      "7103546.59"
+    ],
+    [
+      "Gran Marea",
+      "5562237.09"
+    ],
+    [
+      "Mercado Islas",
+      "4999206.6"
+    ],
+    [
+      "Estudio Gaviota",
+      "4719533.12"
+    ],
+    [
+      "Boutique Retama",
+      "2732570.32"
+    ],
+    [
+      "Mercado Marea",
+      "2167360.22"
+    ],
+    [
+      "Espacio Zarza",
+      "1790246.39"
+    ],
+    [
+      "Almacen Nube",
+      "1313012.54"
+    ],
+    [
+      "Gran Aurora",
+      "1305152.38"
+    ]
+  ],
+  "sql_referencia": "SELECT trade_name, volumen FROM (SELECT m.trade_name, sum(s.gross_eur_minor) / 100.0 AS volumen, row_number() OVER (ORDER BY sum(s.gross_eur_minor) DESC) AS puesto FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.trade_name) WHERE puesto <= 10",
+  "sql_sha256": "sha256:fff01fc4c6be8c7f2a02120b88805c71814b9b44a2f0f07a552fd4df494e624f"
+}

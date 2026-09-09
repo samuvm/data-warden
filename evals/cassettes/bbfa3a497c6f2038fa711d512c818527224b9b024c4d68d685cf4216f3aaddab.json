@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "la edad media de los clientes por país",
+  "rejection_code": null,
+  "sql": "SELECT AVG(d.age_years) AS avg_age, d.country_code\nFROM dim_customer d\nGROUP BY d.country_code",
+  "thinking": false
+}

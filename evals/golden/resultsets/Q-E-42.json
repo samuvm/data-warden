@@ -1,0 +1,357 @@
+{
+  "columns": [
+    "pais",
+    "trade_name",
+    "volumen"
+  ],
+  "glosario": "granos.lote_de_liquidacion",
+  "id": "Q-E-42",
+  "perfil": "dev",
+  "pregunta": "dame los tres comercios que más mueven en cada país",
+  "rol": "analyst",
+  "row_count": 68,
+  "rows": [
+    [
+      "AT",
+      "Mercado Cumbre",
+      "78801.27"
+    ],
+    [
+      "AT",
+      "Mercado Encina",
+      "21908.29"
+    ],
+    [
+      "BE",
+      "Tienda Gaviota",
+      "439970.86"
+    ],
+    [
+      "BE",
+      "Boutique Hiedra",
+      "425703.07"
+    ],
+    [
+      "BE",
+      "Mercado Aurora",
+      "370686.77"
+    ],
+    [
+      "BG",
+      "Estudio Gaviota",
+      "219833.88"
+    ],
+    [
+      "BG",
+      "Norte Kiwi",
+      "38191.28"
+    ],
+    [
+      "BR",
+      "Casa Calma",
+      "401601.89"
+    ],
+    [
+      "BR",
+      "Casa Dorada",
+      "244960.0"
+    ],
+    [
+      "BR",
+      "Tienda Ladera",
+      "81302.03"
+    ],
+    [
+      "CH",
+      "Central Naranjo",
+      "184420.43"
+    ],
+    [
+      "CH",
+      "Taller Encina",
+      "146499.35"
+    ],
+    [
+      "CH",
+      "Bazar Aurora",
+      "100046.66"
+    ],
+    [
+      "CZ",
+      "Sur Islas",
+      "282565.32"
+    ],
+    [
+      "CZ",
+      "Espacio Hiedra",
+      "90036.21"
+    ],
+    [
+      "DE",
+      "Estudio Gaviota",
+      "4326471.82"
+    ],
+    [
+      "DE",
+      "Norte Yedra",
+      "1118341.46"
+    ],
+    [
+      "DE",
+      "Buena Estrella",
+      "789051.54"
+    ],
+    [
+      "DK",
+      "Casa Granada",
+      "235532.35"
+    ],
+    [
+      "DK",
+      "Norte Calma",
+      "133421.58"
+    ],
+    [
+      "DK",
+      "Bella Faro",
+      "35138.24"
+    ],
+    [
+      "ES",
+      "Almacen Calma",
+      "11679889.69"
+    ],
+    [
+      "ES",
+      "Mercado Islas",
+      "4999206.6"
+    ],
+    [
+      "ES",
+      "Espacio Zarza",
+      "1790246.39"
+    ],
+    [
+      "FI",
+      "Bella Gaviota",
+      "141856.62"
+    ],
+    [
+      "FR",
+      "Boutique Retama",
+      "2455084.07"
+    ],
+    [
+      "FR",
+      "Mercado Marea",
+      "2015827.06"
+    ],
+    [
+      "FR",
+      "Central Fuente",
+      "1053736.51"
+    ],
+    [
+      "GB",
+      "Espacio Dorada",
+      "7099835.96"
+    ],
+    [
+      "GB",
+      "Gran Marea",
+      "5562237.09"
+    ],
+    [
+      "GB",
+      "Gran Aurora",
+      "900939.05"
+    ],
+    [
+      "GR",
+      "Bella Estrella",
+      "140087.46"
+    ],
+    [
+      "GR",
+      "Tienda Naranjo",
+      "22849.95"
+    ],
+    [
+      "HU",
+      "Almacen Invierno",
+      "137390.93"
+    ],
+    [
+      "IE",
+      "Mercado Yedra",
+      "97545.35"
+    ],
+    [
+      "IE",
+      "Norte Puerto",
+      "45793.03"
+    ],
+    [
+      "IE",
+      "Casa Islas",
+      "31380.62"
+    ],
+    [
+      "IT",
+      "Tienda Sierra",
+      "973624.77"
+    ],
+    [
+      "IT",
+      "Estudio Ladera",
+      "885967.36"
+    ],
+    [
+      "IT",
+      "Casa Dorada",
+      "874659.62"
+    ],
+    [
+      "JP",
+      "Nueva Almendro",
+      "88387.18"
+    ],
+    [
+      "LT",
+      "Gran Ladera",
+      "22910.58"
+    ],
+    [
+      "MA",
+      "Sur Almendro",
+      "19963.9"
+    ],
+    [
+      "MX",
+      "Mercado Puerto",
+      "86394.67"
+    ],
+    [
+      "MX",
+      "Nueva Bahia",
+      "47919.92"
+    ],
+    [
+      "NL",
+      "Boutique Retama",
+      "277486.25"
+    ],
+    [
+      "NL",
+      "Taller Umbria",
+      "209280.47"
+    ],
+    [
+      "NL",
+      "Nova Zarza",
+      "110694.52"
+    ],
+    [
+      "NO",
+      "Nova Fuente",
+      "779777.23"
+    ],
+    [
+      "NO",
+      "Boutique Kiwi",
+      "745510.39"
+    ],
+    [
+      "NO",
+      "Punto Encina",
+      "93163.49"
+    ],
+    [
+      "PL",
+      "Sur Laurel",
+      "484570.75"
+    ],
+    [
+      "PL",
+      "Gran Hoja",
+      "325392.95"
+    ],
+    [
+      "PL",
+      "Espacio Jara",
+      "207122.54"
+    ],
+    [
+      "PT",
+      "Gran Sierra",
+      "924874.18"
+    ],
+    [
+      "PT",
+      "Buena Tejo",
+      "772950.19"
+    ],
+    [
+      "PT",
+      "Gran Vela",
+      "378389.08"
+    ],
+    [
+      "RO",
+      "Buena Jara",
+      "146006.74"
+    ],
+    [
+      "RO",
+      "Espacio Almendro",
+      "66240.36"
+    ],
+    [
+      "SE",
+      "Bella Tejo",
+      "961556.45"
+    ],
+    [
+      "SE",
+      "Bazar Retama",
+      "301745.56"
+    ],
+    [
+      "SE",
+      "Almacen Fuente",
+      "283178.98"
+    ],
+    [
+      "SG",
+      "Central Dorada",
+      "102077.8"
+    ],
+    [
+      "SG",
+      "Sur Calma",
+      "34134.56"
+    ],
+    [
+      "TR",
+      "Taller Retama",
+      "45433.15"
+    ],
+    [
+      "US",
+      "Norte Bahia",
+      "282640.47"
+    ],
+    [
+      "US",
+      "Sur Quilla",
+      "255903.95"
+    ],
+    [
+      "US",
+      "Norte Dehesa",
+      "249931.68"
+    ]
+  ],
+  "sql_referencia": "SELECT pais, trade_name, volumen FROM (SELECT m.country_code AS pais, m.trade_name, sum(s.gross_eur_minor)/100.0 AS volumen, rank() OVER (PARTITION BY m.country_code ORDER BY sum(s.gross_eur_minor) DESC) AS puesto FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.country_code, m.trade_name) WHERE puesto <= 3 ORDER BY pais, puesto",
+  "sql_sha256": "sha256:e91c6571bbf8923f71b7bacd9da3e99229a8b34721f8efdb0d0d9314def3fb75"
+}

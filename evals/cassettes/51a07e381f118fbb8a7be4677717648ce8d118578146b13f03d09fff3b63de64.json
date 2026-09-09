@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame el top 10 de comercios por volumen liquidado",
+  "rejection_code": null,
+  "sql": "SELECT merchant_id, SUM(gross_eur_minor) AS total_liquidated_volume FROM fact_settlement_batch GROUP BY merchant_id ORDER BY total_liquidated_volume DESC LIMIT 10",
+  "thinking": false
+}

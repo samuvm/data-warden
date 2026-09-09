@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT category FROM dim_merchant WHERE is_high_risk = true",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué categorías de comercio están marcadas como de alto riesgo",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT category FROM dim_merchant WHERE is_high_risk = true",
+  "thinking": false
+}

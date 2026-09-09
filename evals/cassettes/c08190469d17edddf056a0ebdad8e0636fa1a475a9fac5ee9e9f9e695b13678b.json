@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué esquema de tarjeta se aprueba más",
+  "rejection_code": null,
+  "sql": "SELECT card_scheme FROM dim_card GROUP BY card_scheme ORDER BY COUNT(*) DESC LIMIT 1",
+  "thinking": false
+}

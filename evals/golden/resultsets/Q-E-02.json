@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "ticket_medio_eur"
+  ],
+  "glosario": "metricas.ticket_medio + definiciones_criticas.pago_valido",
+  "id": "Q-E-02",
+  "perfil": "dev",
+  "pregunta": "cuál es el ticket medio en euros",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      "187.2717288784166"
+    ]
+  ],
+  "sql_referencia": "SELECT avg(captured_eur_minor) / 100.0 AS ticket_medio_eur FROM v_payment_intent WHERE eventually_approved",
+  "sql_sha256": "sha256:3e6ae4490f0459bb9d0009257e26da5a303071b9c6cbe76ef30763a22bca8765"
+}

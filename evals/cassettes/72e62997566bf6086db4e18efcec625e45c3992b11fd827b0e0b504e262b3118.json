@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos clientes activos hay",
+  "rejection_code": null,
+  "sql": "SELECT customer_sk FROM dim_customer WHERE is_business_account = 0 AND kyc_status IN ('verified', 'pending') GROUP BY customer_sk",
+  "thinking": false
+}

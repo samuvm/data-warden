@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT DISTINCT ref_country.country_name FROM ref_country JOIN dim_customer ON ref_country.country_code = dim_customer.country_code GROUP BY ref_country.country_name HAVING COUNT(*) <= 5",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "qué países tienen cinco clientes o menos",
+  "rejection_code": "group_too_small",
+  "sql": "SELECT ref_country.country_name FROM ref_country JOIN dim_customer ON ref_country.country_code = dim_customer.country_code GROUP BY ref_country.country_name HAVING COUNT(*) >= 5",
+  "thinking": false
+}

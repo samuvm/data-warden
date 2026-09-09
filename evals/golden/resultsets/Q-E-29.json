@@ -1,0 +1,18 @@
+{
+  "columns": [
+    "n"
+  ],
+  "glosario": null,
+  "id": "Q-E-29",
+  "perfil": "dev",
+  "pregunta": "cuántos países de la zona sepa hay en el catálogo",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      23
+    ]
+  ],
+  "sql_referencia": "SELECT count(*) AS n FROM ref_country WHERE is_sepa",
+  "sql_sha256": "sha256:f6c01305c863d1a43ac67973fe043b8d5d2536aa36aa9f8a3c86ce2af59d0104"
+}

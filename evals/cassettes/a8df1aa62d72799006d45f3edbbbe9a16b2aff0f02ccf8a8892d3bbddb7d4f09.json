@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY amount_eur_minor/100) AS percentile_90 FROM fact_payment_attempt",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuál es el importe por debajo del cual está el noventa por ciento de los pagos",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY amount_eur_minor/100.0) AS percentile_90 FROM fact_payment_attempt",
+  "thinking": false
+}

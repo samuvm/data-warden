@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "se paga más con débito o con crédito",
+  "rejection_code": null,
+  "sql": "SELECT fpa.channel, SUM(fpa.amount_eur_minor) as total_amount FROM fact_payment_attempt fpa GROUP BY fpa.channel ORDER BY total_amount DESC LIMIT 1",
+  "thinking": false
+}

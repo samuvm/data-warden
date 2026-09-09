@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "cuántos pagos hubo el mes pasado",
+  "rejection_code": null,
+  "sql": "SELECT COUNT(*) AS payment_count FROM fact_payment_attempt WHERE event_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND event_date < DATE_TRUNC('month', CURRENT_DATE)",
+  "thinking": false
+}
