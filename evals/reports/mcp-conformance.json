@@ -107,7 +107,7 @@
             "ok": true
           },
           {
-            "detail": "[['ES', 23908], ['FR', 10488], ['DE', 9888]]",
+            "detail": "[['ES', 2375936], ['FR', 1057525], ['DE', 984764]]",
             "name": "run_query-devuelve-filas",
             "ok": true
           },

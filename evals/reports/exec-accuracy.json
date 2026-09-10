@@ -393,7 +393,8 @@
           }
         },
         "problemas": [],
-        "provenance": "agente_transcrito_del_glosario_firmado"
+        "provenance": "agente_transcrito_del_glosario_firmado",
+        "superconjuntos": []
       },
       "value": 0.193
     },

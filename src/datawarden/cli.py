@@ -16,7 +16,17 @@ import pathlib
 import sys
 from collections.abc import Sequence
 
-DEFAULT_DATABASE = pathlib.Path("datagen/out/cierzo-dev.duckdb")
+#: El almacén que se SIRVE por defecto. **`full`, y el motivo es la coherencia entre
+#: anillos.** `catalog/generated/statistics.json` declara `profile: full`, así que el
+#: anillo del presupuesto tarifa 66,6 M de filas; servir `dev` hacía que el motor
+#: ejecutara 683 K. Un anillo tarifaba un almacén y otro ejecutaba otro.
+#:
+#: Lo cazó Q-009: Claude Desktop devolvía «ES = 23.908» y el banco de la fase 8, que
+#: está congelado sobre `full`, dice 2.375.936. Las respuestas eran correctas sobre un
+#: almacén que no era el que se mide.
+#:
+#: Para desarrollo rápido sigue estando `--database datagen/out/cierzo-dev.duckdb`.
+DEFAULT_DATABASE = pathlib.Path("datagen/out/cierzo-full.duckdb")
 DEFAULT_AUDIT_DB = pathlib.Path("var/audit.sqlite3")
 
 
