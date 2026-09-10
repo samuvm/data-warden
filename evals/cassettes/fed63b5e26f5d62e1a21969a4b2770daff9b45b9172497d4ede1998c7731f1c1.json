@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT m.merchant_id, m.trade_name FROM dim_merchant_current m LEFT JOIN fact_settlement_batch f ON m.merchant_sk = f.merchant_id WHERE m.is_active = true AND f.settlement_batch_id IS NULL",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "hay algún comercio al que no le hayamos liquidado nunca",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT m.merchant_id, m.trade_name FROM dim_merchant_current m LEFT JOIN fact_settlement_batch f ON m.merchant_sk = f.merchant_id WHERE m.is_active = true AND f.settlement_batch_id IS NULL",
+  "thinking": false
+}

@@ -4,13 +4,13 @@
   ],
   "glosario": "definiciones_criticas.ingreso",
   "id": "Q-E-09",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuánto dinero ha pasado por la pasarela",
   "rol": "finance",
   "row_count": 1,
   "rows": [
     [
-      "107999282.74"
+      "9153155981.26"
     ]
   ],
   "sql_referencia": "SELECT sum(gross_eur_minor) / 100.0 AS volumen_eur FROM fact_settlement_batch",

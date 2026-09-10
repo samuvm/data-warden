@@ -5,22 +5,22 @@
   ],
   "glosario": "definiciones_criticas.pago_valido",
   "id": "Q-E-40",
-  "perfil": "dev",
-  "pregunta": "se paga más con débito o con crédito",
+  "perfil": "full",
+  "pregunta": "dame el número de pagos válidos por tipo de financiación de la tarjeta, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 3,
   "rows": [
     [
       "debit",
-      314384
+      30761698
     ],
     [
       "credit",
-      250220
+      24699395
     ],
     [
       "prepaid",
-      15337
+      1532856
     ]
   ],
   "sql_referencia": "SELECT c.funding_type, count(*) AS n FROM v_attempt_dedup p JOIN dim_card c ON c.card_sk = p.card_sk WHERE p.auth_status='approved' AND NOT p.is_test GROUP BY c.funding_type ORDER BY n DESC",

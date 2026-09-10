@@ -4,13 +4,13 @@
   ],
   "glosario": null,
   "id": "Q-E-48",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuántos dispositivos usan más de un cliente",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      10198
+      1259261
     ]
   ],
   "sql_referencia": "SELECT count(*) AS n FROM v_shared_device WHERE distinct_customers > 1",

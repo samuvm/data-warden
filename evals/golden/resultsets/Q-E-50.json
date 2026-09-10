@@ -4,7 +4,7 @@
   ],
   "glosario": "granos.lote_de_liquidacion",
   "id": "Q-E-50",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "hay algún comercio al que no le hayamos liquidado nunca",
   "rol": "analyst",
   "row_count": 1,

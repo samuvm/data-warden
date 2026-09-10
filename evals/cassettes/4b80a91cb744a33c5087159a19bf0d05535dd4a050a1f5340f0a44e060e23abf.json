@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame los diez comercios que más volumen han liquidado, con su nombre comercial y el volumen en euros",
+  "rejection_code": null,
+  "sql": "SELECT m.trade_name, SUM(fps.amount_eur_minor) AS volume_eur FROM fact_payment_attempt fps JOIN dim_merchant m ON fps.merchant_sk = m.merchant_sk GROUP BY m.trade_name ORDER BY volume_eur DESC LIMIT 10",
+  "thinking": false
+}

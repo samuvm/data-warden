@@ -41,6 +41,17 @@
 
 version: 1
 provenance: agente_transcrito_del_glosario_firmado
+# P-010, APROBADA por Samuel el 2026-09-10. **Se reescribieron 26 preguntas DESPUÉS
+# de haber medido**, y eso queda escrito aquí y no en una nota al pie: la primera
+# medida sobre las preguntas originales dio `G-EXEC-ACC = 0,1228`, y el 52 % de los
+# fallos eran de forma —columnas y número de filas que la pregunta no fijaba y la
+# referencia sí—. El criterio de la reescritura es uno solo: **la pregunta determina
+# la FORMA de la respuesta y no dicta el SQL.** «Los diez motivos más frecuentes con
+# su número» fija dos columnas y diez filas; cómo se calculan sigue siendo del modelo.
+reescritura_p010:
+  autorizada_por: "Samuel, 2026-09-10"
+  medida_previa: "G-EXEC-ACC 0,1228 (7/57) sobre las preguntas originales"
+  preguntas_reescritas: 26
 revisado_por: null
 revisado_el: null
 glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q-004)"
@@ -48,18 +59,25 @@ glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q
 # EL PERFIL DEL DATASET, y no es un detalle: decide de qué son los resultsets
 # congelados. Un banco congelado contra `dev` y medido contra `full` falla entero.
 #
-# Se elige `dev` porque es lo que usa todo lo demás del gate —`pii-suite`, el corpus
-# de recuperación, `mcp-live`— y porque `full` son 7,5 GB y ocho minutos por pasada,
-# que es una barrera real para una evaluación que tiene que poder repetirse.
+# **`full`, decidido por Samuel el 2026-09-10, y el motivo es más fuerte de lo que
+# parecía.** Yo había elegido `dev` por velocidad. Al comprobarlo apareció que
+# `src/datawarden/catalog/generated/statistics.json` declara `profile: full`: **el
+# anillo del presupuesto llevaba tarifando `full` —66,6 M de filas, 4,1 GB en
+# `fact_payment_attempt`— mientras el motor ejecutaba `dev`, con 683 K.** Un anillo
+# tarifaba un almacén y otro ejecutaba otro.
 #
-# **CONSECUENCIA QUE HAY QUE SABER:** los `valor_tipico` del glosario se midieron
-# sobre `full` (294,7 M de filas), así que NO coinciden con los números de este banco
-# y no tienen por qué. Medido hoy: mediana del ticket 54,61 € aquí contra ≈43 € allí;
-# clientes sin ningún pago 6,3 % aquí contra 4,3 % allí. Comparar un número de este
-# banco con un `valor_tipico` del glosario es comparar dos perfiles. El propio
-# glosario ya lo avisa para las trampas: «full +31,94 · demo +30,32 · dev +37,87».
-perfil: dev
-perfil_alternativo_si_samuel_prefiere: "full — recongelar es `make dataset PROFILE=full` y volver a correr el check"
+# Medir sobre `full` no cuesta: arregla esa incoherencia. Y no es lento — medido, el
+# peor caso del banco tarda 1,5 s, porque son Parquet con poda de columnas.
+#
+# Además cuadra con el glosario, que se midió sobre `full`: la tasa de aprobación sale
+# **86,93 %**, dentro del 86-87 % declarado, mientras que sobre `dev` daba 86,14 % y se
+# salía. Un banco cuyo número contradice al contrato firmado invita a dudar del
+# contrato.
+#
+# CONSECUENCIA: `make eval` exige los 7,1 GB de `datagen/out/full/` presentes. Se
+# generan con `make dataset-full` y salen idénticos byte a byte.
+perfil: full
+perfil_decidido_por: "Samuel, 2026-09-10"
 
 # `docs/GOALS.yaml` :: G-EXEC-ACC exige >= 60 casos, y `PLAN.md` los estratifica:
 # 20 simples · 25 con join o agregación · 15 con ventana o subconsulta correlacionada,
@@ -192,7 +210,7 @@ rechazos:
 # -----------------------------------------------------------------------------
 ejecucion:
   - id: Q-E-01
-    pregunta: cuántos clientes hay en cada país
+    pregunta: dame el número de clientes de cada país, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: null
@@ -365,7 +383,7 @@ ejecucion:
       AND p.event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 30 DAY)
 
   - id: Q-E-13
-    pregunta: cuáles son los motivos de rechazo más frecuentes
+    pregunta: dame los diez motivos de rechazo más frecuentes, cada uno con su número de intentos rechazados
     rol: analyst
     estrato: simple
     glosario: "granos.intento_de_autorizacion"
@@ -419,7 +437,7 @@ ejecucion:
       incumple.
 
   - id: Q-E-16
-    pregunta: en qué países se aprueban más pagos
+    pregunta: dame los diez países con MAYOR TASA de aprobación, con su tasa en porcentaje, contando solo los que tengan al menos mil intentos
     rol: analyst
     estrato: join_o_agregacion
     glosario: "metricas.tasa_de_aprobacion"
@@ -433,7 +451,7 @@ ejecucion:
       HAVING count(*) >= 1000 ORDER BY tasa DESC LIMIT 10
 
   - id: Q-E-17
-    pregunta: dame el top 10 de comercios por volumen liquidado
+    pregunta: dame los diez comercios que más volumen han liquidado, con su nombre comercial y el volumen en euros
     rol: analyst
     estrato: ventana_o_correlada
     glosario: "granos.lote_de_liquidacion + definiciones_criticas.ingreso"
@@ -464,7 +482,7 @@ ejecucion:
       count(*) AS lineas FROM fact_order_line GROUP BY payment_intent_id)
 
   - id: Q-E-19
-    pregunta: de qué países son los clientes que han comprado alguna vez
+    pregunta: dame los diez países con más clientes que hayan comprado alguna vez, con el número de clientes de cada uno
     rol: analyst
     estrato: ventana_o_correlada
     glosario: "definiciones_criticas.pago_valido"
@@ -529,7 +547,7 @@ ejecucion:
   # o subconsulta correlacionada.
   # --------------------------------------------------------------------------
   - id: Q-E-23
-    pregunta: cuántas tarjetas hay de cada esquema
+    pregunta: dame el número de tarjetas de cada esquema, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: null
@@ -540,7 +558,7 @@ ejecucion:
       SELECT card_scheme, count(*) AS n FROM dim_card GROUP BY card_scheme ORDER BY n DESC
 
   - id: Q-E-24
-    pregunta: cuántos clientes hay en cada tramo de edad
+    pregunta: dame el número de clientes de cada tramo de edad, ordenado por tramo
     rol: analyst
     estrato: simple
     glosario: "definiciones_criticas.periodo"
@@ -551,7 +569,7 @@ ejecucion:
       SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band ORDER BY age_band
 
   - id: Q-E-25
-    pregunta: cuántos comercios hay por nivel de riesgo
+    pregunta: dame el número de comercios vigentes de cada nivel de riesgo, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: "definiciones_criticas.comercio_activo"
@@ -562,7 +580,7 @@ ejecucion:
       SELECT risk_tier, count(*) AS n FROM dim_merchant WHERE is_current GROUP BY risk_tier ORDER BY n DESC
 
   - id: Q-E-26
-    pregunta: qué tipos de dispositivo usan los clientes
+    pregunta: dame el número de dispositivos de cada clase, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: null
@@ -573,7 +591,7 @@ ejecucion:
       SELECT device_class, count(*) AS n FROM dim_device GROUP BY device_class ORDER BY n DESC
 
   - id: Q-E-27
-    pregunta: en qué monedas liquidamos
+    pregunta: dame las monedas en las que liquidamos, con cuántas hay de cada una
     rol: analyst
     estrato: simple
     glosario: null
@@ -584,7 +602,7 @@ ejecucion:
       SELECT currency_code, count(*) AS n FROM ref_currency WHERE is_settlement_currency GROUP BY currency_code ORDER BY currency_code
 
   - id: Q-E-28
-    pregunta: cómo se reparten los clientes por tramo de ingresos
+    pregunta: dame el número de clientes de cada tramo de ingresos, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: null
@@ -606,7 +624,7 @@ ejecucion:
       SELECT count(*) AS n FROM ref_country WHERE is_sepa
 
   - id: Q-E-30
-    pregunta: qué categorías de comercio están marcadas como de alto riesgo
+    pregunta: dame los veinte primeros códigos de categoría marcados como de alto riesgo, con su descripción, ordenados por código
     rol: analyst
     estrato: simple
     glosario: null
@@ -617,7 +635,7 @@ ejecucion:
       SELECT mcc, mcc_description FROM ref_mcc WHERE is_high_risk ORDER BY mcc LIMIT 20
 
   - id: Q-E-31
-    pregunta: cuántos productos hay por categoría
+    pregunta: dame el número de productos de cada categoría, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: null
@@ -628,7 +646,7 @@ ejecucion:
       SELECT category, count(*) AS n FROM dim_product GROUP BY category ORDER BY n DESC
 
   - id: Q-E-32
-    pregunta: en qué estado de verificación están los clientes
+    pregunta: dame el número de clientes en cada estado de verificación, ordenado de más a menos
     rol: analyst
     estrato: simple
     glosario: null
@@ -639,7 +657,7 @@ ejecucion:
       SELECT kyc_status, count(*) AS n FROM dim_customer GROUP BY kyc_status ORDER BY n DESC
 
   - id: Q-E-33
-    pregunta: de qué países son los comercios que más volumen liquidan
+    pregunta: dame los diez países de comercio con más volumen liquidado, con el volumen en euros
     rol: analyst
     estrato: join_o_agregacion
     glosario: "granos.lote_de_liquidacion"
@@ -650,7 +668,7 @@ ejecucion:
       SELECT m.country_code, sum(s.gross_eur_minor)/100.0 AS volumen FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.country_code ORDER BY volumen DESC LIMIT 10
 
   - id: Q-E-34
-    pregunta: qué categorías de producto generan más pagos
+    pregunta: dame el número de pagos válidos de cada categoría de producto, ordenado de más a menos
     rol: analyst
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.pago_valido"
@@ -661,7 +679,7 @@ ejecucion:
       SELECT product_category, count(*) AS n FROM v_attempt_dedup WHERE auth_status = 'approved' AND NOT is_test GROUP BY product_category ORDER BY n DESC
 
   - id: Q-E-35
-    pregunta: por qué motivos se devuelve el dinero
+    pregunta: dame los motivos de devolución con su número de devoluciones y su importe total en euros, ordenados por número de devoluciones
     rol: analyst
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.pago_valido"
@@ -672,7 +690,7 @@ ejecucion:
       SELECT refund_reason, count(*) AS n, sum(refund_amount_eur_minor)/100.0 AS importe FROM fact_refund GROUP BY refund_reason ORDER BY n DESC
 
   - id: Q-E-36
-    pregunta: qué esquema de tarjeta se aprueba más
+    pregunta: dame la tasa de aprobación en porcentaje de cada esquema de tarjeta, ordenada de mayor a menor
     rol: analyst
     estrato: join_o_agregacion
     glosario: "metricas.tasa_de_aprobacion"
@@ -683,7 +701,7 @@ ejecucion:
       SELECT c.card_scheme, 100.0 * count(*) FILTER (WHERE p.auth_status='approved') / count(*) AS tasa FROM v_attempt_dedup p JOIN dim_card c ON c.card_sk = p.card_sk WHERE NOT p.is_test GROUP BY c.card_scheme ORDER BY tasa DESC
 
   - id: Q-E-37
-    pregunta: por qué canales entran los pagos
+    pregunta: dame el número de intentos de cada canal, ordenado de más a menos
     rol: analyst
     estrato: join_o_agregacion
     glosario: "granos.intento_de_autorizacion"
@@ -694,7 +712,7 @@ ejecucion:
       SELECT channel, count(*) AS n FROM v_attempt_dedup WHERE NOT is_test GROUP BY channel ORDER BY n DESC
 
   - id: Q-E-38
-    pregunta: por qué motivos nos abren disputas
+    pregunta: dame el número de disputas distintas de cada categoría de motivo, ordenado de más a menos
     rol: analyst
     estrato: join_o_agregacion
     glosario: "metricas.tasa_de_contracargo"
@@ -705,7 +723,7 @@ ejecucion:
       SELECT reason_category, count(DISTINCT dispute_case_id) AS n FROM fact_dispute GROUP BY reason_category ORDER BY n DESC
 
   - id: Q-E-39
-    pregunta: cómo ha evolucionado el volumen mes a mes
+    pregunta: dame el volumen liquidado en euros de cada mes, ordenado por mes
     rol: finance
     estrato: join_o_agregacion
     glosario: "granos.lote_de_liquidacion"
@@ -716,7 +734,7 @@ ejecucion:
       SELECT date_trunc('month', settlement_date) AS mes, sum(gross_eur_minor)/100.0 AS volumen FROM fact_settlement_batch GROUP BY mes ORDER BY mes
 
   - id: Q-E-40
-    pregunta: se paga más con débito o con crédito
+    pregunta: dame el número de pagos válidos por tipo de financiación de la tarjeta, ordenado de más a menos
     rol: analyst
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.pago_valido"
@@ -727,7 +745,7 @@ ejecucion:
       SELECT c.funding_type, count(*) AS n FROM v_attempt_dedup p JOIN dim_card c ON c.card_sk = p.card_sk WHERE p.auth_status='approved' AND NOT p.is_test GROUP BY c.funding_type ORDER BY n DESC
 
   - id: Q-E-41
-    pregunta: cobramos más comisión a los comercios de riesgo
+    pregunta: dame la comisión efectiva en porcentaje de cada nivel de riesgo de comercio, ordenada de mayor a menor
     rol: finance
     estrato: join_o_agregacion
     glosario: "metricas.mdr_efectivo"
@@ -738,7 +756,7 @@ ejecucion:
       SELECT m.risk_tier, 100.0 * sum(s.fee_eur_minor) / sum(s.gross_eur_minor) AS mdr FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.risk_tier ORDER BY mdr DESC
 
   - id: Q-E-42
-    pregunta: dame los tres comercios que más mueven en cada país
+    pregunta: dame, por cada país, los tres comercios que más volumen liquidan, con el país, el nombre comercial y el volumen en euros
     rol: analyst
     estrato: ventana_o_correlada
     glosario: "granos.lote_de_liquidacion"
@@ -749,7 +767,7 @@ ejecucion:
       SELECT pais, trade_name, volumen FROM (SELECT m.country_code AS pais, m.trade_name, sum(s.gross_eur_minor)/100.0 AS volumen, rank() OVER (PARTITION BY m.country_code ORDER BY sum(s.gross_eur_minor) DESC) AS puesto FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.country_code, m.trade_name) WHERE puesto <= 3 ORDER BY pais, puesto
 
   - id: Q-E-43
-    pregunta: qué cuota de mercado tiene cada comercio
+    pregunta: dame los diez comercios de más volumen, con su volumen en euros y su cuota en porcentaje sobre el total
     rol: analyst
     estrato: ventana_o_correlada
     glosario: "definiciones_criticas.ingreso"
@@ -771,7 +789,7 @@ ejecucion:
       SELECT count(*) AS n FROM dim_merchant m WHERE m.is_current AND NOT EXISTS (SELECT 1 FROM fact_dispute d WHERE d.merchant_sk = m.merchant_sk)
 
   - id: Q-E-45
-    pregunta: cuánto ha subido o bajado el volumen respecto al mes anterior
+    pregunta: dame el volumen liquidado en euros de cada mes junto con la diferencia respecto al mes anterior, ordenado por mes
     rol: finance
     estrato: ventana_o_correlada
     glosario: "granos.lote_de_liquidacion"

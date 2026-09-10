@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT percentile_cont(0.9) WITHIN GROUP (ORDER BY amount_eur_minor) FROM v_payment_intent WHERE eventually_approved = true AND is_test = false",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es el importe por debajo del cual está el noventa por ciento de los pagos",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY amount_eur_minor) FROM v_payment_intent WHERE eventually_approved = true AND is_test = false",
+  "thinking": false
+}

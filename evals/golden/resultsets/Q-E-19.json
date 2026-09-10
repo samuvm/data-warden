@@ -5,50 +5,50 @@
   ],
   "glosario": "definiciones_criticas.pago_valido",
   "id": "Q-E-19",
-  "perfil": "dev",
-  "pregunta": "de qué países son los clientes que han comprado alguna vez",
+  "perfil": "full",
+  "pregunta": "dame los diez países con más clientes que hayan comprado alguna vez, con el número de clientes de cada uno",
   "rol": "analyst",
   "row_count": 10,
   "rows": [
     [
       "ES",
-      21888
+      2178099
     ],
     [
       "FR",
-      9614
+      966172
     ],
     [
       "DE",
-      9017
+      900179
     ],
     [
       "GB",
-      8585
+      862308
     ],
     [
       "IT",
-      6653
+      668618
     ],
     [
       "PT",
-      4171
+      418096
     ],
     [
       "NL",
-      3297
+      323163
     ],
     [
       "PL",
-      2422
+      249068
     ],
     [
       "US",
-      1880
+      192191
     ],
     [
       "BE",
-      1842
+      191085
     ]
   ],
   "sql_referencia": "SELECT c.country_code, count(*) AS n FROM dim_customer c WHERE EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk AND p.eventually_approved) GROUP BY c.country_code ORDER BY n DESC LIMIT 10",

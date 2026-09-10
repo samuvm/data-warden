@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de dispositivos de cada clase, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT device_class, COUNT(*) AS device_count FROM dim_device GROUP BY device_class ORDER BY device_count DESC",
+  "thinking": false
+}

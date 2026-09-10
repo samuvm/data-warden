@@ -1,11 +1,11 @@
 {
   "contract_version": "1.0.0",
-  "created_at": "2026-09-09T08:58:40.038396Z",
+  "created_at": "2026-09-10T07:28:21.430768Z",
   "dataset": {
     "n_cases": 57,
     "n_negative_cases": 10,
-    "name": "cierzo-dev",
-    "sha256": "sha256:9965a5112c210c69653bd9df1163d45aafac18d5cbeb6351c854fa5d20440842",
+    "name": "cierzo-full",
+    "sha256": "sha256:3faf49896189086b6b017f0fde8321518a256100b2ce32e2b91bef50ed81956f",
     "version": 1
   },
   "environment": {
@@ -20,28 +20,28 @@
   "metrics": [
     {
       "ci95": [
-        0.0608,
-        0.2325
+        0.1113,
+        0.3134
       ],
       "id": "G-EXEC-ACC",
       "n": 57,
       "per_stratum": {
         "join_o_agregacion": {
-          "aciertos": 0,
+          "aciertos": 5,
           "n": 22
         },
         "simple": {
-          "aciertos": 7,
+          "aciertos": 5,
           "n": 20
         },
         "ventana_o_correlada": {
-          "aciertos": 0,
+          "aciertos": 1,
           "n": 15
         }
       },
       "raw_path": "evals/reports/exec-accuracy.json",
       "unit": "ratio",
-      "value": 0.1228
+      "value": 0.193
     }
   ],
   "notes": "provenance del banco: agente_transcrito_del_glosario_firmado. Mientras no diga `revisado_humano`, el banco lo escribió el agente transcribiendo el glosario firmado y NADIE lo ha revisado: el número es el agente puntuándose contra su propia respuesta correcta.",
@@ -50,10 +50,10 @@
     {
       "id": "nl2sql",
       "role": "generador",
-      "sha256": "sha256:cf5bb72ab1eb80bad12f01f33236e72e1ccf9575a035606c069bda465b3b5e0a",
-      "version": "1"
+      "sha256": "sha256:461802bd6e8134b8bc31e3df973062dfe437bf7ee4655358cbc7a6e4c1543ed0",
+      "version": "2"
     }
   ],
-  "run_id": "exec-20260909T085840Z",
+  "run_id": "exec-20260910T072821Z",
   "suite": "exec-accuracy"
 }

@@ -5,94 +5,94 @@
   ],
   "glosario": null,
   "id": "Q-E-31",
-  "perfil": "dev",
-  "pregunta": "cuántos productos hay por categoría",
+  "perfil": "full",
+  "pregunta": "dame el número de productos de cada categoría, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 21,
   "rows": [
     [
       "GROCERY",
-      298
+      6553
     ],
     [
       "FASHION",
-      170
+      3977
     ],
     [
       "ELECTRONICS",
-      144
-    ],
-    [
-      "GAMING",
-      125
+      3643
     ],
     [
       "BEAUTY",
-      124
+      3240
+    ],
+    [
+      "GAMING",
+      2900
     ],
     [
       "FOOD",
-      110
+      2537
     ],
     [
       "HOME",
-      106
+      2395
     ],
     [
       "LEISURE",
-      100
+      2233
     ],
     [
       "AUTOMOTIVE",
-      93
-    ],
-    [
-      "RETAIL",
-      71
-    ],
-    [
-      "TRAVEL",
-      71
-    ],
-    [
-      "SAAS",
-      70
-    ],
-    [
-      "HEALTH",
-      66
+      2136
     ],
     [
       "MEDIA",
-      64
+      2026
+    ],
+    [
+      "HEALTH",
+      1815
+    ],
+    [
+      "SAAS",
+      1631
+    ],
+    [
+      "TRAVEL",
+      1541
+    ],
+    [
+      "RETAIL",
+      1516
     ],
     [
       "GAMBLING",
-      55
+      1111
     ],
     [
       "ALCOHOL",
-      33
+      667
     ],
     [
       "TOBACCO",
-      31
-    ],
-    [
-      "CRYPTO",
-      19
-    ],
-    [
-      "EDUCATION",
-      18
-    ],
-    [
-      "NONPROFIT",
-      16
+      590
     ],
     [
       "FINANCIAL",
-      16
+      390
+    ],
+    [
+      "NONPROFIT",
+      383
+    ],
+    [
+      "EDUCATION",
+      360
+    ],
+    [
+      "CRYPTO",
+      356
     ]
   ],
   "sql_referencia": "SELECT category, count(*) AS n FROM dim_product GROUP BY category ORDER BY n DESC",

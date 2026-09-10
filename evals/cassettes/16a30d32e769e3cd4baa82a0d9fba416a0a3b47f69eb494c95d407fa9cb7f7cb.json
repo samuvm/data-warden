@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuánto dinero ha pasado por la pasarela",
+  "rejection_code": null,
+  "sql": "SELECT SUM(gross_eur_minor) AS total_ingreso FROM fact_settlement_batch",
+  "thinking": false
+}

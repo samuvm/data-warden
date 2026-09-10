@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT d.country_name, m.trade_name, SUM(sb.gross_eur_minor) AS volume_eur FROM fact_settlement_batch sb JOIN dim_merchant ON m.merchant_sk = sb.merchant_id JOIN ref_country d ON d.country_code = m.country_code WHERE m.is_active = true AND m.is_current = true GROUP BY d.country_name, m.trade_name ORDER BY volume_eur DESC LIMIT 3",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame, por cada país, los tres comercios que más volumen liquidan, con el país, el nombre comercial y el volumen en euros",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT d.country_name, m.trade_name, SUM(sb.gross_eur_minor) AS volume_eur FROM fact_settlement_batch sb JOIN dim_merchant_current m ON m.merchant_sk = sb.merchant_id JOIN ref_country d ON d.country_code = m.country_code WHERE m.is_active = true AND m.is_current = true GROUP BY d.country_name, m.trade_name ORDER BY volume_eur DESC LIMIT 3",
+  "thinking": false
+}

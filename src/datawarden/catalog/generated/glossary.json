@@ -5,7 +5,7 @@
       "correccion_firmada": "G-3",
       "definicion": "Un cliente con al menos un pago válido en los **90 días naturales anteriores a la fecha de referencia del dataset**, definida en `periodo`.",
       "nunca_current_date": "G-3, DE LA FIRMA: «últimos 90 días» se ancla a `max(date)` del dataset y **NUNCA a `current_date`**. Con un dataset sintético congelado, `current_date` hace que la métrica se vacíe sola con el paso del tiempo y que el resultset de referencia de la fase 8 caduque sin que nadie toque una línea. **Es un bug con fecha de explosión, no un matiz.**",
-      "ojo": "El 4,3 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y cualquier tasa calculada así sale inflada.",
+      "ojo": "El 6,2 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y cualquier tasa calculada así sale inflada. P-003-b, DE LA CORRECCIÓN MEDIDA: aquí ponía 4,3 %, que es el OBJETIVO de diseño del generador y no una medida. Contra los hechos son 570.895 de 9.200.000 = 6,205 % sobre el perfil `full`. La corrección se aplicó el 2026-09-02 a la sección `trampas` y **este párrafo se quedó sin actualizar**, que es justo el sitio donde lo lee quien va a escribir una consulta.",
       "por_que_90_y_no_30": "Es el intervalo que corresponde al patrón de una pasarela de pagos genérica y el que hace comparables las cohortes trimestrales. Los 30 días producen una serie demasiado ruidosa con la estacionalidad semanal que el generador inyecta a propósito.",
       "pregunta": "¿Cuándo un cliente está «activo»?",
       "se_calcula": "WHERE event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY"
@@ -127,7 +127,7 @@
   },
   "reviewed_by": "Samuel",
   "source": "docs/spec/glossary.yaml",
-  "source_sha256": "85103e18028b52ccc6b9a03543bb8056c279dbd3c0227429cae26514245d6c3a",
+  "source_sha256": "183841ca6bfef1a345e8de7a3d191cc403ea9403f8c58e9b69857f0c0475adb2",
   "tables": {
     "bridge_customer_device": "Qué persona usó qué dispositivo. Muchos a muchos en ambos sentidos.",
     "bridge_merchant_account_manager": "Qué gestor lleva qué comercio, con peso y vigencia.",

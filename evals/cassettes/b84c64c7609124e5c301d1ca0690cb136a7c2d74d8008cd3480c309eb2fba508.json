@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT d.customer_sk, d.first_name, d.last_name_1 FROM dim_customer d ORDER BY d.first_name || ' ' || d.last_name_1",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "ordena los clientes por su nombre de pila",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT d.customer_sk, d.first_name, d.last_name_1 FROM dim_customer d ORDER BY d.first_name || ' ' || d.last_name_1",
+  "thinking": false
+}

@@ -4,13 +4,13 @@
   ],
   "glosario": "definiciones_criticas.ingreso",
   "id": "Q-E-08",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuánto hemos ingresado",
   "rol": "finance",
   "row_count": 1,
   "rows": [
     [
-      "2350153.81"
+      "195591324.55"
     ]
   ],
   "sql_referencia": "SELECT sum(fee_eur_minor) / 100.0 AS ingreso_bruto_eur FROM fact_settlement_batch",

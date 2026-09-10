@@ -1,0 +1,510 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Data Warden · mapa de arquitectura",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/samuvm/data-warden",
+      "provider": "github",
+      "revision": "52b04431501f684aba529d09ff71f79b9f84796b"
+    },
+    "viewBox": [
+      1360,
+      620
+    ],
+    "views": [
+      {
+        "id": "camino-sancionado",
+        "label": "Camino sancionado",
+        "focus": [
+          "service",
+          "audit",
+          "engine",
+          "store"
+        ],
+        "note": "AuditedExecutor es el único módulo de src/ que importa el motor."
+      },
+      {
+        "id": "anillos",
+        "label": "Los anillos del filtro",
+        "focus": [
+          "audit",
+          "guard",
+          "cost",
+          "mask"
+        ],
+        "note": "Guard, presupuesto y máscara: el orden no es negociable."
+      },
+      {
+        "id": "entradas",
+        "label": "Adaptadores de entrada",
+        "focus": [
+          "clients",
+          "mcp",
+          "http",
+          "cli",
+          "service"
+        ],
+        "note": "Dos transportes hermanos que no se importan entre sí, y la CLI."
+      },
+      {
+        "id": "generacion",
+        "label": "Generación NL→SQL",
+        "focus": [
+          "evals",
+          "agent",
+          "guard"
+        ],
+        "note": "Se mide con el arnés de evaluación y nunca alcanza el motor."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "clients",
+      "type": "external",
+      "label": "Cliente",
+      "sublabel": "MCP host / curl",
+      "pos": [
+        40,
+        196
+      ],
+      "size": [
+        150,
+        58
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "CLI warden",
+      "sublabel": "cli.py",
+      "tag": "catalog build · audit verify",
+      "pos": [
+        260,
+        24
+      ],
+      "size": [
+        180,
+        58
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/cli.py",
+          "line": 213,
+          "label": "build_parser()"
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "type": "frontend",
+      "label": "Servidor MCP",
+      "sublabel": "mcp/server.py",
+      "tag": "stdio JSON-RPC",
+      "pos": [
+        260,
+        140
+      ],
+      "size": [
+        180,
+        58
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/mcp/server.py",
+          "line": 249,
+          "label": "dispatch()"
+        }
+      ]
+    },
+    {
+      "id": "http",
+      "type": "frontend",
+      "label": "App HTTP",
+      "sublabel": "http/app.py",
+      "tag": "FastAPI",
+      "pos": [
+        260,
+        256
+      ],
+      "size": [
+        180,
+        58
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/http/app.py",
+          "line": 41,
+          "label": "build_app()"
+        }
+      ]
+    },
+    {
+      "id": "refdata",
+      "type": "database",
+      "label": "Catálogo y política",
+      "sublabel": "catalog/ · principal/ · mask/config.py",
+      "pos": [
+        520,
+        24
+      ],
+      "size": [
+        210,
+        66
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/principal/policy.py",
+          "line": 90,
+          "label": "AccessPolicy"
+        }
+      ]
+    },
+    {
+      "id": "service",
+      "type": "backend",
+      "label": "WardenTools",
+      "sublabel": "service/tools.py",
+      "pos": [
+        530,
+        140
+      ],
+      "size": [
+        190,
+        58
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/service/tools.py",
+          "line": 105,
+          "label": "WardenTools"
+        }
+      ]
+    },
+    {
+      "id": "audit",
+      "type": "security",
+      "label": "AuditedExecutor",
+      "sublabel": "audit/executor.py",
+      "tag": "único camino al motor",
+      "pos": [
+        820,
+        130
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/audit/executor.py",
+          "line": 110,
+          "label": "run()"
+        }
+      ]
+    },
+    {
+      "id": "engine",
+      "type": "database",
+      "label": "DuckDBEngine",
+      "sublabel": "engines/duckdb_engine.py",
+      "tag": "read_only=True",
+      "pos": [
+        1140,
+        30
+      ],
+      "size": [
+        180,
+        58
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/engines/duckdb_engine.py",
+          "line": 63,
+          "label": "execute()"
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "AuditStore",
+      "sublabel": "audit/store.py",
+      "tag": "cadena prev_hash",
+      "pos": [
+        1140,
+        250
+      ],
+      "size": [
+        180,
+        58
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/audit/store.py",
+          "line": 168,
+          "label": "append()"
+        }
+      ]
+    },
+    {
+      "id": "guard",
+      "type": "security",
+      "label": "Guard · allowlist",
+      "sublabel": "guard/validator.py · R001-R014",
+      "pos": [
+        300,
+        400
+      ],
+      "size": [
+        200,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/guard/validator.py",
+          "line": 47,
+          "label": "validate()"
+        }
+      ]
+    },
+    {
+      "id": "cost",
+      "type": "backend",
+      "label": "Coste y presupuesto",
+      "sublabel": "cost/estimator.py · cost/budget.py",
+      "pos": [
+        560,
+        400
+      ],
+      "size": [
+        200,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/cost/screen.py",
+          "line": 56,
+          "label": "screen()"
+        }
+      ]
+    },
+    {
+      "id": "mask",
+      "type": "security",
+      "label": "Enmascarado PII",
+      "sublabel": "mask/rewrite.py · mask/pipeline.py",
+      "pos": [
+        820,
+        400
+      ],
+      "size": [
+        210,
+        62
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/mask/pipeline.py",
+          "line": 59,
+          "label": "screen_and_mask()"
+        }
+      ]
+    },
+    {
+      "id": "evals",
+      "type": "external",
+      "label": "Arnés de evaluación",
+      "sublabel": "scripts/eval_exec.py",
+      "tag": "make eval",
+      "pos": [
+        40,
+        520
+      ],
+      "size": [
+        200,
+        60
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Generador NL→SQL",
+      "sublabel": "agent/ · nl2sql/loop.py",
+      "tag": "se mide, no se testea",
+      "pos": [
+        300,
+        520
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "sources": [
+        {
+          "path": "src/datawarden/nl2sql/loop.py",
+          "line": 92,
+          "label": "run_loop()"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Auditoría obligatoria (I-06)",
+      "wraps": [
+        "audit",
+        "engine",
+        "store"
+      ],
+      "pad": 14
+    },
+    {
+      "kind": "region",
+      "label": "Núcleo determinista · nunca ejecuta, nunca lanza",
+      "wraps": [
+        "guard",
+        "cost",
+        "mask"
+      ],
+      "pad": 14
+    }
+  ],
+  "connections": [
+    {
+      "id": "cliente-mcp",
+      "from": "clients",
+      "to": "mcp",
+      "label": "JSON-RPC"
+    },
+    {
+      "id": "cliente-http",
+      "from": "clients",
+      "to": "http",
+      "label": "HTTPS"
+    },
+    {
+      "id": "cli-mcp",
+      "from": "cli",
+      "to": "mcp",
+      "label": "warden mcp serve",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "mcp-service",
+      "from": "mcp",
+      "to": "service",
+      "label": "run_query()"
+    },
+    {
+      "id": "http-service",
+      "from": "http",
+      "to": "service",
+      "label": "POST /query"
+    },
+    {
+      "id": "service-audit",
+      "from": "service",
+      "to": "audit",
+      "label": "executor.run()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "refdata-audit",
+      "from": "refdata",
+      "to": "audit",
+      "label": "esquema · política · presupuestos",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "audit-guard",
+      "from": "audit",
+      "to": "guard",
+      "label": "1 · valida el árbol",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          925,
+          345
+        ],
+        [
+          400,
+          345
+        ]
+      ]
+    },
+    {
+      "id": "guard-cost",
+      "from": "guard",
+      "to": "cost",
+      "label": "2 · tarifa y presupuesta",
+      "labelDy": 55
+    },
+    {
+      "id": "cost-mask",
+      "from": "cost",
+      "to": "mask",
+      "label": "3 · reescribe columnas PII",
+      "labelDy": 55
+    },
+    {
+      "id": "audit-engine",
+      "from": "audit",
+      "to": "engine",
+      "label": "execute(ast.sql())",
+      "variant": "emphasis"
+    },
+    {
+      "id": "audit-store",
+      "from": "audit",
+      "to": "store",
+      "label": "append() pase lo que pase",
+      "variant": "security"
+    },
+    {
+      "id": "evals-agent",
+      "from": "evals",
+      "to": "agent",
+      "label": "60 preguntas",
+      "labelDy": -24
+    },
+    {
+      "id": "agent-guard",
+      "from": "agent",
+      "to": "guard",
+      "label": "validate() · 2 reintentos",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "El orden de los anillos, y por qué no es negociable",
+      "items": [
+        "Guard primero: valida el árbol cualificado, con SELECT * ya expandido",
+        "Presupuesto después: tarifa exactamente el árbol que se va a ejecutar",
+        "Máscara al final: reescribir antes invalidaría el coste publicado",
+        "screen_and_mask() devuelve el ValidatedQuery; quien ejecuta es el ejecutor"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Invariantes, y el check que los hace verdad",
+      "items": [
+        "I-06: audit/executor.py es el único módulo de src/ que importa engines (import-linter)",
+        "Se ejecuta ast.sql() del árbol validado, nunca la cadena de entrada (check_no_raw_sql.py)",
+        "Allowlist y fail-closed: lo desconocido es rechazo, y el rechazo también se audita",
+        "El rol sale del proceso servidor, nunca de _meta ni de un argumento (check_role_source.py)"
+      ]
+    }
+  ]
+}

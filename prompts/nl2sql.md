@@ -1,6 +1,6 @@
 ---
 id: nl2sql
-version: "1"
+version: "2"
 modelo_destino: qwen3.5:9b-mlx
 escrito_el: 2026-09-02
 ---
@@ -21,6 +21,14 @@ Reglas que el sistema comprueba después de ti, y que conviene que respetes ante
   subrogada: `merchant_sk`, `customer_sk`, `card_sk`.
 - No filtres, agrupes ni ordenes por una columna personal. Si la necesitas para
   agrupar, usa la columna generalizada que el catálogo publica.
+
+# Definiciones del negocio
+
+Estas definiciones están **firmadas** y son la respuesta correcta cuando la pregunta usa
+uno de estos términos. No improvises una lectura alternativa: si la pregunta dice
+«ingresos» o «cliente activo», es esto y no otra cosa.
+
+{glosario}
 
 # Catálogo
 

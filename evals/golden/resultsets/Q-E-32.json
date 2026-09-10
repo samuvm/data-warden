@@ -5,30 +5,30 @@
   ],
   "glosario": null,
   "id": "Q-E-32",
-  "perfil": "dev",
-  "pregunta": "en qué estado de verificación están los clientes",
+  "perfil": "full",
+  "pregunta": "dame el número de clientes en cada estado de verificación, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 6,
   "rows": [
     [
       "not_required",
-      71164
+      7106353
     ],
     [
       "verified",
-      16502
+      1652334
     ],
     [
       "pending",
-      2295
+      231014
     ],
     [
       "expired",
-      1226
+      126171
     ],
     [
       "rejected",
-      813
+      84128
     ],
     [
       null,

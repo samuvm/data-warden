@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_country_name, COUNT(*) AS customer_count FROM dim_customer JOIN ref_country ON dim_customer.country_code = ref_country.country_code GROUP BY customer_country_name ORDER BY customer_count DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame el número de clientes de cada país, ordenado de más a menos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT r.country_name, COUNT(DISTINCT c.customer_sk) AS customer_count FROM dim_customer c JOIN ref_country r ON c.country_code = r.country_code GROUP BY r.country_name ORDER BY customer_count DESC",
+  "thinking": false
+}

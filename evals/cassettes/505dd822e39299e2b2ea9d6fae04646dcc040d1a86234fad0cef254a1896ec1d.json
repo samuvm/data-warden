@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT card_scheme, 100.0 * COUNT(CASE WHEN auth_status = 'approved' THEN 1 END) / COUNT(*) AS tasa_de_aprobacion FROM v_attempt_dedup WHERE NOT is_test GROUP BY card_scheme ORDER BY tasa_de_aprobacion DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame la tasa de aprobación en porcentaje de cada esquema de tarjeta, ordenada de mayor a menor",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT d.card_scheme, 100.0 * COUNT(CASE WHEN f.auth_status = 'approved' THEN 1 END) / COUNT(*) AS tasa_de_aprobacion FROM v_attempt_dedup f JOIN dim_card d ON f.card_sk = d.card_sk WHERE NOT f.is_test GROUP BY d.card_scheme ORDER BY tasa_de_aprobacion DESC",
+  "thinking": false
+}

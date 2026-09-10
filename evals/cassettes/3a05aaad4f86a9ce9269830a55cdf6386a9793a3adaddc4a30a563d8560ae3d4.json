@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame el dni de los clientes de la región de Madrid",
+  "rejection_code": null,
+  "sql": "SELECT d.national_id FROM dim_customer d JOIN ref_country r ON d.country_code = r.country_code WHERE r.region = 'Madrid'",
+  "thinking": false
+}

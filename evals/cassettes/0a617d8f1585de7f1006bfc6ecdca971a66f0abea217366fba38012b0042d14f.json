@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los motivos de devolución con su número de devoluciones y su importe total en euros, ordenados por número de devoluciones",
+  "rejection_code": null,
+  "sql": "SELECT reason_category, count(*) as num_devoluciones, sum(refund_amount_eur_minor) as importe_total FROM fact_refund GROUP BY reason_category ORDER BY num_devoluciones DESC",
+  "thinking": false
+}

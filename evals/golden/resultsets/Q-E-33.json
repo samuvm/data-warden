@@ -5,50 +5,50 @@
   ],
   "glosario": "granos.lote_de_liquidacion",
   "id": "Q-E-33",
-  "perfil": "dev",
-  "pregunta": "de qué países son los comercios que más volumen liquidan",
+  "perfil": "full",
+  "pregunta": "dame los diez países de comercio con más volumen liquidado, con el volumen en euros",
   "rol": "analyst",
   "row_count": 10,
   "rows": [
     [
       "ES",
-      "37608864.37"
-    ],
-    [
-      "GB",
-      "19103887.68"
-    ],
-    [
-      "DE",
-      "15704392.99"
+      "2397705563.5"
     ],
     [
       "FR",
-      "12169409.34"
+      "1104522009.43"
+    ],
+    [
+      "DE",
+      "1070579208.41"
+    ],
+    [
+      "GB",
+      "936538937.28"
     ],
     [
       "IT",
-      "6102406.04"
+      "720663070.45"
     ],
     [
       "PT",
-      "3458201.91"
+      "461003370.38"
     ],
     [
-      "SE",
-      "2332632.86"
-    ],
-    [
-      "BE",
-      "2142679.25"
+      "NL",
+      "303586185.11"
     ],
     [
       "PL",
-      "1680138.54"
+      "244964031.94"
     ],
     [
-      "NO",
-      "1618451.11"
+      "US",
+      "196756597.5"
+    ],
+    [
+      "BE",
+      "189232421.61"
     ]
   ],
   "sql_referencia": "SELECT m.country_code, sum(s.gross_eur_minor)/100.0 AS volumen FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.country_code ORDER BY volumen DESC LIMIT 10",

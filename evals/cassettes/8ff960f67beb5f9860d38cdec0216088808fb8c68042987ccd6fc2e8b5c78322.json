@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos países de la zona sepa hay en el catálogo",
+  "rejection_code": null,
+  "sql": "SELECT COUNT(DISTINCT country_code) AS num_paises FROM ref_country WHERE region = 'zona sepa'",
+  "thinking": false
+}

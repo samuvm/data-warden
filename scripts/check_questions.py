@@ -41,7 +41,16 @@ from gatelib import ROOT, record
 
 QUESTIONS = ROOT / "evals" / "golden" / "questions.yaml"
 GLOSSARY = ROOT / "docs" / "spec" / "glossary.yaml"
-DATABASE = ROOT / "datagen" / "out" / "cierzo-dev.duckdb"
+
+
+#: El perfil lo declara el propio banco. **No se fija aquí.** Tenerlo escrito en dos
+#: sitios es como el congelador acaba mirando `full` y el verificador `dev`, que es
+#: exactamente lo que pasó el 2026-09-10 y lo que este banco existe para no repetir.
+def _database(raw: dict[str, object]) -> pathlib.Path:
+    perfil = str(raw.get("perfil", "dev"))
+    return ROOT / "datagen" / "out" / f"cierzo-{perfil}.duckdb"
+
+
 MAX_ROWS = 50_000
 
 #: Lo exige `docs/GOALS.yaml` :: G-EXEC-ACC y lo estratifica `docs/PLAN.md`.
@@ -147,10 +156,11 @@ def main() -> int:
     sin_sql = [c["id"] for c in ejecucion if not c.get("sql_referencia")]
     ejecutables = [c for c in ejecucion if c.get("sql_referencia")]
     vacios: list[str] = []
-    if DATABASE.exists() and ejecutables:
+    database = _database(raw)
+    if database.exists() and ejecutables:
         import duckdb
 
-        conexion = duckdb.connect(str(DATABASE), read_only=True)
+        conexion = duckdb.connect(str(database), read_only=True)
         for caso in ejecutables:
             try:
                 filas = conexion.execute(str(caso["sql_referencia"])).fetchall()
@@ -179,6 +189,7 @@ def main() -> int:
             "sin_sql_de_referencia": sin_sql,
             "referencia_devuelve_cero_filas": vacios,
             "estratos": dict(estratos),
+            "perfil": str(raw.get("perfil", "dev")),
             "provenance": raw.get("provenance"),
             "problemas": problemas,
         },

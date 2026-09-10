@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT d.country_code, COUNT(DISTINCT c.customer_sk) AS customer_count FROM dim_customer c JOIN dim_date d ON c.signed_up_on = d.full_date WHERE d.is_business_day = true GROUP BY d.country_code ORDER BY customer_count DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de clientes de cada país, ordenado de más a menos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT d.country_code, COUNT(DISTINCT c.customer_sk) AS customer_count FROM dim_customer c JOIN dim_date d ON c.signed_up_on = d.full_date WHERE d.is_business_day = true GROUP BY d.country_code ORDER BY customer_count DESC",
+  "thinking": false
+}

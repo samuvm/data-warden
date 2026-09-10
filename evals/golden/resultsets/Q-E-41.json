@@ -5,26 +5,26 @@
   ],
   "glosario": "metricas.mdr_efectivo",
   "id": "Q-E-41",
-  "perfil": "dev",
-  "pregunta": "cobramos más comisión a los comercios de riesgo",
+  "perfil": "full",
+  "pregunta": "dame la comisión efectiva en porcentaje de cada nivel de riesgo de comercio, ordenada de mayor a menor",
   "rol": "finance",
   "row_count": 4,
   "rows": [
     [
-      "standard",
-      "2.421688842194211"
-    ],
-    [
-      "low",
-      "2.1802157753624853"
+      "elevated",
+      "2.257831455455693"
     ],
     [
       "high",
-      "1.8820071945734587"
+      "2.179158092838873"
     ],
     [
-      "elevated",
-      "1.8344327755017238"
+      "standard",
+      "2.1104537065780016"
+    ],
+    [
+      "low",
+      "2.1059465770863834"
     ]
   ],
   "sql_referencia": "SELECT m.risk_tier, 100.0 * sum(s.fee_eur_minor) / sum(s.gross_eur_minor) AS mdr FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.risk_tier ORDER BY mdr DESC",

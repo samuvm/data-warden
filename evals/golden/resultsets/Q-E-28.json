@@ -5,26 +5,26 @@
   ],
   "glosario": null,
   "id": "Q-E-28",
-  "perfil": "dev",
-  "pregunta": "cómo se reparten los clientes por tramo de ingresos",
+  "perfil": "full",
+  "pregunta": "dame el número de clientes de cada tramo de ingresos, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 5,
   "rows": [
     [
       "budget",
-      41400
+      4140000
     ],
     [
       "standard",
-      30360
+      3036000
     ],
     [
       "affluent",
-      14720
+      1472000
     ],
     [
       "premium",
-      5520
+      552000
     ],
     [
       null,

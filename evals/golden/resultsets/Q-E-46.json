@@ -4,13 +4,13 @@
   ],
   "glosario": "definiciones_criticas.pago_valido",
   "id": "Q-E-46",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuántos clientes han comprado cinco veces o más",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      33706
+      3341152
     ]
   ],
   "sql_referencia": "SELECT count(*) AS n FROM (SELECT customer_sk FROM v_payment_intent WHERE eventually_approved GROUP BY customer_sk HAVING count(*) >= 5)",

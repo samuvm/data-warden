@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT COUNT(*) AS merchant_count FROM v_merchant_current WHERE is_active = true AND EXISTS (SELECT 1 FROM v_payment_intent WHERE payment_intent_id IN (SELECT payment_intent_id FROM v_attempt_dedup WHERE merchant_sk = v_merchant_current.merchant_sk AND auth_status = 'approved' AND NOT is_test) AND event_date > (SELECT MAX(event_date) FROM fact_payment_attempt) - INTERVAL 30 DAY)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos comercios activos tenemos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT COUNT(*) AS merchant_count FROM v_merchant_current WHERE is_active = true AND EXISTS (SELECT 1 FROM v_payment_intent WHERE payment_intent_id IN (SELECT payment_intent_id FROM v_attempt_dedup WHERE merchant_sk = v_merchant_current.merchant_sk AND auth_status = 'approved' AND NOT is_test AND event_date > (SELECT MAX(event_date) FROM fact_payment_attempt) - INTERVAL 30 DAY))",
+  "thinking": false
+}

@@ -5,8 +5,8 @@
   ],
   "glosario": null,
   "id": "Q-E-30",
-  "perfil": "dev",
-  "pregunta": "qué categorías de comercio están marcadas como de alto riesgo",
+  "perfil": "full",
+  "pregunta": "dame los veinte primeros códigos de categoría marcados como de alto riesgo, con su descripción, ordenados por código",
   "rol": "analyst",
   "row_count": 10,
   "rows": [

@@ -5,38 +5,38 @@
   ],
   "glosario": "metricas.tasa_de_aprobacion",
   "id": "Q-E-36",
-  "perfil": "dev",
-  "pregunta": "qué esquema de tarjeta se aprueba más",
+  "perfil": "full",
+  "pregunta": "dame la tasa de aprobación en porcentaje de cada esquema de tarjeta, ordenada de mayor a menor",
   "rol": "analyst",
   "row_count": 7,
   "rows": [
     [
-      "unionpay",
-      "89.98743192291579"
+      "jcb",
+      "91.11941385489318"
     ],
     [
-      "jcb",
-      "89.4384529564894"
+      "unionpay",
+      "90.8211835626901"
     ],
     [
       "amex",
-      "87.67610102804925"
-    ],
-    [
-      "visa",
-      "86.19793965942006"
+      "88.8846069381169"
     ],
     [
       "mastercard",
-      "86.11133802460779"
+      "86.86557637349377"
+    ],
+    [
+      "visa",
+      "86.84452550623936"
     ],
     [
       "maestro",
-      "84.42561019677409"
+      "86.34038110244161"
     ],
     [
       "discover",
-      "83.65173288250212"
+      "86.1803508672486"
     ]
   ],
   "sql_referencia": "SELECT c.card_scheme, 100.0 * count(*) FILTER (WHERE p.auth_status='approved') / count(*) AS tasa FROM v_attempt_dedup p JOIN dim_card c ON c.card_sk = p.card_sk WHERE NOT p.is_test GROUP BY c.card_scheme ORDER BY tasa DESC",

@@ -4,13 +4,13 @@
   ],
   "glosario": "metricas.ticket_medio",
   "id": "Q-E-47",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuál es el importe por debajo del cual está el noventa por ciento de los pagos",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      "442.15"
+      "383.94"
     ]
   ],
   "sql_referencia": "SELECT quantile_cont(captured_eur_minor, 0.9)/100.0 AS p90_eur FROM v_payment_intent WHERE eventually_approved",

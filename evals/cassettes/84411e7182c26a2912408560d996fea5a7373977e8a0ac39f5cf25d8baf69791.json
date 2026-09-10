@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez países con más clientes que hayan comprado alguna vez, con el número de clientes de cada uno",
+  "rejection_code": null,
+  "sql": "SELECT country_code, COUNT(DISTINCT customer_sk) AS client_count FROM dim_customer WHERE email IS NOT NULL GROUP BY country_code ORDER BY client_count DESC LIMIT 10",
+  "thinking": false
+}

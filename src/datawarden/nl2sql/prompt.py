@@ -126,7 +126,8 @@ def render(request: Request, *, catalog: str = "") -> str:
             .replace("{suggestion}", sanitize(request.rejection.suggestion))
         )
     return (
-        base.body.replace("{catalog}", catalog or _catalog_summary())
+        base.body.replace("{glosario}", _glossary_summary())
+        .replace("{catalog}", catalog or _catalog_summary())
         .replace("{question}", sanitize(request.question, limit=1_000))
         .replace("{feedback}", feedback)
     )
@@ -176,6 +177,60 @@ def clip(sql: str) -> str:
         return sql
     resto = len(sql) - MAX_PREVIOUS_SQL_CHARS
     return f"{sql[:MAX_PREVIOUS_SQL_CHARS]} /* ...y {resto} caracteres más, truncados */"
+
+
+@functools.lru_cache(maxsize=1)
+def _glossary_summary() -> str:
+    """Las definiciones FIRMADAS que la pregunta puede usar. Del JSON compilado.
+
+    **Esto existe porque la primera medida de `G-EXEC-ACC` lo pidió a gritos.** Salió
+    0,1754, y los fallos dominantes eran todos el mismo: el modelo escribía
+    `FROM fact_payment_attempt` donde la respuesta correcta usa `v_payment_intent` o
+    `v_attempt_dedup`. Es **exactamente la trampa que el glosario documenta** —la tabla
+    cruda cuenta los reintentos y sobrestima un 24 %— y al modelo nunca se le había
+    dado el glosario. Se le daban 32 nombres de tabla y sus columnas, y se le pedía
+    que adivinara la semántica de una pasarela de pagos.
+
+    **El defecto era del SISTEMA, no del banco ni del modelo.** El proyecto tiene un
+    glosario firmado con esas definiciones y no se lo estaba pasando: es su mejor
+    activo y estaba sin usar. Un despliegue real lo expondría.
+
+    Se lee del JSON COMPILADO y no del YAML: `src/` no parsea YAML (P-002), y el
+    compilado es el mismo artefacto que firma `check_contracts.py`.
+    """
+    import json
+
+    from datawarden.catalog import SCHEMA_PATH
+
+    path = SCHEMA_PATH.parent / "glossary.json"
+    if not path.exists():
+        return "(no hay glosario compilado: `make contracts`)"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    lines: list[str] = []
+
+    lines.append("## Qué representa una fila en cada tabla de hechos")
+    for name, grain in sorted(data.get("grains", {}).items()):
+        aviso = " ".join(str(grain.get("ojo", "")).split())
+        lines.append(
+            f"- **{grain.get('tabla', name)}** — {grain.get('una_fila_es', '')} {aviso}"
+        )
+
+    lines.append("\n## Definiciones que deciden la respuesta")
+    for name, item in sorted(data.get("critical_definitions", {}).items()):
+        texto = " ".join(str(item.get("definicion", "")).split())
+        lines.append(f"- **{name}**: {texto}")
+        calculo = item.get("se_calcula")
+        if isinstance(calculo, str):
+            lines.append(f"  - Se calcula así: `{' '.join(calculo.split())}`")
+
+    lines.append("\n## Métricas, con su fórmula firmada")
+    for name, item in sorted(data.get("metrics", {}).items()):
+        lines.append(f"- **{name}**: {' '.join(str(item.get('definicion', '')).split())}")
+        calculo = item.get("se_calcula")
+        if isinstance(calculo, str):
+            lines.append(f"  - `{' '.join(calculo.split())}`")
+
+    return "\n".join(lines)
 
 
 @functools.lru_cache(maxsize=1)

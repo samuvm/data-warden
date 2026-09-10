@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT 100.0 * SUM(fee_eur_minor) / SUM(gross_eur_minor) AS mdr_efectivo, 100.0 * SUM(interchange_minor + scheme_fee_eur_minor) / SUM(gross_eur_minor) AS coste_emisor_red FROM fact_settlement_batch GROUP BY 1",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "qué nos queda después de pagar al emisor y a la red",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT 100.0 * SUM(fact_settlement_batch.fee_eur_minor) / SUM(fact_settlement_batch.gross_eur_minor) AS mdr_efectivo, 100.0 * SUM(fact_settlement_batch.interchange_eur_minor + fact_settlement_batch.scheme_fee_eur_minor) / SUM(fact_settlement_batch.gross_eur_minor) AS coste_emisor_red FROM fact_settlement_batch GROUP BY 1",
+  "thinking": false
+}

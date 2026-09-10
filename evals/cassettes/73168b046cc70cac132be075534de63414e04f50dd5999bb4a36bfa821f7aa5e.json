@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_id, first_name, last_name_1, last_name_2, email, phone_e164, country_code, city_id, region_code, postal_code, age_band, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, kyc_status, erasure_requested_on, retention_expires_on FROM dim_customer WHERE customer_id = 900000",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame la página novecientos mil del listado de clientes",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, country_code, city_id, region_code, postal_code, age_band, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, kyc_status, erasure_requested_on, retention_expires_on FROM dim_customer WHERE customer_id = 900000",
+  "thinking": false
+}
