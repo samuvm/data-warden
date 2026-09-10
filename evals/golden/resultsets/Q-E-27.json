@@ -5,8 +5,8 @@
   ],
   "glosario": null,
   "id": "Q-E-27",
-  "perfil": "dev",
-  "pregunta": "en qué monedas liquidamos",
+  "perfil": "full",
+  "pregunta": "dame las monedas en las que liquidamos, con cuántas hay de cada una",
   "rol": "analyst",
   "row_count": 3,
   "rows": [

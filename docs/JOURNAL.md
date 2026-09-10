@@ -2432,3 +2432,111 @@ que es justo lo que la constitución no admite. **Va al buzón como P-010.**
   único que llama al modelo.
 - El informe conforma con `docs/CONTRACTS/eval-report.schema.json` y lleva dentro que
   el banco **no está revisado**.
+
+## 2026-09-09 · docs · el mapa de arquitectura, generado desde el código y no desde la memoria
+
+Samuel pidió un mapa de la arquitectura. No es trabajo de la fase 8 —que sigue bloqueada
+por P-010— así que es documentación derivada y no toca ni el gate ni ningún fichero de
+solo lectura.
+
+**Qué se genera y de dónde.** `docs/ARQUITECTURA.html` es un artefacto autocontenido
+—claro/oscuro, zoom, cuatro vistas guiadas, export— y `docs/ARQUITECTURA.archify.json`
+es su fuente. **Se versiona la fuente, no solo el resultado**, por la misma razón por la
+que se versiona el generador de `datagen/` y no sus 7,1 GB: el HTML se puede volver a
+producir desde el JSON con un comando, y un diff sobre el JSON se lee.
+
+**La decisión que importa: nada del mapa se escribió de memoria.** Las 12 referencias a
+fichero:línea —`AuditedExecutor.run()`, `validate()`, `screen()`, `screen_and_mask()`,
+`AuditStore.append()`, `DuckDBEngine.execute()`…— se verifican contra el checkout al
+generar, y el mapa queda anclado a la revisión `52b0443`. Un mapa de arquitectura que
+no se puede comprobar contra el código es una ilustración, y envejece en silencio.
+
+**Lo que el dibujo hace evidente, y era el objetivo:**
+- El embudo de I-06 se ve como caja: `AuditedExecutor`, `DuckDBEngine` y `AuditStore`
+  dentro, y **una sola flecha entrando**. Si algún día un segundo módulo importa el
+  motor, el mapa deja de cuadrar a la vista, no solo en `import-linter`.
+- El orden de los anillos —guard, presupuesto, máscara— es una cadena horizontal, con
+  el porqué de cada paso en la tarjeta de abajo. El anillo 4 al final, no antes.
+- **El generador NL→SQL no tiene ninguna flecha al motor.** Su única salida va a
+  `validate()`. Eso es exactamente lo que la separación «se mide, no se testea»
+  significa, y en prosa no se veía.
+
+**Anotado también lo que el mapa NO dice:** la UI del visor sale en inglés —Archify solo
+localiza `en` y `zh-CN`— y el contenido está en español, como el resto de `docs/`.
+
+---
+
+## 2026-09-10 · fase 8 · el perfil, la reescritura, y el sistema se guardaba su propio glosario
+
+**Samuel decidió las dos cosas de P-010:** reescribir las preguntas, y `full`. Las dos
+resultaron tener un motivo más fuerte del que yo había escrito al pedirlas.
+
+**EL PERFIL · `full`, y no por lo que yo decía.** Yo había elegido `dev` por velocidad
+y había puesto como pega que los `valor_tipico` del glosario no coincidirían. Al
+comprobarlo apareció lo importante:
+
+```
+statistics.json declara  profile: full   fact_payment_attempt  66.590.551 filas · 4,1 GB
+el motor ejecutaba       dev             fact_payment_attempt     683.811 filas
+```
+
+**El anillo del presupuesto llevaba tarifando `full` mientras el motor ejecutaba
+`dev`.** Un anillo tarifaba un almacén y otro ejecutaba otro. Pasar a `full` no cuesta:
+arregla esa incoherencia. Y no es lento —el peor caso del banco tarda **1,5 s**, son
+Parquet con poda de columnas—. Además la tasa de aprobación sale **86,93 %**, dentro
+del 86-87 % que declara el glosario, mientras sobre `dev` daba 86,14 % y se salía.
+
+**De rebote, una corrección firmada que se había quedado a medias.** P-003-b subió
+«clientes que nunca compraron» de 4,3 % a 6,2 % el 2026-09-02, y se aplicó a la sección
+`trampas` **pero no al `ojo` de `cliente_activo`** — que es justo donde lo lee quien va
+a escribir una consulta. Medido: 570.895 de 9.200.001 = **6,205 %**, exactamente lo que
+dice la corrección. Completado bajo la misma autorización expresa que ya constaba.
+
+**LA REESCRITURA · 26 preguntas, y funcionó para lo que era.** Criterio único: *la
+pregunta determina la FORMA de la respuesta y no dicta el SQL*. Los fallos de forma
+cayeron a la mitad —`column_count` de 16 a 7—, que es lo que se buscaba.
+
+**Y ENTONCES APARECIÓ EL HALLAZGO DE VERDAD.** Con la forma ya no en medio, los fallos
+que quedaban eran todos el mismo:
+
+```
+Q-E-02 ticket medio      modelo: FROM fact_payment_attempt   referencia: v_payment_intent
+Q-E-03 tasa aprobacion   modelo: FROM fact_payment_attempt   referencia: v_attempt_dedup
+Q-E-11 importe mediano   modelo: FROM fact_payment_attempt   referencia: v_payment_intent
+```
+
+**Es exactamente la trampa que el glosario documenta** —«`count(*)` sobre esta tabla NO
+es el número de ventas: sobrestima un 24 %»— y **al modelo nunca se le había dado el
+glosario.** Se le daban 32 nombres de tabla con sus columnas y se le pedía que
+adivinara la semántica de una pasarela de pagos.
+
+**El defecto era del SISTEMA, no del banco ni del modelo.** El proyecto tiene un
+glosario firmado, compilado a JSON para que `src/` lo consuma, y no se lo estaba
+pasando. Su mejor activo, sin usar. Un despliegue real lo expondría. La métrica hizo su
+primer trabajo de verdad: no puntuar al modelo, sino **encontrar dónde el sistema se
+estaba saboteando solo.**
+
+`prompts/nl2sql.md` sube a v2 con las definiciones firmadas, los granos y las fórmulas.
+
+**Números, en orden y con lo que cambió entre ellos.**
+
+| Medida | `G-EXEC-ACC` | Qué cambió |
+|---|---|---|
+| 1ª · preguntas originales, perfil `dev` | **0,1228** (7/57) | — |
+| 2ª · 26 preguntas reescritas, perfil `full` | **0,1754** (10/57) | la forma deja de estorbar |
+| 3ª · glosario firmado dentro del prompt (v2) | **0,1930** (11/57) | join 1/22 → 5/22 |
+
+Umbral: **>= 0,80**. Sigue muy lejos.
+
+**Y un efecto que no esperaba y que conviene anotar:** el glosario **subió** las de
+join y agregación (1/22 → 5/22) y **bajó** las simples (9/20 → 5/20). Añadir 3,5 KB de
+contexto ayuda donde hace falta semántica y estorba donde no. No es un resultado
+cómodo y por eso se escribe.
+
+**Lo que queda por decidir, y no lo decide el agente.** Con 0,193 y un umbral de 0,80,
+las salidas honestas son tres y ninguna es «seguir tocando el prompt»:
+1. **Un modelo mayor.** Se está midiendo con `gemma4:26b-mlx` para saber si el techo es
+   el modelo o el sistema. Sin ese dato, cualquier decisión sería a ciegas.
+2. **Publicar el número y proponer bajar el umbral**, que `G-EXEC-ACC` admite
+   (`propuesta_admisible: true`). Requiere ≥ 2 intentos medidos, y ya van tres.
+3. **Aceptar que un 9B local no hace esto** y decirlo en el README con esas palabras.

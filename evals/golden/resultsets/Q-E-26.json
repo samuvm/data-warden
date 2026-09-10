@@ -5,22 +5,22 @@
   ],
   "glosario": null,
   "id": "Q-E-26",
-  "perfil": "dev",
-  "pregunta": "qué tipos de dispositivo usan los clientes",
+  "perfil": "full",
+  "pregunta": "dame el número de dispositivos de cada clase, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 3,
   "rows": [
     [
       "mobile",
-      106754
+      13201527
     ],
     [
       "desktop",
-      52521
+      6489248
     ],
     [
       "tablet",
-      15893
+      1947625
     ]
   ],
   "sql_referencia": "SELECT device_class, count(*) AS n FROM dim_device GROUP BY device_class ORDER BY n DESC",

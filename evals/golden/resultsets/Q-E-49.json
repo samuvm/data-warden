@@ -4,13 +4,13 @@
   ],
   "glosario": "definiciones_criticas.pago_valido",
   "id": "Q-E-49",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuántos clientes distintos han hecho al menos un pago",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      83752
+      8404284
     ]
   ],
   "sql_referencia": "SELECT count(*) AS n FROM (SELECT customer_sk, row_number() OVER (PARTITION BY customer_sk ORDER BY first_attempt_ts) AS orden FROM v_payment_intent WHERE eventually_approved) WHERE orden = 1",

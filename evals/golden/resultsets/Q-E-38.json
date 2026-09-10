@@ -5,30 +5,30 @@
   ],
   "glosario": "metricas.tasa_de_contracargo",
   "id": "Q-E-38",
-  "perfil": "dev",
-  "pregunta": "por qué motivos nos abren disputas",
+  "perfil": "full",
+  "pregunta": "dame el número de disputas distintas de cada categoría de motivo, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 5,
   "rows": [
     [
       "fraudulent",
-      1018
+      88037
     ],
     [
       "product_not_received",
-      808
+      77130
     ],
     [
       "product_unacceptable",
-      527
+      45179
     ],
     [
       "subscription_cancelled",
-      446
+      39699
     ],
     [
       "unrecognised",
-      396
+      34116
     ]
   ],
   "sql_referencia": "SELECT reason_category, count(DISTINCT dispute_case_id) AS n FROM fact_dispute GROUP BY reason_category ORDER BY n DESC",

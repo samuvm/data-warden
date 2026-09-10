@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT settlement_currency, COUNT(*) AS count FROM fact_settlement_batch GROUP BY settlement_currency",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame las monedas en las que liquidamos, con cuántas hay de cada una",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT settlement_currency, COUNT(*) AS count FROM fact_settlement_batch GROUP BY settlement_currency",
+  "thinking": false
+}

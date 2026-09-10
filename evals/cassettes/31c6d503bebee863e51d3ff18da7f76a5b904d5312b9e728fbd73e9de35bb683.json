@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los veinte primeros códigos de categoría marcados como de alto riesgo, con su descripción, ordenados por código",
+  "rejection_code": null,
+  "sql": "SELECT mcc, mcc_description FROM ref_mcc WHERE is_high_risk = true ORDER BY mcc LIMIT 20",
+  "thinking": false
+}

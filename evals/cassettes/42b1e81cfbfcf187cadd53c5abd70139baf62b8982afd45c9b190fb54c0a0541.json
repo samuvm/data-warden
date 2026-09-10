@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame el número de pagos válidos por tipo de financiación de la tarjeta, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT card_scheme, COUNT(*) AS payment_count FROM fact_payment_attempt WHERE auth_status = 'success' GROUP BY card_scheme ORDER BY payment_count DESC",
+  "thinking": false
+}

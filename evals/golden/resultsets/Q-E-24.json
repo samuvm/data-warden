@@ -5,34 +5,34 @@
   ],
   "glosario": "definiciones_criticas.periodo",
   "id": "Q-E-24",
-  "perfil": "dev",
-  "pregunta": "cuántos clientes hay en cada tramo de edad",
+  "perfil": "full",
+  "pregunta": "dame el número de clientes de cada tramo de edad, ordenado por tramo",
   "rol": "analyst",
   "row_count": 7,
   "rows": [
     [
       "18-24",
-      7320
+      745469
     ],
     [
       "25-34",
-      19639
+      1949533
     ],
     [
       "35-44",
-      20217
+      2031569
     ],
     [
       "45-54",
-      18081
+      1821833
     ],
     [
       "55-64",
-      14961
+      1482930
     ],
     [
       "65+",
-      11782
+      1168666
     ],
     [
       null,

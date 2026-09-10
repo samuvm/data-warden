@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT m.merchant_id, SUM(sb.gross_eur_minor) AS volume_eur, 100.0 * SUM(sb.gross_eur_minor) / SUM(sb.gross_eur_minor) OVER () AS share_pct FROM fact_settlement_batch sb JOIN dim_merchant v ON v.merchant_sk = sb.merchant_id WHERE v.is_active = true AND v.is_current = true GROUP BY m.merchant_id ORDER BY volume_eur DESC LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez comercios de más volumen, con su volumen en euros y su cuota en porcentaje sobre el total",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT m.merchant_id, SUM(sb.gross_eur_minor) AS volume_eur, 100.0 * SUM(sb.gross_eur_minor) / SUM(sb.gross_eur_minor) OVER () AS share_pct FROM fact_settlement_batch sb JOIN dim_merchant_current v ON v.merchant_sk = sb.merchant_id WHERE v.is_active = true AND v.is_current = true GROUP BY m.merchant_id ORDER BY volume_eur DESC LIMIT 10",
+  "thinking": false
+}

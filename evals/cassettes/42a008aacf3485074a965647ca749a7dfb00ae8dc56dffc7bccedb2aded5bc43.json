@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT product_category, COUNT(DISTINCT product_sk) AS num_productos FROM dim_product GROUP BY product_category ORDER BY num_productos DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame el número de productos de cada categoría, ordenado de más a menos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT product_category, COUNT(DISTINCT product_sk) AS num_productos FROM dim_product GROUP BY product_category ORDER BY num_productos DESC",
+  "thinking": false
+}

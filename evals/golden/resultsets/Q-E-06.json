@@ -4,13 +4,13 @@
   ],
   "glosario": "metricas.tasa_de_reintento",
   "id": "Q-E-06",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuántos intentos hacen falta de media por cada pago",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      "1.063020943020943"
+      "1.0594005379728475"
     ]
   ],
   "sql_referencia": "SELECT count(*)::DOUBLE / count(DISTINCT payment_intent_id) AS intentos_por_pago FROM v_attempt_dedup",

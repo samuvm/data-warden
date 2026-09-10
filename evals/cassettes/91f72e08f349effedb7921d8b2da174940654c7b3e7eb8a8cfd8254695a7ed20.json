@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame los diez comercios de más volumen, con su volumen en euros y su cuota en porcentaje sobre el total",
+  "rejection_code": null,
+  "sql": "SELECT merchant_sk, SUM(amount_eur_minor) / 100.0 AS volume_eur, SUM(amount_eur_minor) * 100.0 / SUM(SUM(amount_eur_minor)) OVER () AS share_pct FROM fact_payment_attempt GROUP BY merchant_sk ORDER BY volume_eur DESC LIMIT 10",
+  "thinking": false
+}

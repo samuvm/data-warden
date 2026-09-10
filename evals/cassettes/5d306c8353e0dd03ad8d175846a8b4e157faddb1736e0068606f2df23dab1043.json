@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez países con MAYOR TASA de aprobación, con su tasa en porcentaje, contando solo los que tengan al menos mil intentos",
+  "rejection_code": null,
+  "sql": "SELECT c.country_name, 100.0 * COUNT(CASE WHEN pa.auth_status = 'approved' THEN 1 END) / COUNT(*) AS tasa_de_aprobacion\nFROM v_payment_intent pa\nJOIN dim_customer cu ON cu.customer_sk = pa.customer_sk\nJOIN dim_country c ON c.country_code = cu.country_code\nWHERE pa.is_test = false AND pa.event_date >= (SELECT MAX(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY\nGROUP BY c.country_name\nHAVING COUNT(*) >= 1000\nORDER BY tasa_de_aprobacion DESC\nLIMIT 10",
+  "thinking": false
+}

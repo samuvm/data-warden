@@ -5,90 +5,90 @@
   ],
   "glosario": "definiciones_criticas.pago_valido",
   "id": "Q-E-34",
-  "perfil": "dev",
-  "pregunta": "qué categorías de producto generan más pagos",
+  "perfil": "full",
+  "pregunta": "dame el número de pagos válidos de cada categoría de producto, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 20,
   "rows": [
     [
       "RETAIL",
-      89004
+      7844141
     ],
     [
       "FOOD",
-      48095
+      4741069
     ],
     [
       "HOME",
-      45185
+      4358821
     ],
     [
       "FASHION",
-      41193
+      4113520
     ],
     [
       "TRAVEL",
-      39977
+      4052343
     ],
     [
       "HEALTH",
-      39377
+      3886024
     ],
     [
       "ELECTRONICS",
-      32549
+      3185293
     ],
     [
       "GAMING",
-      30720
+      3008330
     ],
     [
       "AUTOMOTIVE",
-      28763
+      2917656
     ],
     [
       "MEDIA",
-      26344
+      2668728
     ],
     [
       "LEISURE",
-      23848
+      2384364
     ],
     [
       "SAAS",
-      21770
+      2208064
     ],
     [
       "BEAUTY",
-      21455
+      2162236
     ],
     [
       "GAMBLING",
-      17167
+      1743998
     ],
     [
       "EDUCATION",
-      16591
+      1698922
     ],
     [
       "NONPROFIT",
-      14169
+      1458218
     ],
     [
       "ALCOHOL",
-      13658
+      1400486
     ],
     [
       "FINANCIAL",
-      13259
-    ],
-    [
-      "CRYPTO",
-      8525
+      1369229
     ],
     [
       "TOBACCO",
-      8292
+      915620
+    ],
+    [
+      "CRYPTO",
+      876887
     ]
   ],
   "sql_referencia": "SELECT product_category, count(*) AS n FROM v_attempt_dedup WHERE auth_status = 'approved' AND NOT is_test GROUP BY product_category ORDER BY n DESC",

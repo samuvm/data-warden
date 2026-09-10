@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT card_scheme, ROUND(SUM(CASE WHEN auth_status = 'approved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS approval_rate_pct FROM fact_payment_attempt GROUP BY card_scheme ORDER BY approval_rate_pct DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame la tasa de aprobación en porcentaje de cada esquema de tarjeta, ordenada de mayor a menor",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT card_scheme, ROUND(SUM(CASE WHEN auth_status = 'approved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS approval_rate_pct FROM fact_payment_attempt GROUP BY card_scheme ORDER BY approval_rate_pct DESC",
+  "thinking": false
+}

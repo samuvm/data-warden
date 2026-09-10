@@ -5,50 +5,50 @@
   ],
   "glosario": "granos.lote_de_liquidacion + definiciones_criticas.ingreso",
   "id": "Q-E-17",
-  "perfil": "dev",
-  "pregunta": "dame el top 10 de comercios por volumen liquidado",
+  "perfil": "full",
+  "pregunta": "dame los diez comercios que más volumen han liquidado, con su nombre comercial y el volumen en euros",
   "rol": "analyst",
   "row_count": 10,
   "rows": [
     [
-      "Almacen Calma",
-      "11679889.69"
+      "Central Puerto",
+      "173112220.12"
     ],
     [
-      "Espacio Dorada",
-      "7103546.59"
+      "Nueva Cumbre",
+      "168105318.92"
     ],
     [
-      "Gran Marea",
-      "5562237.09"
+      "Taller Brisa",
+      "146744711.17"
     ],
     [
-      "Mercado Islas",
-      "4999206.6"
+      "Espacio Invierno",
+      "113139281.04"
     ],
     [
-      "Estudio Gaviota",
-      "4719533.12"
+      "Mercado Gaviota",
+      "111733793.54"
     ],
     [
-      "Boutique Retama",
-      "2732570.32"
+      "Punto Olivo",
+      "91712631.66"
     ],
     [
-      "Mercado Marea",
-      "2167360.22"
+      "Boutique Umbria",
+      "80619970.4"
     ],
     [
-      "Espacio Zarza",
-      "1790246.39"
+      "Estudio Umbria",
+      "77051608.58"
     ],
     [
-      "Almacen Nube",
-      "1313012.54"
+      "Buena Marea",
+      "76764532.54"
     ],
     [
-      "Gran Aurora",
-      "1305152.38"
+      "Punto Marea",
+      "72189645.57"
     ]
   ],
   "sql_referencia": "SELECT trade_name, volumen FROM (SELECT m.trade_name, sum(s.gross_eur_minor) / 100.0 AS volumen, row_number() OVER (ORDER BY sum(s.gross_eur_minor) DESC) AS puesto FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.trade_name) WHERE puesto <= 10",

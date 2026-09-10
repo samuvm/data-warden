@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de pagos válidos por tipo de financiación de la tarjeta, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT p.payment_intent_id, d.funding_type, COUNT(*) as count_valid_payments\nFROM v_payment_intent p\nJOIN dim_card d ON p.customer_sk = d.customer_sk\nWHERE p.eventually_approved = true AND p.is_test = false\nGROUP BY d.funding_type\nORDER BY count_valid_payments DESC",
+  "thinking": false
+}

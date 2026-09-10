@@ -6,35 +6,35 @@
   ],
   "glosario": "definiciones_criticas.pago_valido",
   "id": "Q-E-35",
-  "perfil": "dev",
-  "pregunta": "por qué motivos se devuelve el dinero",
+  "perfil": "full",
+  "pregunta": "dame los motivos de devolución con su número de devoluciones y su importe total en euros, ordenados por número de devoluciones",
   "rol": "analyst",
   "row_count": 5,
   "rows": [
     [
       "customer_returned_goods",
-      10330,
-      "1599606.6"
+      1023327,
+      "156595819.97"
     ],
     [
       "duplicate_charge",
-      3283,
-      "470587.95"
+      321026,
+      "48678478.18"
     ],
     [
       "goodwill",
-      2625,
-      "397744.59"
+      260727,
+      "39320911.69"
     ],
     [
       "item_out_of_stock",
-      2253,
-      "357807.38"
+      220981,
+      "33705438.01"
     ],
     [
       "order_cancelled",
-      1869,
-      "303235.25"
+      181102,
+      "27468520.72"
     ]
   ],
   "sql_referencia": "SELECT refund_reason, count(*) AS n, sum(refund_amount_eur_minor)/100.0 AS importe FROM fact_refund GROUP BY refund_reason ORDER BY n DESC",

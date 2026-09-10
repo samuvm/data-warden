@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT COUNT(DISTINCT d.merchant_sk) FROM fact_dispute d LEFT JOIN v_merchant_current m ON d.merchant_sk = m.merchant_sk WHERE m.is_active = true AND (m.is_current = true OR d.stage_no > 1) GROUP BY 1 HAVING COUNT(*) = 0",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos comercios no han tenido nunca una disputa",
+  "rejection_code": "group_too_small",
+  "sql": "SELECT COUNT(DISTINCT d.merchant_sk) FROM fact_dispute d LEFT JOIN v_merchant_current m ON d.merchant_sk = m.merchant_sk WHERE m.is_active = true AND (m.is_current = true OR d.stage_no > 1) GROUP BY 1 HAVING COUNT(*) >= 5",
+  "thinking": false
+}

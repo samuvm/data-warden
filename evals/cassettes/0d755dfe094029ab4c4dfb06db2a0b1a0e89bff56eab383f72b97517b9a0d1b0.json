@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT merchant_sk, risk_tier, (fee_minor * 100.0 / NULLIF(gross_eur_minor, 0)) AS effective_fee_pct\nFROM fact_settlement_batch fsb\nJOIN dim_merchant dm ON fsb.merchant_id = dm.merchant_id\nGROUP BY merchant_sk, risk_tier\nORDER BY effective_fee_pct DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame la comisión efectiva en porcentaje de cada nivel de riesgo de comercio, ordenada de mayor a menor",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT dm.risk_tier, ROUND((fsb.fee_eur_minor * 100.0 / NULLIF(fsb.gross_eur_minor, 0)), 2) AS effective_fee_pct FROM fact_settlement_batch fsb JOIN dim_merchant dm ON fsb.merchant_id = dm.merchant_id GROUP BY dm.risk_tier ORDER BY effective_fee_pct DESC",
+  "thinking": false
+}

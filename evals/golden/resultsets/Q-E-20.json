@@ -4,13 +4,13 @@
   ],
   "glosario": "definiciones_criticas.cliente_activo",
   "id": "Q-E-20",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuántos clientes se dieron de alta y no compraron nunca",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      5828
+      570895
     ]
   ],
   "sql_referencia": "SELECT count(*) AS clientes_sin_pagos FROM dim_customer c WHERE NOT EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk)",

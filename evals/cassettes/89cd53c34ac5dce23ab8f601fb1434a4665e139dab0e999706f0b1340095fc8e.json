@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame el volumen liquidado en euros de cada mes junto con la diferencia respecto al mes anterior, ordenado por mes",
+  "rejection_code": null,
+  "sql": "SELECT d.month, SUM(fps.net_eur_minor) AS volume_eur, LAG(SUM(fps.net_eur_minor)) OVER (ORDER BY d.month) - SUM(fps.net_eur_minor) AS diff_from_prev_month\nFROM fact_settlement_batch fps\nJOIN dim_date d ON fps.settlement_date = d.full_date\nGROUP BY d.month\nORDER BY d.month",
+  "thinking": false
+}

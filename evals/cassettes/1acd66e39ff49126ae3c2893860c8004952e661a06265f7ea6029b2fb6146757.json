@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT AVG(ol.quantity) AS ticket_medio_productos FROM fact_order_line ol JOIN v_payment_intent vi ON ol.payment_intent_id = vi.payment_intent_id WHERE vi.eventually_approved = true AND vi.is_test = false GROUP BY 1",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos productos lleva de media una cesta",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT AVG(ol.quantity) AS ticket_medio_productos FROM fact_order_line ol JOIN v_payment_intent vi ON ol.payment_intent_id = vi.payment_intent_id WHERE vi.eventually_approved = true AND NOT EXISTS (SELECT 1 FROM fact_payment_attempt pa WHERE pa.payment_intent_id = vi.payment_intent_id AND pa.is_test = true) GROUP BY 1",
+  "thinking": false
+}

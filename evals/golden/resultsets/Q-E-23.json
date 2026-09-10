@@ -5,38 +5,38 @@
   ],
   "glosario": null,
   "id": "Q-E-23",
-  "perfil": "dev",
-  "pregunta": "cuántas tarjetas hay de cada esquema",
+  "perfil": "full",
+  "pregunta": "dame el número de tarjetas de cada esquema, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 7,
   "rows": [
     [
       "visa",
-      96225
+      9584687
     ],
     [
       "mastercard",
-      70052
+      7029534
     ],
     [
       "maestro",
-      8282
+      814759
     ],
     [
       "amex",
-      6784
+      676963
     ],
     [
       "discover",
-      1629
+      160269
     ],
     [
       "jcb",
-      843
+      84728
     ],
     [
       "unionpay",
-      678
+      64915
     ]
   ],
   "sql_referencia": "SELECT card_scheme, count(*) AS n FROM dim_card GROUP BY card_scheme ORDER BY n DESC",

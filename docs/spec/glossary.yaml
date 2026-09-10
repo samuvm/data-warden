@@ -201,9 +201,14 @@ definiciones_criticas:
       referencia de la fase 8 caduque sin que nadie toque una línea. **Es un bug con
       fecha de explosión, no un matiz.**
     ojo: >-
-      El 4,3 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están
+      El 6,2 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están
       dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y
       cualquier tasa calculada así sale inflada.
+      P-003-b, DE LA CORRECCIÓN MEDIDA: aquí ponía 4,3 %, que es el OBJETIVO de
+      diseño del generador y no una medida. Contra los hechos son 570.895 de
+      9.200.000 = 6,205 % sobre el perfil `full`. La corrección se aplicó el
+      2026-09-02 a la sección `trampas` y **este párrafo se quedó sin actualizar**,
+      que es justo el sitio donde lo lee quien va a escribir una consulta.
 
   comercio_activo:
     pregunta: ¿Cuándo un comercio está «activo»?

@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "1",
+  "question": "dame el número de comercios vigentes de cada nivel de riesgo, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT risk_tier, COUNT(*) as merchant_count FROM v_merchant_current WHERE is_active = true GROUP BY risk_tier ORDER BY merchant_count DESC",
+  "thinking": false
+}

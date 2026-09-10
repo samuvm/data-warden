@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT customer_sk, income_tier, COUNT(*) AS client_count FROM dim_customer WHERE kyc_status = 'verified' AND retention_expires_on > (SELECT MAX(event_date) - INTERVAL 90 DAY FROM fact_payment_attempt) GROUP BY customer_sk, income_tier ORDER BY client_count DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de clientes de cada tramo de ingresos, ordenado de más a menos",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk, income_tier, COUNT(*) AS client_count FROM dim_customer WHERE retention_expires_on > (SELECT MAX(event_date) - INTERVAL 90 DAY FROM fact_payment_attempt) GROUP BY customer_sk, income_tier ORDER BY client_count DESC",
+  "thinking": false
+}

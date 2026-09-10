@@ -5,50 +5,50 @@
   ],
   "glosario": "metricas.tasa_de_aprobacion",
   "id": "Q-E-16",
-  "perfil": "dev",
-  "pregunta": "en qué países se aprueban más pagos",
+  "perfil": "full",
+  "pregunta": "dame los diez países con MAYOR TASA de aprobación, con su tasa en porcentaje, contando solo los que tengan al menos mil intentos",
   "rol": "analyst",
   "row_count": 10,
   "rows": [
     [
+      "MX",
+      "90.86692014081018"
+    ],
+    [
+      "JP",
+      "90.84956183057449"
+    ],
+    [
       "SG",
-      "89.25327951564077"
+      "90.63887920662941"
     ],
     [
       "PT",
-      "88.92609423582874"
-    ],
-    [
-      "ES",
-      "88.28295085477711"
-    ],
-    [
-      "PL",
-      "88.12597605413848"
-    ],
-    [
-      "MX",
-      "87.65432098765432"
-    ],
-    [
-      "GB",
-      "86.87487794252408"
-    ],
-    [
-      "FR",
-      "86.51218683873664"
-    ],
-    [
-      "SE",
-      "86.39692810922278"
-    ],
-    [
-      "DE",
-      "86.26186962212135"
+      "90.38044162496641"
     ],
     [
       "BR",
-      "86.12236628849271"
+      "89.94963473841825"
+    ],
+    [
+      "PL",
+      "89.6290801808272"
+    ],
+    [
+      "SE",
+      "89.03099718811697"
+    ],
+    [
+      "ES",
+      "88.32519138057354"
+    ],
+    [
+      "US",
+      "88.2287640791333"
+    ],
+    [
+      "AT",
+      "87.83225512438206"
     ]
   ],
   "sql_referencia": "SELECT geo_country, 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*) AS tasa FROM v_attempt_dedup WHERE NOT is_test GROUP BY geo_country HAVING count(*) >= 1000 ORDER BY tasa DESC LIMIT 10",

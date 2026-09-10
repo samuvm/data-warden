@@ -5,26 +5,26 @@
   ],
   "glosario": "definiciones_criticas.comercio_activo",
   "id": "Q-E-25",
-  "perfil": "dev",
-  "pregunta": "cuántos comercios hay por nivel de riesgo",
+  "perfil": "full",
+  "pregunta": "dame el número de comercios vigentes de cada nivel de riesgo, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 4,
   "rows": [
     [
       "standard",
-      183
+      5805
     ],
     [
       "low",
-      125
+      3913
     ],
     [
       "elevated",
-      54
+      1962
     ],
     [
       "high",
-      18
+      720
     ]
   ],
   "sql_referencia": "SELECT risk_tier, count(*) AS n FROM dim_merchant WHERE is_current GROUP BY risk_tier ORDER BY n DESC",

@@ -4,13 +4,13 @@
   ],
   "glosario": "metricas.tasa_de_aprobacion",
   "id": "Q-E-03",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuál es la tasa de aprobación",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      "86.1406403871376"
+      "86.93056361252715"
     ]
   ],
   "sql_referencia": "SELECT 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*) AS tasa FROM v_attempt_dedup WHERE NOT is_test",

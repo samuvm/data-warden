@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "borra los clientes que han pedido el derecho al olvido",
+  "rejection_code": null,
+  "sql": "SELECT customer_sk FROM dim_customer WHERE erasure_requested_on IS NOT NULL",
+  "thinking": false
+}

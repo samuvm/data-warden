@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT d.country_code, SUM(f.gross_eur_minor) AS volume_eur FROM fact_settlement_batch f JOIN dim_merchant m ON f.merchant_id = m.merchant_id JOIN dim_country c ON m.country_code = c.country_code WHERE m.is_active = true GROUP BY d.country_code ORDER BY volume_eur DESC LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez países de comercio con más volumen liquidado, con el volumen en euros",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT d.country_code, SUM(f.gross_eur_minor) AS volume_eur FROM fact_settlement_batch f JOIN dim_merchant m ON f.merchant_id = m.merchant_id JOIN dim_country c ON m.country_code = c.country_code WHERE m.is_active = true AND c.country_code IN (SELECT DISTINCT country_code FROM dim_merchant WHERE is_active = true) GROUP BY d.country_code ORDER BY volume_eur DESC LIMIT 10",
+  "thinking": false
+}

@@ -4,13 +4,13 @@
   ],
   "glosario": "definiciones_criticas.ingreso",
   "id": "Q-E-10",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "qué nos queda después de pagar al emisor y a la red",
   "rol": "finance",
   "row_count": 1,
   "rows": [
     [
-      "1990195.1"
+      "167504054.1"
     ]
   ],
   "sql_referencia": "SELECT sum(fee_eur_minor - interchange_eur_minor - scheme_fee_eur_minor) / 100.0 AS margen_neto_eur FROM fact_settlement_batch",

@@ -6,60 +6,60 @@
   ],
   "glosario": "definiciones_criticas.ingreso",
   "id": "Q-E-43",
-  "perfil": "dev",
-  "pregunta": "qué cuota de mercado tiene cada comercio",
+  "perfil": "full",
+  "pregunta": "dame los diez comercios de más volumen, con su volumen en euros y su cuota en porcentaje sobre el total",
   "rol": "analyst",
   "row_count": 10,
   "rows": [
     [
-      "Almacen Calma",
-      "11679889.69",
-      "10.81478450011417"
+      "Central Puerto",
+      "173112220.12",
+      "1.891284497657713"
     ],
     [
-      "Espacio Dorada",
-      "7103546.59",
-      "6.577401636176828"
+      "Nueva Cumbre",
+      "168105318.92",
+      "1.8365831333386622"
     ],
     [
-      "Gran Marea",
-      "5562237.09",
-      "5.150253732138813"
+      "Taller Brisa",
+      "146744711.17",
+      "1.6032143609312726"
     ],
     [
-      "Mercado Islas",
-      "4999206.6",
-      "4.628925742067385"
+      "Espacio Invierno",
+      "113139281.04",
+      "1.236068534958208"
     ],
     [
-      "Estudio Gaviota",
-      "4719533.12",
-      "4.369967096320365"
+      "Mercado Gaviota",
+      "111733793.54",
+      "1.2207133120943392"
     ],
     [
-      "Boutique Retama",
-      "2732570.32",
-      "2.530174507342288"
+      "Punto Olivo",
+      "91712631.66",
+      "1.0019782449656793"
     ],
     [
-      "Mercado Marea",
-      "2167360.22",
-      "2.006828346460183"
+      "Boutique Umbria",
+      "80619970.4",
+      "0.8807887745501101"
     ],
     [
-      "Espacio Zarza",
-      "1790246.39",
-      "1.6576465552182236"
+      "Estudio Umbria",
+      "77051608.58",
+      "0.841803731278633"
     ],
     [
-      "Almacen Nube",
-      "1313012.54",
-      "1.2157604260770665"
+      "Buena Marea",
+      "76764532.54",
+      "0.8386673699996626"
     ],
     [
-      "Gran Aurora",
-      "1305152.38",
-      "1.208482451815957"
+      "Punto Marea",
+      "72189645.57",
+      "0.7886858447272149"
     ]
   ],
   "sql_referencia": "SELECT trade_name, volumen, 100.0 * volumen / sum(volumen) OVER () AS cuota FROM (SELECT m.trade_name, sum(s.gross_eur_minor)/100.0 AS volumen FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.trade_name) ORDER BY volumen DESC LIMIT 10",

@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "qué tasa de contracargo tenemos",
+  "rejection_code": null,
+  "sql": "SELECT 100.0 * COUNT(DISTINCT d.payment_intent_id) / COUNT(DISTINCT f.payment_intent_id) FROM v_attempt_dedup f LEFT JOIN fact_dispute d ON d.payment_intent_id = f.payment_intent_id AND d.stage_no = 1 WHERE f.auth_status = 'approved'",
+  "thinking": false
+}

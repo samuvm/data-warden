@@ -4,13 +4,13 @@
   ],
   "glosario": "metricas.mdr_efectivo",
   "id": "Q-E-07",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "qué comisión efectiva estamos cobrando",
   "rol": "finance",
   "row_count": 1,
   "rows": [
     [
-      "2.1760827946031966"
+      "2.1368730626949874"
     ]
   ],
   "sql_referencia": "SELECT 100.0 * sum(fee_eur_minor) / sum(gross_eur_minor) AS mdr_pct FROM fact_settlement_batch",

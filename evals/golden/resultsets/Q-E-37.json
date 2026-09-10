@@ -5,26 +5,26 @@
   ],
   "glosario": "granos.intento_de_autorizacion",
   "id": "Q-E-37",
-  "perfil": "dev",
-  "pregunta": "por qué canales entran los pagos",
+  "perfil": "full",
+  "pregunta": "dame el número de intentos de cada canal, ordenado de más a menos",
   "rol": "analyst",
   "row_count": 4,
   "rows": [
     [
       "ecommerce",
-      366012
+      35058101
     ],
     [
       "app",
-      136473
+      12942224
     ],
     [
       "pos",
-      108601
+      11629634
     ],
     [
       "recurring",
-      62163
+      5932654
     ]
   ],
   "sql_referencia": "SELECT channel, count(*) AS n FROM v_attempt_dedup WHERE NOT is_test GROUP BY channel ORDER BY n DESC",

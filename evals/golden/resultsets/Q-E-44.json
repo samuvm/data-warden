@@ -4,13 +4,13 @@
   ],
   "glosario": null,
   "id": "Q-E-44",
-  "perfil": "dev",
+  "perfil": "full",
   "pregunta": "cuántos comercios no han tenido nunca una disputa",
   "rol": "analyst",
   "row_count": 1,
   "rows": [
     [
-      100
+      2804
     ]
   ],
   "sql_referencia": "SELECT count(*) AS n FROM dim_merchant m WHERE m.is_current AND NOT EXISTS (SELECT 1 FROM fact_dispute d WHERE d.merchant_sk = m.merchant_sk)",

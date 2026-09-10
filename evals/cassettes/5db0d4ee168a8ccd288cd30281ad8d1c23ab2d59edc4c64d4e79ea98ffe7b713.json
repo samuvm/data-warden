@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos clientes activos hay",
+  "rejection_code": null,
+  "sql": "SELECT COUNT(DISTINCT c.customer_sk) FROM dim_customer c JOIN v_payment_intent p ON c.customer_sk = p.customer_sk WHERE p.eventually_approved = true AND p.last_attempt_ts > (SELECT MAX(event_date) FROM fact_payment_attempt) - INTERVAL '90 days'",
+  "thinking": false
+}

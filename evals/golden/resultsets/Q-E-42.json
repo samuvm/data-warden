@@ -6,350 +6,460 @@
   ],
   "glosario": "granos.lote_de_liquidacion",
   "id": "Q-E-42",
-  "perfil": "dev",
-  "pregunta": "dame los tres comercios que más mueven en cada país",
+  "perfil": "full",
+  "pregunta": "dame, por cada país, los tres comercios que más volumen liquidan, con el país, el nombre comercial y el volumen en euros",
   "rol": "analyst",
-  "row_count": 68,
+  "row_count": 90,
   "rows": [
     [
       "AT",
-      "Mercado Cumbre",
-      "78801.27"
+      "Punto Marea",
+      "19201169.21"
     ],
     [
       "AT",
-      "Mercado Encina",
-      "21908.29"
+      "Central Xara",
+      "15831054.49"
+    ],
+    [
+      "AT",
+      "Central Hiedra",
+      "10074701.7"
     ],
     [
       "BE",
-      "Tienda Gaviota",
-      "439970.86"
+      "Punto Marea",
+      "20326638.67"
     ],
     [
       "BE",
-      "Boutique Hiedra",
-      "425703.07"
+      "Bazar Nube",
+      "11836985.28"
     ],
     [
       "BE",
-      "Mercado Aurora",
-      "370686.77"
+      "Bazar Granada",
+      "10474044.18"
     ],
     [
       "BG",
-      "Estudio Gaviota",
-      "219833.88"
+      "Estudio Laurel",
+      "11485210.27"
     ],
     [
       "BG",
-      "Norte Kiwi",
-      "38191.28"
+      "Mercado Jara",
+      "10357300.65"
+    ],
+    [
+      "BG",
+      "Central Nube",
+      "5604718.19"
     ],
     [
       "BR",
-      "Casa Calma",
-      "401601.89"
+      "Central Zarza",
+      "8093978.91"
     ],
     [
       "BR",
-      "Casa Dorada",
-      "244960.0"
+      "Real Calma",
+      "7234394.17"
     ],
     [
       "BR",
-      "Tienda Ladera",
-      "81302.03"
+      "Taller Aurora",
+      "6525737.97"
     ],
     [
       "CH",
-      "Central Naranjo",
-      "184420.43"
+      "Bella Granada",
+      "10966253.22"
     ],
     [
       "CH",
-      "Taller Encina",
-      "146499.35"
+      "Mercado Gaviota",
+      "10526973.14"
     ],
     [
       "CH",
-      "Bazar Aurora",
-      "100046.66"
+      "Taller Retama",
+      "7255756.46"
     ],
     [
       "CZ",
-      "Sur Islas",
-      "282565.32"
+      "Sur Marea",
+      "35353446.71"
     ],
     [
       "CZ",
-      "Espacio Hiedra",
-      "90036.21"
+      "Nova Zarza",
+      "8024311.08"
+    ],
+    [
+      "CZ",
+      "Tienda Vela",
+      "5721103.26"
     ],
     [
       "DE",
-      "Estudio Gaviota",
-      "4326471.82"
+      "Central Puerto",
+      "168459605.2"
     ],
     [
       "DE",
-      "Norte Yedra",
-      "1118341.46"
+      "Estudio Vela",
+      "40999891.93"
     ],
     [
       "DE",
-      "Buena Estrella",
-      "789051.54"
+      "Buena Faro",
+      "28120595.59"
     ],
     [
       "DK",
-      "Casa Granada",
-      "235532.35"
+      "Buena Bahia",
+      "10438076.64"
     ],
     [
       "DK",
-      "Norte Calma",
-      "133421.58"
+      "Taller Aurora",
+      "10036407.59"
     ],
     [
       "DK",
-      "Bella Faro",
-      "35138.24"
+      "Mercado Dorada",
+      "9259082.96"
     ],
     [
       "ES",
-      "Almacen Calma",
-      "11679889.69"
+      "Nueva Cumbre",
+      "158748793.53"
     ],
     [
       "ES",
-      "Mercado Islas",
-      "4999206.6"
+      "Taller Brisa",
+      "141625185.29"
     ],
     [
       "ES",
-      "Espacio Zarza",
-      "1790246.39"
+      "Mercado Gaviota",
+      "93159803.72"
     ],
     [
       "FI",
-      "Bella Gaviota",
-      "141856.62"
+      "Real Hiedra",
+      "23891112.79"
+    ],
+    [
+      "FI",
+      "Mercado Cumbre",
+      "6687902.23"
+    ],
+    [
+      "FI",
+      "Punto Quilla",
+      "6219378.47"
     ],
     [
       "FR",
-      "Boutique Retama",
-      "2455084.07"
+      "Espacio Invierno",
+      "96432202.14"
     ],
     [
       "FR",
-      "Mercado Marea",
-      "2015827.06"
+      "Punto Olivo",
+      "87870421.48"
     ],
     [
       "FR",
-      "Central Fuente",
-      "1053736.51"
+      "Nueva Jara",
+      "53467141.02"
     ],
     [
       "GB",
-      "Espacio Dorada",
-      "7099835.96"
+      "Gran Puerto",
+      "54258720.26"
     ],
     [
       "GB",
-      "Gran Marea",
-      "5562237.09"
+      "Boutique Marea",
+      "54043287.78"
     ],
     [
       "GB",
-      "Gran Aurora",
-      "900939.05"
+      "Sur Gaviota",
+      "35212771.82"
     ],
     [
       "GR",
-      "Bella Estrella",
-      "140087.46"
+      "Taller Olivo",
+      "7351905.03"
     ],
     [
       "GR",
-      "Tienda Naranjo",
-      "22849.95"
+      "Estudio Hoja",
+      "4640555.79"
+    ],
+    [
+      "GR",
+      "Casa Fuente",
+      "3118283.36"
     ],
     [
       "HU",
-      "Almacen Invierno",
-      "137390.93"
+      "Norte Invierno",
+      "7027524.83"
+    ],
+    [
+      "HU",
+      "Bella Dehesa",
+      "5479075.63"
+    ],
+    [
+      "HU",
+      "Real Invierno",
+      "2845983.03"
     ],
     [
       "IE",
-      "Mercado Yedra",
-      "97545.35"
+      "Estudio Umbria",
+      "22365836.21"
     ],
     [
       "IE",
-      "Norte Puerto",
-      "45793.03"
+      "Central Tejo",
+      "13170032.73"
     ],
     [
       "IE",
-      "Casa Islas",
-      "31380.62"
+      "Bazar Vela",
+      "8983730.51"
     ],
     [
       "IT",
-      "Tienda Sierra",
-      "973624.77"
+      "Buena Marea",
+      "58343743.08"
     ],
     [
       "IT",
-      "Estudio Ladera",
-      "885967.36"
+      "Casa Manzano",
+      "48064941.41"
     ],
     [
       "IT",
-      "Casa Dorada",
-      "874659.62"
+      "Sur Bahia",
+      "45390902.62"
     ],
     [
       "JP",
-      "Nueva Almendro",
-      "88387.18"
+      "Tienda Laurel",
+      "4973127.93"
+    ],
+    [
+      "JP",
+      "Gran Hoja",
+      "3021885.98"
+    ],
+    [
+      "JP",
+      "Casa Xara",
+      "2761539.09"
     ],
     [
       "LT",
-      "Gran Ladera",
-      "22910.58"
+      "Central Vela",
+      "2399378.44"
+    ],
+    [
+      "LT",
+      "Real Encina",
+      "1744780.21"
+    ],
+    [
+      "LT",
+      "Sur Puerto",
+      "1365614.66"
     ],
     [
       "MA",
-      "Sur Almendro",
-      "19963.9"
+      "Tienda Zarza",
+      "2539758.5"
     ],
     [
-      "MX",
-      "Mercado Puerto",
-      "86394.67"
+      "MA",
+      "Nova Almendro",
+      "2184324.75"
     ],
     [
-      "MX",
-      "Nueva Bahia",
-      "47919.92"
+      "MA",
+      "Punto Calma",
+      "2129405.63"
     ],
     [
-      "NL",
-      "Boutique Retama",
-      "277486.25"
+      "MT",
+      "Nueva Zarza",
+      "2744944.85"
     ],
     [
-      "NL",
-      "Taller Umbria",
-      "209280.47"
+      "MT",
+      "Almacen Umbria",
+      "1505389.45"
     ],
     [
-      "NL",
-      "Nova Zarza",
-      "110694.52"
-    ],
-    [
-      "NO",
-      "Nova Fuente",
-      "779777.23"
-    ],
-    [
-      "NO",
+      "MT",
       "Boutique Kiwi",
-      "745510.39"
+      "1128611.82"
+    ],
+    [
+      "MX",
+      "Sur Fuente",
+      "12031923.29"
+    ],
+    [
+      "MX",
+      "Mercado Dehesa",
+      "11355990.96"
+    ],
+    [
+      "MX",
+      "Almacen Olivo",
+      "8092244.72"
+    ],
+    [
+      "NL",
+      "Bella Quilla",
+      "12837469.91"
+    ],
+    [
+      "NL",
+      "Nova Jara",
+      "11141070.43"
+    ],
+    [
+      "NL",
+      "Central Hoja",
+      "9487133.44"
     ],
     [
       "NO",
-      "Punto Encina",
-      "93163.49"
+      "Mercado Retama",
+      "10391381.58"
+    ],
+    [
+      "NO",
+      "Nueva Tejo",
+      "7905969.02"
+    ],
+    [
+      "NO",
+      "Tienda Yedra",
+      "7593517.6"
     ],
     [
       "PL",
-      "Sur Laurel",
-      "484570.75"
+      "Mercado Sierra",
+      "23135588.5"
     ],
     [
       "PL",
-      "Gran Hoja",
-      "325392.95"
+      "Nova Olivo",
+      "11283918.99"
     ],
     [
       "PL",
-      "Espacio Jara",
-      "207122.54"
+      "Taller Manzano",
+      "10392991.28"
     ],
     [
       "PT",
-      "Gran Sierra",
-      "924874.18"
+      "Sur Manzano",
+      "34446012.9"
     ],
     [
       "PT",
-      "Buena Tejo",
-      "772950.19"
+      "Estudio Brisa",
+      "29324300.71"
     ],
     [
       "PT",
-      "Gran Vela",
-      "378389.08"
+      "Central Gaviota",
+      "24596554.59"
     ],
     [
       "RO",
-      "Buena Jara",
-      "146006.74"
+      "Estudio Ladera",
+      "9127274.99"
     ],
     [
       "RO",
-      "Espacio Almendro",
-      "66240.36"
+      "Tienda Sierra",
+      "6597429.93"
+    ],
+    [
+      "RO",
+      "Norte Almendro",
+      "5665649.17"
     ],
     [
       "SE",
-      "Bella Tejo",
-      "961556.45"
+      "Bella Gaviota",
+      "14514560.61"
     ],
     [
       "SE",
-      "Bazar Retama",
-      "301745.56"
+      "Gran Encina",
+      "13038305.26"
     ],
     [
       "SE",
-      "Almacen Fuente",
-      "283178.98"
+      "Tienda Ladera",
+      "11550238.56"
     ],
     [
       "SG",
-      "Central Dorada",
-      "102077.8"
+      "Nova Nube",
+      "13148373.51"
     ],
     [
       "SG",
-      "Sur Calma",
-      "34134.56"
+      "Boutique Jara",
+      "3268373.41"
+    ],
+    [
+      "SG",
+      "Casa Dehesa",
+      "2421982.12"
     ],
     [
       "TR",
-      "Taller Retama",
-      "45433.15"
+      "Almacen Invierno",
+      "5023704.72"
+    ],
+    [
+      "TR",
+      "Central Jara",
+      "3408181.12"
+    ],
+    [
+      "TR",
+      "Bella Fuente",
+      "3380215.04"
     ],
     [
       "US",
-      "Norte Bahia",
-      "282640.47"
+      "Estudio Tejo",
+      "17295668.11"
     ],
     [
       "US",
-      "Sur Quilla",
-      "255903.95"
+      "Mercado Almendro",
+      "9143374.98"
     ],
     [
       "US",
-      "Norte Dehesa",
-      "249931.68"
+      "Real Brisa",
+      "9035601.06"
     ]
   ],
   "sql_referencia": "SELECT pais, trade_name, volumen FROM (SELECT m.country_code AS pais, m.trade_name, sum(s.gross_eur_minor)/100.0 AS volumen, rank() OVER (PARTITION BY m.country_code ORDER BY sum(s.gross_eur_minor) DESC) AS puesto FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.country_code, m.trade_name) WHERE puesto <= 3 ORDER BY pais, puesto",
