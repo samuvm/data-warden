@@ -43,7 +43,7 @@ SOFT_BUDGET_SQL = (
     "SELECT p.amount_eur_minor, p.risk_score, m.trade_name "
     "FROM fact_payment_attempt AS p JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk"
 )
-DATABASE = ROOT / "datagen" / "out" / "cierzo-dev.duckdb"
+DATABASE = ROOT / "datagen" / "out" / "cierzo-full.duckdb"
 
 
 def uv_path() -> str:

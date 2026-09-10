@@ -59,6 +59,27 @@ def como_tabla(columnas: list[str], filas: list[Any]) -> Table:
     return Table(columns=tuple(columnas), rows=[tuple(f) for f in filas])
 
 
+def _es_superconjunto(obtenido: Table, referencia: Table) -> bool:
+    """Si la respuesta CONTIENE la referencia y además trae columnas de más.
+
+    Se comprueba por VALORES y no por nombres, igual que hace el contrato: para cada
+    columna de la referencia tiene que existir una columna del resultado con
+    exactamente los mismos valores en el mismo orden de filas.
+    """
+    if len(obtenido.rows) != len(referencia.rows) or not referencia.rows:
+        return False
+    if len(obtenido.columns) <= len(referencia.columns):
+        return False
+    columnas_obtenidas = [
+        [fila[i] for fila in obtenido.rows] for i in range(len(obtenido.columns))
+    ]
+    for indice in range(len(referencia.columns)):
+        buscada = [fila[indice] for fila in referencia.rows]
+        if buscada not in columnas_obtenidas:
+            return False
+    return True
+
+
 def normalizar(valor: Any) -> Any:
     """La misma normalización que `freeze_questions.py`. **Tiene que ser la misma.**
 
@@ -287,6 +308,11 @@ def main() -> int:
             "perfil": perfil,
             "por_estrato": por_estrato,
             "fallos": [r for r in resultados if not r["acierto"]],
+            "superconjuntos": [
+                r["id"]
+                for r in resultados
+                if not r["acierto"] and "SUPERCONJUNTO" in str(r.get("motivo", ""))
+            ],
             "problemas": problemas,
         },
         command="make eval",
@@ -298,6 +324,17 @@ def main() -> int:
     )
     for estrato, fila in sorted(por_estrato.items()):
         print(f"  {estrato:22} {fila['aciertos']:>3}/{fila['n']:<3}")
+    supersets = [
+        r
+        for r in resultados
+        if not r["acierto"] and "SUPERCONJUNTO" in str(r.get("motivo", ""))
+    ]
+    if supersets:
+        print(
+            f"  de los fallos, {len(supersets)} son SUPERCONJUNTOS: contienen la "
+            "referencia y traen columnas de más. Cuentan como fallo (decisión 3 del "
+            "contrato firmado) y se publican aparte."
+        )
     print(f"  procedencia del banco: {raw.get('provenance')}")
     if raw.get("provenance") != "revisado_humano":
         print(
