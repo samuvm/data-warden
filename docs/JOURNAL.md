@@ -2540,3 +2540,29 @@ las salidas honestas son tres y ninguna es «seguir tocando el prompt»:
 2. **Publicar el número y proponer bajar el umbral**, que `G-EXEC-ACC` admite
    (`propuesta_admisible: true`). Requiere ≥ 2 intentos medidos, y ya van tres.
 3. **Aceptar que un 9B local no hace esto** y decirlo en el README con esas palabras.
+
+**EL EXPERIMENTO DEL MODELO MAYOR, y responde la pregunta.**
+
+Mismo banco, mismas preguntas, mismos resultsets congelados, mismo bucle. Solo cambia
+el modelo:
+
+| Modelo | Aciertos | Ratio |
+|---|---|---|
+| `qwen3.5:9b-mlx` (el de `models.lock`) | 11/57 | **0,1930** |
+| `gemma4:26b-mlx` | 24/57 | **0,4211** |
+
+**Un modelo 2,9 veces mayor da 2,2 veces más aciertos sobre el mismo banco.** Eso
+contesta lo que había que contestar: **el techo es el modelo, no el banco ni el
+sistema.** Si el banco estuviera roto —preguntas imposibles, referencias mal escritas—
+un modelo mejor no subiría; sube.
+
+Y a la vez dice lo otro: **0,42 sigue muy lejos de 0,80.** Ni el 26B llega. Un umbral
+que ningún modelo local alcanza no se arregla tocando el prompt.
+
+*El experimento no escribe artefacto y su modelo NO está en `models.lock`: es evidencia
+para decidir, no un número publicable. `gemma4:26b-mlx` es además de la familia del
+juez, así que no puede acabar de generador sin romper la independencia que
+`models.lock` protege por diseño.*
+
+**Siguiente.** P-011 en el buzón con las tres salidas y sus costes. La constitución
+pide ≥ 2 intentos medidos para admitir una propuesta de umbral: van cuatro.
