@@ -2566,3 +2566,267 @@ juez, así que no puede acabar de generador sin romper la independencia que
 
 **Siguiente.** P-011 en el buzón con las tres salidas y sus costes. La constitución
 pide ≥ 2 intentos medidos para admitir una propuesta de umbral: van cuatro.
+
+## 2026-09-10 · la prueba manual con Claude Desktop, y lo que destapó
+
+Samuel pegó 9 preguntas del banco en Claude Desktop contra el servidor MCP real y me pasó los
+volcados completos: **92 llamadas a `run_query`, 18 rechazos, 17 errores de handler.**
+
+**Puntuación (indicio, no `G-EXEC-ACC`).** 1/9 estricto — y el estricto engaña aquí, porque un
+cliente conversacional no emite una consulta canónica, explora. Comparando los NÚMEROS contra la
+referencia: `Q-E-11` da 42,08 exacto y `Q-E-03` da 86,93 % exacto. `Q-E-13` y `Q-E-42` clavan la
+ordenación entera con el volumen desviado <0,5 %. `Q-E-02` sale 161,62 contra 161,35. `Q-R-01` es
+un acierto limpio: pidió nombres y fecha de nacimiento, se llevó el rechazo R008 con
+`alternative: dim_customer.age_band`, y **usó la alternativa en vez de rodear la regla**.
+
+Las divergencias no son aleatorias: caen exactamente donde el glosario firmado no se pronuncia
+(`batch_status='settled'` en Q-E-45 y Q-E-42, `is_test` en Q-E-13) o donde la definición de la
+vista no es reproducible a mano (la regla de deduplicación en Q-E-02 y Q-E-36).
+
+**Dos defectos, los dos con la misma firma que ya conocemos: medir un camino que no se ejecuta.**
+
+1. **Las 8 vistas derivadas no tienen estadísticas** → `UNKNOWN_TABLE_BYTES` (1 GB) → por encima
+   del presupuesto duro de `analyst` (600 MB) → **inalcanzables siempre**. `make statistics` sale
+   de los manifiestos de Iceberg, que solo cubren las 24 tablas físicas. Consecuencia medida: **20
+   de las 47 referencias escritas del banco las rechaza el sistema**, y `check_questions.py` no lo
+   vio porque llama a `validate()` (anillo 3) y no a `screen()` (anillo 3 **y** 4). Techo de
+   `G-EXEC-ACC`: 27/47 = 0,574, con cualquier modelo. → **P-012**.
+2. **`Handler returned an invalid result` = franja del presupuesto blando.** 17/17 de correlación
+   con `Decision.CONFIRM`. Reproducido en vivo: cliente sin `elicitation_callback` →
+   `MCPError: Elicitation not supported`; con callback → `outcome=rows`. `check_mcp_live.py`
+   siempre pasa callback, así que mide un cliente que no es el que se usa. → **P-013**.
+
+Nada de esto rompe un axioma: el fail-closed aguanta, el rechazo por presupuesto es un rechazo, y
+`G-BUDGET-ESCAPE` sigue en pie. Lo que estaba roto era la MEDIDA, otra vez.
+
+## 2026-09-10 (tarde) · P-012 y P-013 aplicados, y tres defectos más que salieron detrás
+
+**P-012 · las vistas ya tienen estadísticas.** `catalog/statistics.derive_views()` las deduce del
+linaje publicado. Todo lo dudoso se redondea HACIA ARRIBA porque sobreestimar es un rechazo de más
+y subestimar deja pasar una consulta cara: `bytes` y `files` suman las bases, `rows` toma el máximo,
+y las particiones **solo** se heredan cuando la vista tiene una base y conserva su columna de
+partición con linaje de identidad. `v_attempt_dedup` la conserva (730 particiones); `v_payment_intent`
+no, y por eso paga la tabla entera. Efecto medido: la consulta del glosario pasa de 1 000 000 000 a
+**7 513 280 bytes**, y las referencias del banco rechazadas por el sistema pasan de **20 a 0**.
+
+`check_questions.py` mide ahora con `screen()` y no con `validate()`. Comprobado plantando una
+referencia cara: se pone rojo con el motivo y los bytes.
+
+**Y la medida corrigió mi propio análisis.** Había escrito que esto ponía a `G-EXEC-ACC` un techo de
+0,574 «con independencia del modelo». Falso: con el defecto arreglado el número es **el mismo**,
+0,193 (11/57), mismo desglose por estrato. El techo lo tenía la REFERENCIA, no el candidato — el
+modelo escribe su propio SQL y se le compara el resultset, así que cuando el presupuesto le paraba,
+el bucle reintentaba sobre la tabla base. Composición de los 46 fallos, antes → después: `R004`
+14 → 12, `cell_value` 11 → 12, `BinderException` 6 → 6. **Lo que ata al 9B es aterrizar en el esquema
+y acertar las definiciones, no el presupuesto.** El defecto era real —un banco que exige lo que el
+sistema prohíbe no es un banco— pero no era lo que sujetaba el número. Corregido en P-011 y P-012.
+
+**P-013 · el presupuesto blando ya no rompe a quien no sabe confirmar.** Los 17 `Handler returned an
+invalid result` eran 17 `Decision.CONFIRM`, correlación perfecta. Un cliente que no declara
+`elicitation` recibía `MCPError: Elicitation not supported` y perdía la franja entera. Ahora
+`_sabe_confirmar(ctx)` mira lo que el cliente DECLARÓ y, si no puede contestar, el blando ejecuta con
+`budget_warning` en la respuesta. El duro sigue rechazando solo. `check_mcp_live` pasa de 12 a 14
+checks: se levanta un cliente SIN callback, que es el que fallaba, y otro que exige que el duro
+siga rechazando contra ese mismo cliente.
+
+**Tres defectos más, encontrados al comprobar lo anterior:**
+
+1. **`G-SECRETS` no miraba los ficheros nuevos.** `detect-secrets scan` sin rutas usa `git ls-files`,
+   o sea lo YA rastreado. Plantada una `AWS_SECRET_ACCESS_KEY` en un `.py` nuevo sin `git add`: «ok ·
+   0 hallazgos nuevos». En un fichero rastreado sí saltaba. Corregido pasando
+   `git ls-files --cached --others --exclude-standard`: entra lo nuevo, sigue fuera lo ignorado
+   —`datagen/out/` y sus 7,1 GB—. Verificado plantando el canario otra vez: ahora salta.
+   Los tres hallazgos «nuevos» que había eran huellas de integridad (un sha de commit y dos
+   `source_sha256`); auditados y añadidos a mano a la línea base, que **no** se regeneró.
+
+2. **`make test-int` seguía siendo el tapón de la fase 0** («no hay tests de integración todavía») y
+   había 56 esperando. `scripts/done.py` sí los corría; el atajo documentado en CLAUDE.md, no.
+
+3. **Los tests anti-inyección llevaban rojos desde el prompt v2.** `_REAL_SECTIONS` estaba escrito a
+   mano con las cuatro secciones de la primera versión, y el glosario firmado añadió cinco más: todo
+   render fallaba, así que el test no decía nada sobre inyección. **Un test anti-inyección que falla
+   por algo que no es una inyección es un test apagado.** Ahora la referencia se calcula
+   renderizando una pregunta inocua. Y al comprobar que seguía mordiendo salió lo de verdad grave:
+   los cuatro payloads falsificaban encabezados que YA son legítimos, y la comprobación compara
+   conjuntos — con `sanitize()` desactivada a mano, los cuatro seguían pasando. Añadido
+   `seccion-que-no-existe`, que sí se pone rojo sin la defensa.
+
+**Metas nuevas de la fase 8, las dos verdes:**
+
+- **`G-EVAL-REPORT`** · `scripts/check_eval_reports.py`. Valida contra el contrato de verdad, exige
+  que cada `metrics[].id` esté en `GOALS.yaml`, que `environment.deterministic` sea booleano, y que
+  **toda evaluación que llama a un modelo publique informe** —por meta, no por fichero, para que
+  borrar uno no borre su obligación—. La primera ejecución encontró cuatro incumplimientos reales en
+  el único informe que había: `contract_version: "1.0.0"` cuando el contrato dice `const: 1`,
+  objetos en `per_stratum` donde pide números, `project: "data-warden-03"` cuando el enumerado dice
+  `datawarden`, y `role: "generador"` cuando el enumerado está en inglés. El constructor está ahora
+  en `gatelib.eval_report()`: con tres evaluaciones escribiendo su JSON a mano, esos errores tenían
+  tres sitios donde volver a aparecer.
+- **`G-OTEL-ATTRS`** · `datawarden/telemetry/` y `tests/contract/test_otel_attrs.py`. Modelo interno
+  `LlmCall` que no conoce un solo nombre del estándar —y eso es un test que lee el fuente—, traductor
+  que es el único sitio del repositorio que escribe `gen_ai.*`, allowlist en vez de denylist por el
+  mismo motivo que el guard, y §6 probada rompiendo el sumidero, no razonándola. **La meta mide el
+  camino que se ejecuta**: el test parte de una envuelta real de Ollama capturada hoy y la pasa por
+  `LocalProvider.llm_call()`, que es la función que corre de verdad. Sin eso, `G-OTEL-ATTRS` habría
+  podido estar verde con la aplicación sin emitir un solo atributo.
+
+**`G-RECOVERY` bajó de 0,857 a 0,75** al regrabar. Las casetes estaban obsoletas desde que el glosario
+entró en el prompt y `make eval-recovery` daba 0,0 por fallo de medida. El umbral es 0,70 y el
+intervalo de Wilson [0,57 - 0,87] se solapa con el anterior, así que no afirmo una regresión: afirmo
+que el número anterior era de otro prompt y que este es el de este.
+
+**`otel-semconv.lock`** fija `v1.42.0` del repo PRINCIPAL con su sha verificado, porque
+`semantic-conventions-genai` —el que manda el contrato— no tiene ni un tag ni una release. Q-011.
+
+## 2026-09-10 (noche) · P-011 resuelta: el umbral baja Y el modelo sube
+
+Samuel eligió la opción (b) y la ejecutó él: `docs/GOALS.yaml` pasa `G-EXEC-ACC` de `0,80` a `0,40`
+y el Wilson de `0,68` a `0,25`, con `thresholds.lock` resellado (sha `77fd2c94…`, verificado). El
+`tamaño del conjunto de referencia >= 60` **no** se tocó, así que los tres `arbitrio` siguen
+bloqueando: hoy son 57.
+
+**Las dos mitades van juntas.** Bajar el listón sin subir el modelo era justo el atajo que P-011
+descartaba, así que `models.lock` pasa el rol `generador` de `qwen3.5:9b-mlx` a `gemma4:26b-mlx`
+(digest `c8656f50f0a6`, verificado contra Ollama). El 9B queda anotado como `generador_anterior`:
+retirar su digest volvería irreproducibles los informes ya publicados.
+
+| generador | `G-EXEC-ACC` | R004 | BinderException | cell_value |
+|---|---|---|---|---|
+| `qwen3.5:9b-mlx` | 0,193 (11/57) | 12 | 6 | 12 |
+| `gemma4:26b-mlx` | **0,4386** (25/57) | **2** | **0** | 15 |
+
+**El 26B arregla lo sintáctico y deja al descubierto lo semántico.** Se acabaron las tablas
+inventadas y el SQL que no compila; lo que queda es que el número no sale, o sea las definiciones.
+Es un perfil de fallo mucho más sano y dice dónde está el trabajo que queda: en el glosario, no en
+el modelo. Por estrato: simple 0,55 · join/agregación 0,41 · ventana/correlada 0,33.
+
+**`G-RECOVERY` sube de 0,75 a 0,8571** con el mismo cambio.
+
+**Solape de familia, dicho a propósito:** el `juez` es `gemma4:12b-mlx` y el generador pasa a
+`gemma4:26b-mlx`. La regla de `models.lock` se cumple —distinto peso, distinto digest— y aquí no
+infla nada porque el rol `juez` solo lo usa `eval_toolchoice.py`, que no puntúa ni una salida del
+generador; `G-EXEC-ACC` compara resultsets y no tiene juez. Si algún día un juez puntuara texto del
+generador, habría que separarlos por familia.
+
+### El modelo que no paraba, y por qué un tope de tokens no es ablandar la medida
+
+`REC-R002-3` —reescribir un `LIKE '%!_%' ESCAPE '!'` que R002 rechaza— moría con `TimeoutError`.
+Primer intento de arreglo: subir `timeout_s` de 600 a 1200 s. **No sirvió, y eso fue el diagnóstico:
+el problema no es que el modelo sea lento, es que no para.** Reproducido tres veces con el modelo ya
+cargado y caliente, a 240 s, 200 s y 300 s, sin devolver nada. Con `num_predict=1500` vuelve en 29 s
+con `done_reason: "length"`.
+
+Lo importante es qué cambia en lo que se publica. Sin tope, el caso salía como `INTERNAL` y la
+evaluación tenía que **descartarlo** como fallo de medida: un agujero. Con tope sale una respuesta
+truncada que el guard rechaza, o sea **una recuperación fallida de verdad**, que es lo que hay que
+contar. Un tope convierte un agujero en un dato.
+
+De paso, `gen_ai.request.max_tokens` deja de ser un campo decorativo del modelo interno de
+telemetría: ahora lleva un parámetro que de verdad se envía.
+
+### P-014 · `G-EXEC-ACC` castiga exactamente lo que `G-RECOVERY` premia
+
+Los 10 casos de rechazo pasan por `run_loop`, que es el ciclo generar → validar → **corregir**, y se
+puntúan por el desenlace FINAL. Pero el ciclo existe para recuperarse: si el modelo se recupera bien,
+el desenlace final es una aceptación y el caso cuenta como fallo. **Un modelo que mejora en
+`G-RECOVERY` (0,8571, umbral 0,70) empeora en `G-EXEC-ACC`.**
+
+Añadido un campo de DIAGNÓSTICO —`reglas_en_el_ciclo`, que no puntúa nada— para poder distinguir «el
+guard nunca vio nada prohibido» de «el guard lo paró y el modelo corrigió». De los 8 casos de rechazo
+fallados, **cinco tienen la regla declarada saltando dentro del ciclo**: `Q-R-01`, `Q-R-02` y `Q-R-03`
+con R008, `Q-R-04` y `Q-R-05` con R012. Es literalmente lo que Samuel vio a mano en Claude Desktop y
+celebramos como el mejor resultado del volcado: pidió fecha de nacimiento, se llevó el R008 con su
+alternativa, y usó `age_band`. El banco lo apunta como error.
+
+Los otros tres son fallos reales y tienen que seguir contando: en `Q-R-07` y `Q-R-08` no saltó
+ninguna regla, y en `Q-R-09` saltó R008 donde se declaraba R006.
+
+**No lo he aplicado.** Corregir el criterio subiría `G-EXEC-ACC` de 0,4386 a 0,5263, y lo he
+encontrado DESPUÉS de ver el número. Cambiar una regla de puntuación después de ver el número es
+exactamente lo que este proyecto no hace sin permiso. Está en P-014, con el número que daría escrito
+por delante para que se decida sabiendo qué se compra.
+
+## 2026-09-11 · FASE 8 CERRADA · `make done MILESTONE=8` VERDE
+
+Punto de retorno: `.snapshots/milestone-8-20260911T141518Z`.
+
+**Las decisiones de Samuel (Q-013 y P-014), aplicadas.**
+
+- `Q-E-21` «cuál es nuestro comercio más importante» → el que más `ingreso_bruto` deja.
+- `Q-E-05` «qué comercios mueven más volumen» → `volumen_procesado`, identidad vigente.
+- `Q-E-22` «cómo va el negocio este trimestre» → fuera; la sustituye `Q-E-51` (tasa de reintento por
+  canal) en el MISMO estrato y rol. Yo había propuesto ponerla en `ventana_o_correlada` y no podía:
+  Q-E-22 era de `join_o_agregacion` y PLAN.md fija 25 de ese estrato.
+- P-014: un caso de rechazo acierta si la regla DECLARADA saltó en el ciclo, no solo al final.
+
+**Una corrección sobre mis propios números.** La tabla que le enseñé a Samuel para decidir Q-E-21 y
+Q-E-05 estaba calculada sobre el grano de intentos. El glosario firmado define `volumen_procesado`,
+`ingreso_bruto` y `margen_neto` sobre `fact_settlement_batch`, así que las referencias transcriben la
+fórmula firmada. Los ganadores son los mismos; los importes no. Y el 14,7 % que se perdía al unir con
+`v_merchant_current` era del grano de intentos: en liquidación, que va por `merchant_id` con una sola
+fila vigente cada uno, se pierde un 0 %.
+
+**La medida final:**
+
+| | ratio | Wilson 95 % | n |
+|---|---|---|---|
+| umbral (GOALS.yaml, resellado por Samuel) | ≥ 0,40 | ≥ 0,25 | ≥ 60 |
+| **medido · `gemma4:26b-mlx`** | **0,5167** (31/60) | **[0,39 – 0,64]** | **60** |
+
+Por estrato: simple 14/20 · join o agregación 12/25 · ventana o correlada 5/15. La ventana sigue
+siendo el estrato flojo. La cuenta cuadra con lo previsto: 25/57 con el criterio viejo, +5 por P-014
+(las cinco con la regla saltando dentro del ciclo), +1 de Q-E-51, y fallan Q-E-05 y Q-E-21.
+
+**Los dos nuevos que fallan dicen cosas distintas.** `Q-E-05`: el 26B acierta la semántica —métrica
+firmada, grano de liquidación, agrupa por comercio— y devuelve `merchant_id` y céntimos. **El fallo es
+mío**: al reescribir la pregunta no fijé la forma («nombre comercial», «en euros») como sí hace Q-E-17.
+No la he vuelto a tocar porque ya está medida; va en P-015. `Q-E-21`: une por `merchant_sk`, que no
+existe en la liquidación, y repite el MISMO SQL tres veces sin leer el rechazo. Eso es recuperación,
+no lectura del glosario.
+
+**Hallazgo del banco que queda como P-015, sin aplicar:** los 12 400 comercios comparten `trade_name`
+con algún otro (722 nombres; «Central Puerto» son 23 comercios en 11 países), y Q-E-17, Q-E-42 y
+Q-E-43 agrupan por nombre: responden «qué nombres facturan más», no «qué comercios». Todos los valores
+del top 10 cambian al agrupar por comercio, y en Q-E-42 cambian 26 de 90 filas. Un modelo que agrupe
+bien falla contra ellas. Están ya medidas, así que es propuesta.
+
+**El buzón tenía estados sin cerrar**: P-010, P-012 y P-013 aprobadas y aplicadas con `Estado:
+PENDIENTE`, y P-011 con un `PENDIENTE` detrás de su propia resolución. Corregido. Abiertas: Q-011 y
+Q-012 —esperan, por decisión de Samuel— y P-015.
+
+## 2026-09-11 · el README, profesionalizado · y la fase 9 cerrada como NO VERIFICADO
+
+**El README iba meses por detrás del código.** Decía «fases 0·1·2 cerradas» con ocho cerradas,
+427 tests con 820, la mutación en rojo dos fases después de ponerse en verde, y que los anillos
+2 y 5 «todavía no existían» con los cinco funcionando. Peor: **sus instrucciones de instalación ya
+no funcionaban** — mandaban generar el perfil `dev` y el servidor arranca contra `full`.
+
+Reescrito para quien lo evalúa desde fuera: qué demuestra y con qué evidencia, cómo funciona,
+cómo probarlo en menos de un minuto sin datos (`make gate-fast` no los necesita porque catálogo,
+política y estadísticas van versionados), cómo reproducir los números, las decisiones de diseño
+con su porqué, los fallos que encontraron las comprobaciones y las limitaciones. La guía larga de
+Claude Desktop sale a `docs/instalar-en-claude-desktop.md`, y la configuración para `dev` que
+documenta se verificó en vivo, lanzada desde otro directorio como hace el cliente.
+
+**La tabla de números ya no se escribe a mano**: la genera `make readme` desde `evals/reports/`.
+No entra en el gate porque la latencia oscila entre ejecuciones y un check de igualdad exacta se
+pondría rojo después de cada medida.
+
+**Tres defectos más, encontrados al escribirlo:**
+
+1. **El gate de documentación no podía fallar en ninguna de sus dos mitades.** La entrada del
+   CHANGELOG se buscaba como el texto «fase N» en cualquier sitio, y **la fase 8 se cerró sin
+   entrada propia** porque las de las fases 4 y 6 decían «…en la fase 8» de pasada. Y los ADR
+   citados que no existen se calculaban en una lista que nunca se usaba. Ahora se exige la
+   cabecera `## [x.y.z] · fase N · …` y la lista se reporta; las dos mitades se demostraron
+   plantando un fallo. Hoy no hay ninguna referencia real a un ADR —las dos que hay son la entrada
+   `[EJEMPLO]` y una cruzada a otro proyecto—, así que endurecerlo no rompió nada.
+2. **El error de «no existe el almacén» mandaba generar `dev`** cuando faltaba `full`, así que
+   seguir la instrucción no lo arreglaba. Ahora nombra el perfil que falta y cómo apuntar al otro.
+3. **Una afirmación falsa en mi propio borrador**: escribí que el banco de preguntas lo había
+   escrito un agente aislado del código. No: lo escribió el mismo agente que construyó el sistema.
+   Corregido antes de publicar.
+
+**Fase 9 cerrada como el plan prescribe sin cuenta AWS**: `Athena: NO VERIFICADO` en el README, con
+esas palabras, y entrada en el CHANGELOG. `G-ENGINE-PARITY` es de ampliación y no bloquea.
+Punto de retorno: `.snapshots/milestone-9-20260911T143930Z`.

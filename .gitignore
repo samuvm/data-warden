@@ -66,3 +66,9 @@ docs/PLAN.md
 # maquina y de UN momento; versionarla no significaria nada y ademas mezclaria
 # datos de consultas reales en el repositorio.
 var/
+
+# El material EN BRUTO del video de la fase 10. Se publica solo el montaje final en
+# H.264 (5 MB, `docs/proof/video/proof.mp4`): los clips sin montar suman 162 MB —uno
+# solo son 92— y el original en HEVC no lo reproducen la mitad de los navegadores.
+docs/proof/video/[0-9].mp4
+docs/proof/video/proof-hevc.mp4

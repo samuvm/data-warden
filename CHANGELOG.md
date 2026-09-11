@@ -8,6 +8,102 @@ puede leer después.
 Los números que aparecen aquí están **medidos**, con su comando al lado, y viven en
 `evals/reports/`. Un número sin comando que lo reproduzca no es un número.
 
+## [0.9.0] · fase 9 · 2026-09-11 · **cerrada · NO VERIFICADO**
+
+Athena + Glue. **Ampliación del plan, no núcleo**, y se cierra como el plan prescribe cuando no
+hay cuenta AWS: declarando `NO VERIFICADO` en el README con esas palabras.
+
+### Límite declarado
+
+- **Ninguna afirmación del proyecto está comprobada contra Athena.** No se ha escrito
+  `engines/athena.py`, ni hay tablas en S3, ni catálogo de Glue, ni los 15 casos de paridad.
+  `G-ENGINE-PARITY` no bloquea el núcleo y queda sin medir.
+- **Lo que sí está preparado**: el motor se usa detrás de una interfaz, y el estimador de coste
+  trabaja sobre los manifiestos de Iceberg, que son los mismos metadatos que tendría una tabla
+  en S3. Eso reduce el trabajo pendiente; no lo sustituye.
+
+## [0.8.0] · fase 8 · 2026-09-11 · **cerrada**
+
+Evaluación. Sesenta preguntas de referencia, la exactitud del sistema entero medida con
+intervalo, y los contratos de informe y de telemetría que comparte con otros proyectos.
+
+### Añadido
+
+- **Banco de 60 preguntas** estratificado (20 simples, 25 con join o agregación, 15 con ventana
+  o subconsulta correlacionada), **10 con «rechazo» como respuesta correcta**, y sus 50
+  resultsets de referencia congelados sobre el perfil `full`. La mayoría transcribe una
+  definición del glosario de negocio firmado. `scripts/check_questions.py` exige que cada
+  referencia pase el sistema entero para su rol.
+- **`G-EVAL-REPORT`**: `scripts/check_eval_reports.py` valida cada informe contra el contrato
+  compartido, exige que cada métrica exista en `GOALS.yaml` y que **toda evaluación que llama a
+  un modelo publique su informe**. Su primera ejecución encontró cuatro incumplimientos reales
+  en el único informe que había.
+- **`G-OTEL-ATTRS`**: `datawarden/telemetry/`, un modelo interno de llamada a modelo que no
+  conoce un solo nombre del estándar, y un traductor que es el único módulo que escribe
+  `gen_ai.*`. La meta se mide sobre el camino real, partiendo de una respuesta de Ollama
+  capturada, y prueba que un colector caído no tumba nada.
+- **Estadísticas de las 8 vistas derivadas**, deducidas del linaje publicado.
+- **`make readme`**: la tabla de números del README sale de `evals/reports/`, no se escribe a mano.
+- **Guía de instalación en Claude Desktop**, fuera del README: `docs/instalar-en-claude-desktop.md`.
+
+### Cambiado
+
+- **El generador pasa de `qwen3.5:9b-mlx` a `gemma4:26b-mlx`**, fijado por digest, y el umbral de
+  `G-EXEC-ACC` se redefine de 0,80 a 0,40 (Wilson de 0,68 a 0,25). Las dos cosas son la misma
+  decisión: bajar el listón sin subir el modelo habría sido el atajo. El 9B se queda anotado en
+  `models.lock` para que sus números sigan siendo reproducibles.
+- **Un caso de rechazo acierta si la regla declarada saltó en el ciclo de corrección**, no solo si
+  el ciclo termina en rechazo. Antes, un modelo que se recuperaba bien de un rechazo contaba como
+  fallo: mejorar en recuperación empeoraba la exactitud.
+- **Las respuestas grabadas se guardan en un subdirectorio por modelo.** Mezclar las de dos modelos
+  daba un número que no era de ninguno, y ahora es imposible por construcción.
+
+### Corregido
+
+- **Las 8 vistas pagaban el castigo de «tabla desconocida» (1 GB)**, por encima del presupuesto
+  duro de `analyst`, aunque el glosario firmado manda usarlas. 20 de las 47 referencias las
+  rechazaba el propio sistema. Ahora 0.
+- **El presupuesto blando rompía a los clientes que no saben confirmar.** Devolverles una petición
+  de confirmación no les pedía algo que no sabían dar: les rompía la llamada. 17 de 92 llamadas de
+  la prueba manual con Claude Desktop murieron así. La entrada de la fase 7 decía que ese cliente
+  «no ejecuta nada», y era falso: recibía un error.
+- **El modelo de 26B generaba sin fin** con un prompt concreto. Subir el tiempo límite no lo
+  arreglaba —no era lento, no paraba—; un tope de tokens convierte ese descarte en un fallo real
+  del modelo, que es lo que hay que contar.
+- **El check de secretos no escaneaba los ficheros aún no añadidos a git.** Demostrado plantando
+  una clave falsa en un fichero nuevo.
+- **Los tests anti-inyección llevaban rojos desde que el glosario entró en el prompt**, y sus
+  cuatro ataques pasaban aunque la defensa estuviera desactivada. Hay uno nuevo que sí la exige.
+- **El gate de documentación no podía fallar en ninguna de sus dos mitades**: la entrada del
+  CHANGELOG se buscaba como texto suelto —la fase 8 se cerró sin entrada porque otra la mencionaba
+  de pasada— y los ADR citados que no existen se calculaban y nunca se reportaban.
+- **El error de «no existe el almacén» mandaba generar `dev`** cuando el servidor busca `full`.
+
+### Medido
+
+Sobre MacBook Pro M4 Max · 36 GB · macOS 26.5.
+
+| Meta | Umbral | Medido | Comando |
+|---|---|---|---|
+| `G-EXEC-ACC` | ≥ 0,40 · Wilson ≥ 0,25 · n ≥ 60 | **0,517** (31/60) · Wilson [0,39 – 0,64] | `make eval` |
+| `G-RECOVERY` | ≥ 0,70 | **0,857** (24/28) · Wilson [0,69 – 0,94] | `make eval-recovery` |
+| `G-EVAL-REPORT` | == 0 | **0** · 3 informes, 100 % válidos | `python scripts/check_eval_reports.py` |
+| `G-OTEL-ATTRS` | == 0 | **0** · 100 % de atributos obligatorios | `pytest tests/contract/test_otel_attrs.py` |
+| Servidor contestando por stdio | — | **14 / 14** | `make mcp-live` |
+
+Por estrato: simples 14/20 · join o agregación 12/25 · ventana o correlada 5/15. Con el 9B el
+fallo era sintáctico (12 tablas inventadas, 6 consultas que no compilaban); con el 26B, 2 y 0.
+
+### Límite declarado
+
+- **El banco lo escribió el mismo agente que construyó el sistema**, transcribiendo el glosario
+  firmado, y ninguna persona lo ha revisado entero. La exactitud es autoevaluada.
+- **Tres referencias agrupan comercios por nombre comercial**, y los 12.400 comercios comparten
+  nombre con algún otro. Corregirlas está propuesto y pendiente: ya estaban medidas.
+- **La telemetría traduce al estándar pero no exporta**: falta un SDK y un colector.
+- **La versión de las convenciones OpenTelemetry que manda el contrato compartido no existe
+  todavía como tag**; se fija la última del repositorio principal que las contiene, con su sha.
+
 ## [0.7.0] · fase 7 · 2026-09-07 · **cerrada**
 
 HTTP y MCP 2026-07-28. El mismo guard, presupuesto, enmascarado y auditoría servidos por
