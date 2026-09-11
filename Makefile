@@ -86,9 +86,12 @@ test:
 	$(UV) pytest tests/unit tests/property tests/contract tests/adversarial \
 		--hypothesis-profile=gate
 
+# Los que tocan el motor y el catálogo de verdad. `scripts/done.py` ya los corre
+# desde la fase 5; este atajo se había quedado en el tapón de la fase 0 y decía que
+# no existían cuando llevaban dos fases existiendo.
 test-int:
-	@echo "FASE 0: no hay tests de integración todavía (necesitan el motor y el catálogo)."
-	@exit 1
+	$(UV) pytest tests/integration tests/contract -m "integration or not integration" \
+		--hypothesis-profile=gate
 
 # `--cov-context=test` NO es opcional: es lo que hace medible "un test por
 # función" (CONSTITUCION §2.6). Sin él, G-COV-FUNC no se puede calcular y el check
@@ -127,11 +130,17 @@ catalog:
 # Las estadísticas salen de los MANIFIESTOS de Iceberg, sin leer una sola fila:
 # contar 66,6 M de filas tarda 0,5 s porque se lee el metadato. Perfil `full`, que es
 # el dataset publicado y el que calibra los presupuestos.
+# Las vistas derivadas NO tienen manifiesto, así que sus cifras salen del linaje
+# publicado (P-012). Sin ese paso el estimador les cobraba el castigo de 1 GB y las
+# ocho quedaban por encima del presupuesto duro de `analyst`, incluidas las dos que el
+# glosario firmado señala como camino obligatorio.
 statistics:
 	$(UV) python -c "import pathlib; from datawarden.catalog import statistics as S; \
+	  from datawarden.catalog import SCHEMA_PATH, load_generated; \
 	  st = S.build_from_iceberg(pathlib.Path('datagen/out/full/iceberg'), 'full'); \
+	  st = S.derive_views(st, load_generated(SCHEMA_PATH)); \
 	  pathlib.Path('src/datawarden/catalog/generated/statistics.json').write_text(S.to_json(st)); \
-	  print(f'estadisticas: {len(st.tables)} tablas')"
+	  print(f'estadisticas: {len(st.tables)} relaciones')"
 
 # Los checks de arquitectura que cuestan milisegundos y entran en el gate B.
 arch-checks:
@@ -143,6 +152,7 @@ arch-checks:
 	$(UV) python scripts/check_failclosed.py
 	$(UV) python scripts/check_role_source.py
 	$(UV) python scripts/check_mask_path.py
+	$(UV) python scripts/check_eval_reports.py
 	$(UV) python scripts/check_rule_coverage.py
 	$(UV) python scripts/check_rules_registry.py
 	$(UV) python scripts/check_attack_coverage.py
@@ -289,6 +299,11 @@ done:
 	$(UV) python scripts/done.py --milestone $(MILESTONE)
 
 # --- varios ------------------------------------------------------------------
+# La tabla de números del README sale de `evals/reports/`, nunca se escribe a mano: el
+# README llegó a publicar la mutación en rojo dos fases después de ponerse en verde.
+readme:
+	$(UV) python scripts/readme_numbers.py
+
 report:
 	$(UV) python datagen/report.py --data datagen/out/$(PROFILE) \
 		--db datagen/out/cierzo-$(PROFILE).duckdb \
