@@ -216,3 +216,101 @@ def _partition_value(partition: Any, transform: str) -> str:
     if isinstance(raw, dt.date):
         return raw.isoformat()
     return str(raw)
+
+
+def derive_views(stats: Statistics, schema: Any) -> Statistics:
+    """Las estadísticas de las VISTAS, deducidas del linaje ya publicado.
+
+    **Esto nace de P-012, y el defecto que arregla era grave.** Los manifiestos de
+    Iceberg solo existen para las 24 tablas físicas, pero el catálogo publica 32
+    relaciones: las 8 que faltaban son las vistas derivadas. Para el estimador eran
+    tablas DESCONOCIDAS, así que les cobraba `UNKNOWN_TABLE_BYTES` —1 GB, un castigo
+    deliberado y correcto para lo que de verdad no se conoce—. Solo que 1 GB está por
+    encima del presupuesto duro de `analyst` (600 MB), de modo que **las ocho vistas
+    eran inalcanzables para el rol principal, hicieran lo que hicieran**: se cobraba
+    1 GB por lo que cuesta 7,5 MB.
+
+    Y el glosario FIRMADO manda usarlas: `pago_valido` «se calcula» sobre
+    `v_payment_intent`, `tasa_de_aprobacion` sobre `v_attempt_dedup`. El sistema le
+    decía al modelo que usara un camino que él mismo cerraba. 20 de las 47 referencias
+    escritas del banco las rechazaba el propio sistema.
+
+    **La dirección del error es lo que decide el diseño.** Sobreestimar es un rechazo
+    de más; subestimar deja pasar una consulta cara, y `G-BUDGET-ESCAPE` es un axioma.
+    Así que todo lo dudoso se redondea hacia arriba:
+
+    - `bytes` y `files`: la SUMA de las bases. Una vista no lee menos que sus bases.
+    - `rows`: el MÁXIMO de las bases. Un `dedup` o un `group by` solo quitan filas.
+    - `column_bytes`: la suma de las columnas de las que deriva cada una, que es
+      exactamente lo que el motor abre para producirla.
+    - `partitions`: **solo** se heredan cuando la vista tiene UNA base particionada y
+      conserva su columna de partición con linaje de identidad. Es el único caso en
+      que podar por predicado sobre la vista poda los mismos ficheros que sobre la
+      base. En cualquier otro, sin particiones: no se poda y se cobra entero.
+
+    Lo que NO se toca: una relación sin linaje sigue siendo desconocida y sigue
+    pagando el castigo. El castigo no era el error; el error era aplicárselo a algo
+    cuyo linaje está publicado columna a columna.
+    """
+    derived: dict[str, TableStats] = {}
+    for table in schema.tables:
+        name = table.name.lower()
+        if name in stats.tables or table.kind != "view":
+            continue
+
+        bases: dict[str, TableStats] = {}
+        column_bytes: dict[str, int] = {}
+        for column in table.columns:
+            total = 0
+            for origin in column.derives_from or ():
+                base_name, _, base_column = origin.partition(".")
+                base = stats.table(base_name)
+                if base is None or base_name.lower() == name:
+                    continue
+                bases[base_name.lower()] = base
+                total += base.column_bytes.get(base_column.lower(), 0)
+            if total:
+                column_bytes[column.name.lower()] = total
+        if not bases:
+            continue
+
+        derived[name] = TableStats(
+            name=name,
+            rows=max(b.rows for b in bases.values()),
+            bytes=sum(b.bytes for b in bases.values()),
+            files=sum(b.files for b in bases.values()),
+            column_bytes=column_bytes,
+            **_inherited_partitions(table, bases),
+        )
+
+    if not derived:
+        return stats
+    return Statistics(
+        profile=stats.profile,
+        source=f"{stats.source} + {len(derived)} vistas por linaje",
+        tables={**stats.tables, **derived},
+    )
+
+
+def _inherited_partitions(table: Any, bases: dict[str, TableStats]) -> dict[str, Any]:
+    """El índice de poda de la base, **solo si la vista lo conserva intacto**.
+
+    Se exige que haya una sola base, que esté particionada, y que exista una columna
+    de la vista cuyo linaje sea EXACTAMENTE esa columna de partición y nada más. Una
+    columna agregada (`min(event_ts)`) o compuesta no vale: un predicado sobre ella
+    no poda los mismos ficheros, y creer que sí es subestimar.
+    """
+    if len(bases) != 1:
+        return {"partition_column": None, "partitions": {}}
+    base = next(iter(bases.values()))
+    if base.partition_column is None:
+        return {"partition_column": None, "partitions": {}}
+
+    wanted = f"{base.name}.{base.partition_column}"
+    for column in table.columns:
+        if tuple(o.lower() for o in (column.derives_from or ())) == (wanted,):
+            return {
+                "partition_column": column.name.lower(),
+                "partitions": {k: dict(v) for k, v in base.partitions.items()},
+            }
+    return {"partition_column": None, "partitions": {}}

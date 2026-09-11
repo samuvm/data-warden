@@ -35,6 +35,9 @@ import yaml
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
+from datawarden.catalog.statistics import load as load_stats
+from datawarden.cost import STATISTICS_PATH
+from datawarden.cost.screen import screen
 from datawarden.domain.types import Principal, Role, RoleSource, ValidatedQuery
 from datawarden.guard.validator import validate
 from gatelib import ROOT, record
@@ -80,11 +83,14 @@ def main() -> int:
     ejecucion = raw.get("ejecucion") or []
 
     from datawarden.catalog import SCHEMA_PATH, load_generated
-    from datawarden.principal import POLICY_PATH
+    from datawarden.principal import BUDGETS_PATH, POLICY_PATH
+    from datawarden.principal.budgets import load_budgets
     from datawarden.principal.policy import load_policy
 
     schema = load_generated(SCHEMA_PATH)
     policy = load_policy(POLICY_PATH)
+    budgets = load_budgets(BUDGETS_PATH)
+    stats = load_stats(STATISTICS_PATH)
 
     problemas: list[str] = []
     verificados = 0
@@ -127,11 +133,24 @@ def main() -> int:
                 "que nadie firmó"
             )
 
-    # 3 · EL SQL DE REFERENCIA TIENE QUE PASAR EL GUARD PARA SU ROL.
+    # 3 · EL SQL DE REFERENCIA TIENE QUE PASAR EL SISTEMA ENTERO PARA SU ROL.
     #
     # Sin esto se puede escribir un caso «de ejecución» cuya referencia el sistema
     # rechazaría: al medir, el modelo acertaría el SQL y aun así fallaría, y el
     # número culparía al modelo de una política que el propio banco incumple.
+    #
+    # **Y aquí estaba el agujero de P-012: esto llamaba a `validate()`.** El guard es
+    # el anillo 3; el presupuesto es el 4. `eval_exec.py` pasa el candidato del modelo
+    # por `screen()`, o sea por los DOS, así que un check que solo mira el guard
+    # aprueba referencias que la medida rechaza. Pasó exactamente eso: 20 de las 47
+    # referencias escritas —todas las que usan las vistas que el glosario firmado
+    # manda usar— pasaban este check y las rechazaba el sistema al medir, dejando a
+    # `G-EXEC-ACC` un techo de 0,574 que no dependía del modelo.
+    #
+    # Es la quinta vez en el proyecto que aparece el mismo error de método —medir un
+    # camino que no es el que se ejecuta—, después de `G-PII-LEAK`, `G-SECRETS`,
+    # `G-MCP-CONFORM` y `check_mcp_live`. Se comprueba por el mismo camino, o no se
+    # comprueba.
     for caso in ejecucion:
         sql = caso.get("sql_referencia")
         if not sql:
@@ -141,13 +160,24 @@ def main() -> int:
             role=Role(caso.get("rol", "analyst")),
             source=RoleSource.CLI_FLAG,
         )
-        veredicto = validate(
-            str(sql), principal=who, schema=schema, policy=policy, max_rows=MAX_ROWS
+        resultado = screen(
+            str(sql),
+            principal=who,
+            schema=schema,
+            policy=policy,
+            budgets=budgets,
+            stats=stats,
         )
-        if not isinstance(veredicto, ValidatedQuery):
+        if resultado.rejection is not None:
+            coste = (
+                f" · {resultado.cost.estimated_bytes:,} bytes"
+                if resultado.cost is not None
+                else ""
+            )
             problemas.append(
-                f"{caso['id']}: la referencia NO pasa el guard con rol "
-                f"{caso.get('rol')} · {veredicto.rule_id}/{veredicto.code}. "
+                f"{caso['id']}: la referencia NO pasa el sistema con rol "
+                f"{caso.get('rol')} · {resultado.rejection.rule_id}/"
+                f"{resultado.rejection.code}{coste}. "
                 "Un caso de ejecución cuya referencia el sistema rechazaría culparía "
                 "al modelo de una política que el banco incumple"
             )

@@ -374,3 +374,151 @@ def test_la_epoca_de_la_conversion_es_1970_01_01() -> None:
 
     assert _partition_value(_Record(0), "identity") == "1970-01-01"
     assert _partition_value(_Record(1), "identity") == "1970-01-02"
+
+
+# --------------------------------------------------------------------------
+# `derive_views` · P-012. La dirección del error es lo que se prueba.
+# --------------------------------------------------------------------------
+
+
+class _Col:
+    """Una columna del catálogo, con lo justo que `derive_views` mira."""
+
+    def __init__(self, name: str, derives_from: tuple[str, ...] = ()) -> None:
+        self.name = name
+        self.derives_from = derives_from
+
+
+class _Tab:
+    def __init__(self, name: str, kind: str, columns: list[_Col]) -> None:
+        self.name = name
+        self.kind = kind
+        self.columns = columns
+
+
+class _Esquema:
+    def __init__(self, tables: list[_Tab]) -> None:
+        self.tables = tables
+
+
+def _esquema_de_una_vista(*columnas: _Col, kind: str = "view") -> _Esquema:
+    return _Esquema([_Tab("v", kind, list(columnas))])
+
+
+def test_una_vista_hereda_los_bytes_de_las_columnas_de_las_que_deriva() -> None:
+    """Es el arreglo entero de P-012: 7,5 MB en vez del castigo de 1 GB."""
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(
+        _STATS,
+        _esquema_de_una_vista(_Col("a", ("fact.a",)), _Col("b", ("fact.b",))),
+    )
+
+    vista = salida.table("v")
+    assert vista is not None
+    assert vista.column_bytes == {"a": 100, "b": 300}
+    assert vista.bytes_of(("a",)) == 100
+
+
+def test_una_vista_sobre_dos_bases_suma_los_bytes_y_no_los_promedia() -> None:
+    """Sobreestimar es un rechazo de más; subestimar deja pasar una consulta cara."""
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(
+        _STATS, _esquema_de_una_vista(_Col("a", ("fact.a",)), _Col("x", ("dim.x",)))
+    )
+
+    vista = salida.table("v")
+    assert vista is not None
+    assert vista.bytes == 450  # 400 + 50
+    assert vista.files == 5  # 4 + 1
+    assert vista.rows == 400  # el MÁXIMO: deduplicar y agrupar solo quitan filas
+
+
+def test_una_vista_que_conserva_la_particion_hereda_el_indice_de_poda() -> None:
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(
+        _STATS, _esquema_de_una_vista(_Col("event_date", ("fact.event_date",)))
+    )
+
+    vista = salida.table("v")
+    assert vista is not None
+    assert vista.partition_column == "event_date"
+    assert vista.partitions == {"2026-08-01": {"rows": 100, "bytes": 100, "files": 1}}
+
+
+def test_una_columna_agregada_no_hereda_la_particion() -> None:
+    """**Este es el test que impide subestimar.**
+
+    `min(event_ts)` deriva de la columna de partición, pero un predicado sobre ella no
+    poda los mismos ficheros. Heredar el índice aquí haría que el estimador cobrara
+    una fracción de la tabla por una consulta que la lee entera, y `G-BUDGET-ESCAPE`
+    es un axioma.
+    """
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(
+        _STATS,
+        _esquema_de_una_vista(_Col("primero", ("fact.event_date", "fact.a"))),
+    )
+
+    vista = salida.table("v")
+    assert vista is not None
+    assert vista.partition_column is None
+    assert vista.partitions == {}
+
+
+def test_una_vista_sobre_dos_bases_no_hereda_particion_aunque_una_la_tenga() -> None:
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(
+        _STATS,
+        _esquema_de_una_vista(_Col("event_date", ("fact.event_date",)), _Col("x", ("dim.x",))),
+    )
+
+    vista = salida.table("v")
+    assert vista is not None
+    assert vista.partition_column is None
+
+
+def test_lo_que_no_tiene_linaje_sigue_pagando_el_castigo() -> None:
+    """El castigo no era el error. El error era aplicárselo a algo con linaje."""
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(_STATS, _esquema_de_una_vista(_Col("a", ())))
+
+    assert salida.table("v") is None
+    assert salida is _STATS  # sin nada que derivar, ni se copia
+
+
+def test_una_tabla_fisica_no_se_deriva_aunque_este_en_el_esquema() -> None:
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(_STATS, _esquema_de_una_vista(_Col("a", ("fact.a",)), kind="table"))
+
+    assert salida.table("v") is None
+
+
+def test_una_vista_que_se_referencia_a_si_misma_no_se_cuenta_como_base() -> None:
+    """`v_payment_intent` tiene una columna derivada de otra suya. No es una base."""
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(
+        _STATS,
+        _esquema_de_una_vista(_Col("a", ("fact.a",)), _Col("c", ("v.a",))),
+    )
+
+    vista = salida.table("v")
+    assert vista is not None
+    assert vista.bytes == 400  # solo `fact`, no `fact` + sí misma
+
+
+def test_la_procedencia_dice_cuantas_vistas_se_dedujeron() -> None:
+    """Un número que sale del linaje y no del manifiesto tiene que decirlo."""
+    from datawarden.catalog.statistics import derive_views
+
+    salida = derive_views(_STATS, _esquema_de_una_vista(_Col("a", ("fact.a",))))
+
+    assert "1 vistas por linaje" in salida.source
+    assert salida.profile == _STATS.profile
