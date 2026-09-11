@@ -2830,3 +2830,22 @@ pondría rojo después de cada medida.
 **Fase 9 cerrada como el plan prescribe sin cuenta AWS**: `Athena: NO VERIFICADO` en el README, con
 esas palabras, y entrada en el CHANGELOG. `G-ENGINE-PARITY` es de ampliación y no bloquea.
 Punto de retorno: `.snapshots/milestone-9-20260911T143930Z`.
+
+## 2026-09-12 · publicado · el video y las capturas entran en el README
+
+`c30c156..71f55dc` en `github.com/samuvm/data-warden`. Cinco commits, uno por tema, sin
+coautoria: las vistas sin estadisticas, el presupuesto blando, las cuatro comprobaciones que no
+podian fallar, el cierre de la fase 8 y el README.
+
+**El material de prueba, revisado antes de publicarlo.** Las capturas y los 90 s de video son de
+Claude Desktop: ninguna terminal, ningun fichero de configuracion, asi que no habia pimienta ni
+credenciales que se pudieran filtrar. Se comprobo mirandolo, no suponiendolo.
+
+**Dos arreglos tecnicos antes de subirlo.** El video venia en HEVC, que la mitad de los
+navegadores no reproduce; transcodificado a H.264 1280x830 son 5,0 MB. Y los clips en bruto suman
+162 MB —uno solo son 92, cerca del limite de GitHub—, asi que se ignoran: se publica el montaje.
+Las capturas se renombraron a nombres sin espacios.
+
+El fotograma de portada sale del segundo 56: la pregunta cara, el rechazo con el tamano calculado
+sin leer datos, y las dos preguntas con las que el cliente acota. Es la historia entera en una
+imagen.
