@@ -53,6 +53,20 @@ def fingerprints(payload: dict[str, object]) -> set[tuple[str, str, str]]:
     return found
 
 
+def ficheros_de_git() -> list[str]:
+    """Lo rastreado MÁS lo nuevo sin ignorar. Nunca lo ignorado.
+
+    `--cached` es lo que ya está en el índice; `--others --exclude-standard` es lo
+    que existe en el disco y no está en `.gitignore`. La unión es exactamente «lo que
+    acabará en el repositorio», que es el conjunto sobre el que un axioma de secretos
+    tiene algo que decir.
+    """
+    code, out = run(["git", "ls-files", "--cached", "--others", "--exclude-standard"])
+    if code:
+        return []
+    return sorted({linea for linea in out.splitlines() if linea.strip()})
+
+
 def main() -> int:
     if not BASELINE.exists():
         print("check_secrets: FALLO · no existe .secrets.baseline")
@@ -84,6 +98,19 @@ def main() -> int:
                 # alguien regenerando la línea base.
                 "--exclude-files",
                 r"^\.secrets\.baseline$",
+                # **Y SE LE DICEN LOS FICHEROS, uno a uno.** Sin esta lista,
+                # `detect-secrets scan` mira solo lo que devuelve `git ls-files`, o sea
+                # lo YA RASTREADO. Un fichero nuevo sin `git add` —que es justo el
+                # estado de todo lo que se acaba de escribir— quedaba fuera del
+                # escaneo, y el axioma daba verde sobre él.
+                #
+                # Comprobado plantando `AWS_SECRET_ACCESS_KEY` con una clave de
+                # ejemplo: en `src/datawarden/mask/config.py` (rastreado) el check se
+                # pone rojo; en un fichero nuevo al lado, decía «ok · 0 hallazgos
+                # nuevos». Se corrige sumando `--others --exclude-standard`, que añade
+                # lo no rastreado PERO NO lo ignorado: `datagen/out/` y sus 7,1 GB
+                # siguen fuera, que es lo que se quiere.
+                *ficheros_de_git(),
             ]
         )
         if code:

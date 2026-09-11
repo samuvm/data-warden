@@ -313,10 +313,17 @@ def check_docs(milestone: int) -> dict[str, object]:
     if not changelog.exists():
         raise GateError("no existe CHANGELOG.md")
     text = changelog.read_text(encoding="utf-8")
-    if f"fase {milestone}" not in text.lower():
+    # **Una ENTRADA, no una mención.** Esto buscaba el texto «fase N» en cualquier sitio
+    # del fichero, y la fase 8 se cerró el 2026-09-11 sin entrada propia: pasó porque las
+    # entradas de las fases 4 y 6 decían, de pasada, «…en la fase 8». Un check que
+    # aprueba por una coincidencia en la prosa de otra fase no comprueba nada. Ahora
+    # exige la cabecera con el formato de todas las demás: `## [x.y.z] · fase N · …`.
+    cabecera = re.compile(rf"^## \[[^\]]+\] · fase {milestone}\b", re.MULTILINE)
+    if not cabecera.search(text):
         raise GateError(
-            f"CHANGELOG.md no tiene entrada para la fase {milestone}. Punto 11 de la "
-            "DoD: una fase cerrada sin entrada es una fase que nadie puede leer después."
+            f"CHANGELOG.md no tiene entrada para la fase {milestone} (se busca una "
+            f"cabecera `## [x.y.z] · fase {milestone} · …`, no una mención). Punto 11 de "
+            "la DoD: una fase cerrada sin entrada es una fase que nadie puede leer después."
         )
     referenced: set[str] = set()
     missing = []
@@ -348,6 +355,13 @@ def check_docs(milestone: int) -> dict[str, object]:
                 referenced.add(adr)
                 if not list((ROOT / "docs" / "adr").glob(f"{adr}-*.md")):
                     missing.append(f"{relative}:{lineno} cita ADR-{adr} y no existe")
+    # **Y se REPORTA.** La lista de ADR citados que no existen se calculaba y nunca se
+    # usaba: la función devolvía «ok» con la lista llena. La mitad del punto 11 de la
+    # DoD —«todo ADR referenciado existe»— era una comprobación que no podía fallar.
+    if missing:
+        raise GateError(
+            "hay ADR citados que no existen (punto 11 de la DoD):\n  " + "\n  ".join(missing)
+        )
     return {"changelog": "ok", "adr_referenced": len(referenced)}
 
 

@@ -63,11 +63,22 @@ def build_executor(
     from datawarden.principal.policy import load_policy
 
     if not database.exists():
+        # **El perfil que se sugiere es el que FALTA, no uno fijo.** Este mensaje decía
+        # siempre `PROFILE=dev`, y desde que el servidor arranca contra `full` seguir la
+        # instrucción no arreglaba nada: se generaba `dev` y el servidor seguía buscando
+        # `full`. Un mensaje accionable que manda hacer algo inútil no es accionable.
+        perfil = "dev" if "cierzo-dev" in database.name else "full"
         message = (
             f"no existe {database}. El almacén no se inventa vacío: un servidor que "
             "arranca sin datos convierte «no encuentro el almacén» en «no hay filas», "
-            "y quien pregunta no puede distinguirlas. Genera el dataset con "
-            "`make dataset PROFILE=dev`."
+            "y quien pregunta no puede distinguirlas. Genéralo con "
+            f"`make dataset PROFILE={perfil}`"
+            + (
+                ", o apunta al perfil pequeño con `make dataset PROFILE=dev` y "
+                "`--database datagen/out/cierzo-dev.duckdb`."
+                if perfil == "full"
+                else "."
+            )
         )
         raise MissingDatasetError(message)
     if not SCHEMA_PATH.exists():
