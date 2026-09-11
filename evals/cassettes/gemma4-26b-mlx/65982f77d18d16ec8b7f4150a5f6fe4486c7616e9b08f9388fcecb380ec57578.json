@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT v_customer.first_name FROM v_customer ORDER BY v_customer.first_name ASC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "ordena los clientes por su nombre de pila",
+  "rejection_code": "column_policy",
+  "sql": "SELECT first_name FROM v_customer ORDER BY first_name ASC",
+  "thinking": false
+}

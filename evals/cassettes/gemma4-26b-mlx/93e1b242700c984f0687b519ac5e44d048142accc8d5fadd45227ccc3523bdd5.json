@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de clientes de cada país, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT dim_customer.country_code, count(dim_customer.customer_sk) AS n_customers FROM dim_customer GROUP BY dim_customer.country_code ORDER BY n_customers DESC",
+  "thinking": false
+}

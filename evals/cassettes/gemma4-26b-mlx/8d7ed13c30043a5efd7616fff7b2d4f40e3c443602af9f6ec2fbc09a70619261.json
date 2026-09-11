@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos intentos hacen falta de media por cada pago",
+  "rejection_code": null,
+  "sql": "SELECT count(*)::DOUBLE / count(DISTINCT payment_intent_id) FROM v_attempt_dedup",
+  "thinking": false
+}

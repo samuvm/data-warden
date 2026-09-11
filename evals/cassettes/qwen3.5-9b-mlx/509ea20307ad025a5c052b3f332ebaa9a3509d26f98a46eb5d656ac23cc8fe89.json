@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT p.product_category, COUNT(DISTINCT v.payment_intent_id) AS num_pagos_validos FROM v_payment_intent v JOIN fact_order_line f ON v.payment_intent_id = f.payment_intent_id WHERE v.eventually_approved = true AND v.is_test = false GROUP BY p.product_category ORDER BY num_pagos_validos DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de pagos válidos de cada categoría de producto, ordenado de más a menos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT p.product_category, COUNT(DISTINCT v.payment_intent_id) AS num_pagos_validos FROM v_payment_intent v JOIN fact_order_line f ON v.payment_intent_id = f.payment_intent_id WHERE v.eventually_approved = true AND v.is_test = false GROUP BY p.product_category ORDER BY num_pagos_validos DESC",
+  "thinking": false
+}

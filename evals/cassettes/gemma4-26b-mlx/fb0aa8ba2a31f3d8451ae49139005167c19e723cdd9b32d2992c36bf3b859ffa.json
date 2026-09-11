@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer WHERE birth_date < '1990-01-01' LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos clientes nacieron antes de 1990",
+  "rejection_code": "column_policy",
+  "sql": "SELECT count(*) FROM dim_customer WHERE age_band = 'before_1990'",
+  "thinking": false
+}

@@ -43,7 +43,7 @@ import yaml
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 from datawarden.nl2sql.providers import LocalProvider
-from gatelib import ROOT, record
+from gatelib import ROOT, eval_report, record
 
 SUITE = ROOT / "evals" / "suites" / "tool-choice.yaml"
 TOOLS = ROOT / "docs" / "spec" / "tools.yaml"
@@ -125,6 +125,13 @@ def ask(model: str, prompt: str, endpoint: str, timeout_s: float) -> str:
         return str(json.loads(response.read().decode("utf-8")).get("response", ""))
 
 
+def sha_del_conjunto() -> str:
+    """La huella del conjunto de escenarios. Obligatoria en el contrato del informe."""
+    import hashlib
+
+    return "sha256:" + hashlib.sha256(SUITE.read_bytes()).hexdigest()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--refresh", action="store_true", help="llama al modelo y regraba")
@@ -192,6 +199,32 @@ def main() -> int:
         )
 
     total = len(suite["escenarios"])
+
+    # El informe transversal que exige `G-EVAL-REPORT`. `tool-choice.json` es la medida
+    # del gate de ESTE repo; esto es lo que puede leer el 02, que no conoce su formato.
+    eval_report(
+        suite="tool-choice",
+        metric_id="G-TOOL-CHOICE",
+        value=float(hits["real"]),
+        n=total,
+        unit="count",
+        deterministic=not args.refresh,
+        models={args.model_role: f"{tag} ({model_ref(digest)})"},
+        dataset={
+            "name": "tool-choice-suite",
+            "version": int(suite.get("version", 1)),
+            "n_cases": total,
+            "n_negative_cases": sum(1 for c in suite["escenarios"] if c.get("ambiguo")),
+            "sha256": sha_del_conjunto(),
+        },
+        raw_path="evals/reports/tool-choice.json",
+        notes=(
+            "Al modelo se le dan SOLO las cuatro descripciones de docs/spec/tools.yaml. "
+            "Mide si un cliente elige bien la herramienta con lo que el servidor publica, "
+            "no si el sistema responde bien una vez elegida."
+        ),
+    )
+
     record(
         "tool-choice.json",
         "G-TOOL-CHOICE",

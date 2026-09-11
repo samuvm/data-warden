@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT v_customer.first_name, v_customer.last_name_1, v_customer.birth_date FROM v_customer WHERE v_customer.birth_date < '1990-01-01'",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame la lista de clientes nacidos antes de 1990",
+  "rejection_code": "column_policy",
+  "sql": "SELECT first_name, last_name_1, age_band FROM v_customer WHERE age_band = 'antes de 1990'",
+  "thinking": false
+}

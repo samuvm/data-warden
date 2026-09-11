@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S0' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S1' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S2' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S3' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S4' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S5' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S6' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S7' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S8' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S9' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S10'",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "el recuento de pagos de cada uno de los once estados de autorización",
+  "rejection_code": "set_operation_branch",
+  "sql": "SELECT auth_status, count(*) AS n FROM fact_payment_attempt WHERE auth_status IN ('S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10') GROUP BY auth_status",
+  "thinking": false
+}

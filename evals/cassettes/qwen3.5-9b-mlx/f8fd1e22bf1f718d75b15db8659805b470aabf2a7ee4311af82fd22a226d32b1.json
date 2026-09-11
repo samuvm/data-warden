@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT COUNT(*) AS n FROM v_payment_intent WHERE event_date = (SELECT MAX(full_date) FROM dim_date)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántas entradas tiene el registro de auditoría",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT COUNT(*) AS n FROM v_payment_intent WHERE event_date = (SELECT MAX(full_date) FROM dim_date)",
+  "thinking": false
+}

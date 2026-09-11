@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT AVG(v.captured_eur_minor) FROM v_payment_intent v WHERE v.eventually_approved AND v.is_test = false",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es el ticket medio en euros",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT AVG(v.captured_eur_minor) FROM v_payment_intent v WHERE v.eventually_approved AND NOT EXISTS (SELECT 1 FROM fact_payment_attempt f WHERE f.payment_intent_id = v.payment_intent_id AND f.is_test)",
+  "thinking": false
+}

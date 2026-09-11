@@ -10,10 +10,32 @@
 # El juez NUNCA es el modelo que genera: usar el mismo infla la métrica de forma
 # sistemática, y aquí está evitado por diseño y no por disciplina.
 #
-# rol            tag                digest
-generador        qwen3.5:9b-mlx     203e30078279
-juez             gemma4:12b-mlx     117d0d84cf2a
-generador_dev    qwen3.5:4b-mlx     61aa3858e9d3
+# CAMBIO DE GENERADOR · 2026-09-10, con P-011 resuelta.
+#
+# El generador pasa de `qwen3.5:9b-mlx` a `gemma4:26b-mlx`. No es una preferencia: es lo
+# medido. Con el 9B, `G-EXEC-ACC` da 0,193 (11/57), y sus 46 fallos son 12 `R004` —se
+# inventa tabla o columna— y 12 `cell_value` —el número no sale—. Con el 26B, el mismo
+# banco y el mismo sistema dan 0,421 (24/57). Lo que ataba el número era la capacidad del
+# modelo para aterrizar en el esquema, y por eso se sube el modelo y no el umbral.
+#
+# El 9B se queda anotado abajo como `generador_anterior`: los números publicados antes de
+# hoy son suyos, y un digest retirado del fichero volvería irreproducibles los informes
+# que ya existen.
+#
+# **SOLAPE DE FAMILIA, dicho a propósito.** El `juez` es `gemma4:12b-mlx` y el generador
+# pasa a ser `gemma4:26b-mlx`: distintos pesos y distinto digest, pero la misma familia.
+# La regla de arriba —el juez nunca es el modelo que genera— se sigue cumpliendo al pie
+# de la letra, y aquí además no hay riesgo de inflar nada: el rol `juez` SOLO lo usa
+# `eval_toolchoice.py`, que mide si un cliente elige bien la herramienta con las
+# descripciones publicadas, y no puntúa ni una sola salida del generador. `G-EXEC-ACC` no
+# tiene juez: compara resultsets, que es determinista. Si algún día un juez llegara a
+# puntuar texto del generador, esto habría que separarlo por familia y no solo por peso.
+
+# rol                 tag                digest
+generador             gemma4:26b-mlx     c8656f50f0a6
+juez                  gemma4:12b-mlx     117d0d84cf2a
+generador_dev         qwen3.5:4b-mlx     61aa3858e9d3
+generador_anterior    qwen3.5:9b-mlx     203e30078279
 
 # El perfil que produjo cada número VA EN EL INFORME DE EVALUACIÓN. Un G-RECOVERY
 # medido con el 4b y publicado como si fuera del 9b es una mentira silenciosa.

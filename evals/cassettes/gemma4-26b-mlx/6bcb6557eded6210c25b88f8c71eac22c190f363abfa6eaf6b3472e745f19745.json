@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT country_code, trade_name, gross_eur_minor FROM (SELECT ref_country.country_code, v_merchant_current.trade_name, fact_settlement_batch.gross_eur_minor, ROW_NUMBER() OVER (PARTITION BY ref_country.country_code ORDER BY fact_settlement_batch.gross_eur_minor DESC) as rank FROM fact_settlement_batch JOIN v_merchant_current ON fact_settlement_batch.merchant_sk = v_merchant_current.merchant_sk JOIN ref_country ON v_merchant_current.country_code = ref_country.country_code) AS ranked_merchants WHERE rank <= 3",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame, por cada país, los tres comercios que más volumen liquidan, con el país, el nombre comercial y el volumen en euros",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT country_code, trade_name, gross_eur_minor FROM (SELECT ref_country.country_code, v_merchant_current.trade_name, fact_settlement_batch.gross_eur_minor, ROW_NUMBER() OVER (PARTITION BY ref_country.country_code ORDER BY fact_settlement_batch.gross_eur_minor DESC) as rank FROM fact_settlement_batch JOIN v_merchant_current ON fact_settlement_batch.merchant_sk = v_merchant_current.merchant_sk JOIN ref_country ON v_merchant_current.country_code = ref_country.country_code) AS ranked_merchants WHERE rank <= 3",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 900000",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame la página novecientos mil del listado de clientes",
+  "rejection_code": "row_limit",
+  "sql": "SELECT * FROM dim_customer WHERE customer_sk IN (SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 1 OFFSET 900000)",
+  "thinking": false
+}

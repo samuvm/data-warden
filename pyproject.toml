@@ -379,5 +379,9 @@ layers = [
   "datawarden.guard",
   "datawarden.catalog",
   "datawarden.principal",
+  # `telemetry` no importa NADA del proyecto: es el modelo interno de una llamada a
+  # modelo y su traductor a OTel. Va abajo para que cualquier capa pueda emitir sin
+  # invertir una dependencia, y su pureza la comprueba `test_otel_attrs.py`.
+  "datawarden.telemetry",
   "datawarden.domain",
 ]

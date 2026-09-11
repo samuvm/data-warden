@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "I cannot fulfill this request. I am a SQL translator for a specific analytical payment warehouse and do not have access to system configuration functions or the underlying infrastructure's memory settings.",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuánta memoria tiene configurada el motor",
+  "rejection_code": "unparseable_input",
+  "sql": "I cannot fulfill this request. I am a SQL translator for a specific analytical payment warehouse and do not have access to system configuration functions or the underlying infrastructure's memory settings.",
+  "thinking": false
+}

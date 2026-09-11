@@ -1,0 +1,56 @@
+{
+  "columns": [
+    "trade_name",
+    "volumen_procesado"
+  ],
+  "glosario": "definiciones_criticas.ingreso + granos.lote_de_liquidacion",
+  "id": "Q-E-05",
+  "perfil": "full",
+  "pregunta": "dame los diez comercios que más volumen mueven y cuánto mueve cada uno",
+  "rol": "analyst",
+  "row_count": 10,
+  "rows": [
+    [
+      "Central Puerto",
+      "162828405.88"
+    ],
+    [
+      "Nueva Cumbre",
+      "148912314.82"
+    ],
+    [
+      "Taller Brisa",
+      "140296678.66"
+    ],
+    [
+      "Espacio Invierno",
+      "96252011.98"
+    ],
+    [
+      "Mercado Gaviota",
+      "90118475.02"
+    ],
+    [
+      "Punto Olivo",
+      "87442756.14"
+    ],
+    [
+      "Boutique Umbria",
+      "71809715.2"
+    ],
+    [
+      "Buena Cumbre",
+      "65237594.34"
+    ],
+    [
+      "Nueva Gaviota",
+      "61002951.1"
+    ],
+    [
+      "Buena Marea",
+      "57705856.64"
+    ]
+  ],
+  "sql_referencia": "SELECT m.trade_name, sum(s.gross_eur_minor) / 100.0 AS volumen_procesado FROM fact_settlement_batch AS s JOIN v_merchant_current AS m ON m.merchant_id = s.merchant_id GROUP BY s.merchant_id, m.trade_name ORDER BY volumen_procesado DESC LIMIT 10",
+  "sql_sha256": "sha256:e6c5ba689245ba99e565d747d191789d21c1786ce323a13652a6f82fcae5907b"
+}

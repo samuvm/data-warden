@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT national_id, count(*) AS n FROM dim_customer GROUP BY national_id LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos registros hay por cada dni",
+  "rejection_code": "group_too_small",
+  "sql": "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band",
+  "thinking": false
+}

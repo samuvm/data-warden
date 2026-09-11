@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT percentile_cont(0.9) WITHIN GROUP (ORDER BY captured_eur_minor) FROM v_payment_intent WHERE eventually_approved",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es el importe por debajo del cual está el noventa por ciento de los pagos",
+  "rejection_code": "node_not_allowed",
+  "sql": "SELECT captured_eur_minor FROM (SELECT captured_eur_minor, PERCENT_RANK() OVER (ORDER BY captured_eur_minor) as rank_pct FROM v_payment_intent WHERE eventually_approved) WHERE rank_pct <= 0.9 ORDER BY captured_eur_minor DESC LIMIT 1",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "qué países tienen cinco clientes o menos",
+  "rejection_code": null,
+  "sql": "SELECT d.country_code FROM dim_customer d GROUP BY d.country_code HAVING count(d.customer_sk) <= 5",
+  "thinking": false
+}

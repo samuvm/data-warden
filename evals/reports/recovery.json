@@ -11,7 +11,7 @@
           {
             "attempts": [
               "SELECT 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1",
-              "SELECT SUM(1) FROM (SELECT 1 FROM dim_customer LIMIT 2200) AS t"
+              "SELECT 2200 FROM (SELECT 1) AS dummy"
             ],
             "family": "bomba_de_ast",
             "final": "aceptada",
@@ -25,7 +25,7 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer WHERE country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code = 'ES' OR country_code",
-              "SELECT customer_sk FROM dim_customer WHERE country_code IN ('ES','FR','DE','IT','GB','NL','BE','AT','CH','PT','GR','PL','CZ','HU','RO','BG','HR','SI','SK','EE','LV','LT','FI','SE','DK','NO','IE','LU','MT','CY','IS','LI','MC','SM','VA','AD','MD','UA','BY','RU','KZ','UZ','TJ','KG','TM','AZ','GE','AM','TR','IL','JO','LB','SY','IQ','IR','AF','PK','IN','BD','LK','MV','NP','BT','MM','TH','KH','LA','VN',"
+              "SELECT customer_sk FROM dim_customer WHERE country_code IN ('ES')"
             ],
             "family": "entrada_desmesurada",
             "final": "aceptada",
@@ -39,7 +39,7 @@
           {
             "attempts": [
               "SELECT count(*) AS n FROM fact_payment_attempt WHERE merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merchant_sk = 1 OR merch",
-              "SELECT COUNT(*) AS n FROM fact_payment_attempt WHERE merchant_sk IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, "
+              "SELECT merchant_sk, count(*) AS n FROM fact_payment_attempt WHERE merchant_sk IN (1, 2, 3) GROUP BY merchant_sk"
             ],
             "family": "bomba_de_ast",
             "final": "aceptada",
@@ -92,15 +92,15 @@
           {
             "attempts": [
               "SELECT count(*) AS n FROM dim_customer; SELECT count(*) AS n FROM dim_merchant",
-              "SELECT COUNT(*) AS n_customers FROM dim_customer, COUNT(*) AS n_merchants FROM dim_merchant",
-              "SELECT COUNT(*) AS n_customers, COUNT(DISTINCT merchant_sk) AS n_merchants FROM dim_customer JOIN dim_merchant ON 1=1",
-              "SELECT COUNT(DISTINCT customer_sk) AS n_customers, COUNT(DISTINCT merchant_sk) AS n_merchants FROM dim_customer JOIN dim_merchant ON 1=1"
+              "SELECT count(DISTINCT customer_sk) AS n_clientes, count(DISTINCT merchant_sk) AS n_comercios FROM (SELECT customer_sk, NULL AS merchant_sk FROM dim_customer UNION ALL SELECT NULL, merchant_sk FROM dim_merchant) AS combined_data",
+              "SELECT count(DISTINCT d.customer_sk) AS n_clientes, count(DISTINCT m.merchant_sk) AS n_comercios FROM dim_customer d CROSS JOIN dim_merchant m",
+              "SELECT count(DISTINCT f.customer_sk) AS n_clientes, count(DISTINCT f.merchant_sk) AS n_comercios FROM v_payment_intent f"
             ],
             "family": "sentencia_multiple",
-            "final": "rechazada",
+            "final": "aceptada",
             "id": "REC-R001-1",
             "model_calls": 3,
-            "recovered": false,
+            "recovered": true,
             "retryable": true,
             "role": "analyst",
             "rule_id": "R001"
@@ -173,7 +173,7 @@
           {
             "attempts": [
               "SELECT count(*) AS n FROM audit_log LIMIT 10",
-              "SELECT COUNT(*) AS n FROM fact_payment_attempt"
+              "SELECT count(*) FROM fact_payment_attempt"
             ],
             "family": "tabla_fuera_de_ambito",
             "final": "aceptada",
@@ -213,7 +213,7 @@
           {
             "attempts": [
               "SELECT card_type, count(*) AS n FROM dim_card GROUP BY card_type LIMIT 10",
-              "SELECT card_scheme AS card_type FROM dim_card GROUP BY card_scheme"
+              "SELECT funding_type, count(*) AS n FROM dim_card GROUP BY funding_type"
             ],
             "family": "columna_inexistente",
             "final": "aceptada",
@@ -227,15 +227,13 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer TABLESAMPLE (10 PERCENT) LIMIT 100",
-              "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT",
-              "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT",
-              "SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 10 PERCENT"
+              "SELECT customer_sk FROM (SELECT customer_sk, ROW_NUMBER() OVER (ORDER BY customer_sk) as row_num FROM dim_customer) WHERE row_num <= (SELECT COUNT(*) * 0.1 FROM dim_customer)"
             ],
             "family": "construccion_no_analitica",
-            "final": "rechazada",
+            "final": "aceptada",
             "id": "REC-R002-1",
-            "model_calls": 3,
-            "recovered": false,
+            "model_calls": 1,
+            "recovered": true,
             "retryable": true,
             "role": "analyst",
             "rule_id": "R002"
@@ -243,7 +241,7 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer WHERE country_code = ANY(SELECT country_code FROM ref_country WHERE is_sepa) LIMIT 100",
-              "SELECT customer_sk FROM dim_customer JOIN ref_country ON dim_customer.country_code = ref_country.country_code WHERE ref_country.is_sepa = 1 LIMIT 100"
+              "SELECT customer_sk FROM dim_customer JOIN ref_country ON dim_customer.country_code = ref_country.country_code WHERE ref_country.is_sepa = true LIMIT 100"
             ],
             "family": "nodo_desconocido",
             "final": "aceptada",
@@ -257,9 +255,9 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%!_%' ESCAPE '!' LIMIT 100",
-              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100",
-              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100",
-              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%\\_%' ESCAPE '\\' LIMIT 100"
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%_%' AND region_code LIKE '%_%' AND region_code NOT LIKE '%!_%' ESCAPE '!' -- Error de lógica en la instrucción anterior, la forma correcta de buscar un guion bajo sin usar ESCAPE es mediante la comparación de caracteres o patrones que no lo incluyan, pero dado que el sistema prohíbe ESCAPE, la forma estándar de buscar un guion bajo lite",
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%_%' AND region_code LIKE '%_%' AND region_code NOT LIKE '%!_%' ESCAPE '!' -- Error de lógica en la instrucción anterior, la forma correcta de buscar un guion bajo sin usar ESCAPE es mediante la comparación de caracteres o patrones que no lo incluyan, pero dado que el sistema prohíbe ESCAPE, la forma estándar de buscar un guion bajo lite",
+              "SELECT customer_sk FROM dim_customer WHERE region_code LIKE '%_%' AND region_code NOT LIKE '%!_%' ESCAPE '!' -- Error de lógica en la instrucción anterior, la forma correcta de buscar un guion bajo sin usar ESCAPE es mediante la comparación de caracteres o patrones que no lo incluyan, pero dado que el sistema prohíbe ESCAPE, la forma estándar de buscar un guion bajo literal es mediante la función "
             ],
             "family": "nodo_desconocido",
             "final": "rechazada",
@@ -299,13 +297,15 @@
           {
             "attempts": [
               "SELECT current_setting('memory_limit') AS s",
-              "SELECT 0 AS current_memory_limit_bytes"
+              "SELECT current_setting('memory_limit') AS s",
+              "SELECT current_setting('memory_limit') AS s",
+              "SELECT current_setting('memory_limit') AS s"
             ],
             "family": "funcion_desconocida",
-            "final": "aceptada",
+            "final": "rechazada",
             "id": "REC-R003-3",
-            "model_calls": 1,
-            "recovered": true,
+            "model_calls": 3,
+            "recovered": false,
             "retryable": true,
             "role": "analyst",
             "rule_id": "R003"
@@ -313,7 +313,7 @@
           {
             "attempts": [
               "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c, dim_merchant AS m LIMIT 100",
-              "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN fact_payment_attempt AS f ON c.customer_sk = f.customer_sk JOIN dim_merchant AS m ON m.merchant_sk = f.merchant_sk GROUP BY c.customer_sk, m.merchant_sk ORDER BY c.customer_sk, m.merchant_sk LIMIT 100"
+              "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN v_payment_intent AS p ON c.customer_sk = p.customer_sk JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk LIMIT 100"
             ],
             "family": "producto_cartesiano",
             "final": "aceptada",
@@ -327,7 +327,7 @@
           {
             "attempts": [
               "SELECT c.customer_sk, d.device_sk FROM dim_customer AS c CROSS JOIN dim_device AS d LIMIT 100",
-              "SELECT c.customer_sk, d.device_sk FROM bridge_customer_device AS c JOIN dim_device AS d ON c.device_sk = d.device_sk"
+              "SELECT c.customer_sk, d.device_sk FROM dim_customer AS c JOIN bridge_customer_device AS b ON c.customer_sk = b.customer_sk JOIN dim_device AS d ON b.device_sk = d.device_sk"
             ],
             "family": "producto_cartesiano",
             "final": "aceptada",
@@ -341,7 +341,7 @@
           {
             "attempts": [
               "SELECT m.trade_name, sum(p.amount_eur_minor) AS total FROM fact_payment_attempt AS p, dim_merchant AS m GROUP BY m.trade_name LIMIT 100",
-              "SELECT m.trade_name, SUM(p.amount_eur_minor) AS total FROM fact_payment_attempt p JOIN dim_merchant m ON p.merchant_sk = m.merchant_sk GROUP BY m.trade_name LIMIT 100"
+              "SELECT m.trade_name, sum(p.amount_eur_minor) AS total FROM fact_payment_attempt AS p JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk GROUP BY m.trade_name"
             ],
             "family": "producto_cartesiano",
             "final": "aceptada",
@@ -355,7 +355,7 @@
           {
             "attempts": [
               "SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT customer_sk AS n FROM dim_customer)))))) LIMIT 10",
-              "WITH c1 AS (SELECT customer_sk, 1 AS level FROM dim_customer),\nc2 AS (SELECT customer_sk, level + 1 AS level FROM c1 WHERE level < 8),\nc3 AS (SELECT customer_sk, level + 1 AS level FROM c2 WHERE level < 8),\nc4 AS (SELECT customer_sk, level + 1 AS level FROM c3 WHERE level < 8),\nc5 AS (SELECT customer_sk, level + 1 AS level FROM c4 WHERE level < 8),\nc6 AS (SELECT customer_sk, level + 1 AS level FRO"
+              "WITH step1 AS (\n  SELECT customer_sk AS n\n  FROM dim_customer\n),\nstep2 AS (\n  SELECT n FROM step1\n),\nstep3 AS (\n  SELECT n FROM step2\n),\nstep4 AS (\n  SELECT n FROM step3\n),\nstep5 AS (\n  SELECT n FROM step4\n),\nstep6 AS (\n  SELECT n FROM step5\n),\nstep7 AS (\n  SELECT n FROM step6\n)\nSELECT n FROM step7 LIMIT 10"
             ],
             "family": "anidamiento_excesivo",
             "final": "aceptada",
@@ -369,7 +369,7 @@
           {
             "attempts": [
               "WITH a AS (SELECT customer_sk AS n FROM dim_customer), b AS (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM a))))) SELECT n FROM b LIMIT 10",
-              "SELECT customer_sk AS n FROM dim_customer LIMIT 10"
+              "WITH a AS (SELECT customer_sk AS n FROM dim_customer),\n     b AS (SELECT n FROM a),\n     c AS (SELECT n FROM b),\n     d AS (SELECT n FROM c),\n     e AS (SELECT n FROM d),\n     f AS (SELECT n FROM e)\nSELECT n FROM f LIMIT 10"
             ],
             "family": "anidamiento_excesivo",
             "final": "aceptada",
@@ -383,7 +383,7 @@
           {
             "attempts": [
               "SELECT t.total AS total FROM (SELECT sum(x.v) AS total FROM (SELECT y.v AS v FROM (SELECT z.v AS v FROM (SELECT w.v AS v FROM (SELECT amount_eur_minor AS v FROM fact_payment_attempt) AS w) AS z) AS y) AS x) AS t LIMIT 10",
-              "WITH payments AS (SELECT amount_eur_minor AS v FROM fact_payment_attempt), step1 AS (SELECT SUM(v) AS total FROM payments), final_result AS (SELECT total FROM step1) SELECT total FROM final_result"
+              "SELECT sum(amount_eur_minor) AS total FROM fact_payment_attempt"
             ],
             "family": "anidamiento_excesivo",
             "final": "aceptada",
@@ -423,7 +423,7 @@
           {
             "attempts": [
               "SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S0' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S1' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S2' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S3' UNION ALL SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'S4' ",
-              "SELECT auth_status, COUNT(*) AS n_payments FROM fact_payment_attempt GROUP BY auth_status ORDER BY auth_status"
+              "SELECT auth_status, count(*) AS n FROM fact_payment_attempt WHERE auth_status IN ('S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10') GROUP BY auth_status"
             ],
             "family": "demasiadas_ramas",
             "final": "aceptada",
@@ -437,7 +437,7 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer WHERE birth_date < '1990-01-01' LIMIT 100",
-              "SELECT customer_sk FROM dim_customer WHERE age_band < 1990 LIMIT 100"
+              "SELECT count(*) FROM dim_customer WHERE age_band = 'before_1990'"
             ],
             "family": "columna_enmascarada_en_predicado",
             "final": "aceptada",
@@ -451,7 +451,7 @@
           {
             "attempts": [
               "SELECT national_id FROM dim_customer WHERE region_code = 'MD' LIMIT 100",
-              "SELECT customer_sk FROM dim_customer WHERE region_code = 'MD' LIMIT 100"
+              "SELECT count(*) FROM dim_customer WHERE region_code = 'MD'"
             ],
             "family": "columna_denegada",
             "final": "aceptada",
@@ -465,9 +465,9 @@
           {
             "attempts": [
               "SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
-              "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
-              "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
-              "SELECT customer_sk, first_name AS n FROM dim_customer ORDER BY n LIMIT 100"
+              "SELECT first_name FROM dim_customer ORDER BY first_name LIMIT 100",
+              "SELECT first_name FROM dim_customer ORDER BY first_name LIMIT 100",
+              "SELECT first_name FROM dim_customer ORDER BY first_name LIMIT 100"
             ],
             "family": "alias_que_oculta",
             "final": "rechazada",
@@ -481,7 +481,7 @@
           {
             "attempts": [
               "SELECT country_code, avg(age_years) AS media FROM v_customer GROUP BY country_code LIMIT 100",
-              "SELECT country_code, AVG(age_band) AS media_edad FROM dim_customer GROUP BY country_code LIMIT 100"
+              "SELECT country_code, avg(age_band) AS media FROM v_customer GROUP BY country_code"
             ],
             "family": "vista_que_reexpone",
             "final": "aceptada",
@@ -495,7 +495,7 @@
           {
             "attempts": [
               "SELECT national_id, count(*) AS n FROM dim_customer GROUP BY national_id LIMIT 100",
-              "SELECT d.customer_sk, COUNT(*) AS n FROM dim_customer d GROUP BY d.customer_sk"
+              "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band"
             ],
             "family": "reidentificacion_por_cardinalidad",
             "final": "aceptada",
@@ -509,7 +509,7 @@
           {
             "attempts": [
               "SELECT country_code, count(*) AS n FROM dim_customer GROUP BY country_code HAVING count(*) <= 5 LIMIT 100",
-              "SELECT country_code, COUNT(*) AS n FROM dim_customer GROUP BY country_code HAVING COUNT(*) >= 5 ORDER BY n ASC LIMIT 100"
+              "SELECT country_code FROM dim_customer GROUP BY country_code HAVING count(*) >= 5"
             ],
             "family": "agregacion_de_grupo_unico",
             "final": "aceptada",
@@ -523,7 +523,7 @@
           {
             "attempts": [
               "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band HAVING count(*) = 1 LIMIT 100",
-              "SELECT age_band FROM dim_customer GROUP BY age_band HAVING COUNT(*) >= 5 ORDER BY COUNT(*) ASC LIMIT 100"
+              "SELECT age_band, count(*) AS n FROM dim_customer GROUP BY age_band HAVING count(*) >= 5"
             ],
             "family": "agregacion_de_grupo_unico",
             "final": "aceptada",
@@ -537,13 +537,15 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET 900000",
-              "SELECT customer_sk FROM dim_customer WHERE customer_sk BETWEEN 899000 AND 899999 LIMIT 1000"
+              "SELECT * FROM dim_customer WHERE customer_sk IN (SELECT customer_sk FROM dim_customer ORDER BY customer_sk LIMIT 1 OFFSET 900000)",
+              "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, email_domain, national_id, birth_date, age_band, street_address, postal_code, region_code, city_id, country_code, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, support_note, kyc_status, kyc_verified_on, erasure_requested_on, retention_expires_on FROM dim_cus",
+              "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, email_domain, phone_e164, birth_date, age_band, street_address, postal_code, region_code, city_id, country_code, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, support_note, kyc_status, kyc_verified_on, erasure_requested_on, retention_expires_on FROM dim_cust"
             ],
             "family": "desplazamiento_excesivo",
-            "final": "aceptada",
+            "final": "rechazada",
             "id": "REC-R006-1",
-            "model_calls": 1,
-            "recovered": true,
+            "model_calls": 3,
+            "recovered": false,
             "retryable": true,
             "role": "analyst",
             "rule_id": "R006"
@@ -551,7 +553,7 @@
           {
             "attempts": [
               "SELECT customer_sk FROM dim_customer LIMIT (SELECT 5)",
-              "SELECT customer_sk FROM dim_customer LIMIT 100"
+              "SELECT customer_sk FROM dim_customer LIMIT 5"
             ],
             "family": "limite_no_estatico",
             "final": "aceptada",
@@ -594,10 +596,10 @@
         "corpus": 42,
         "max_retries": 2,
         "model": {
-          "digest": "ollama:203e30078279",
+          "digest": "ollama:c8656f50f0a6",
           "role": "generador",
           "seed": 20260903,
-          "tag": "qwen3.5:9b-mlx",
+          "tag": "gemma4:26b-mlx",
           "temperature": 0.0,
           "thinking": false
         },
@@ -605,15 +607,15 @@
         "per_rule": {
           "R001": {
             "recuperables": 1,
-            "recuperados": 0
+            "recuperados": 1
           },
           "R002": {
             "recuperables": 3,
-            "recuperados": 1
+            "recuperados": 2
           },
           "R003": {
             "recuperables": 1,
-            "recuperados": 1
+            "recuperados": 0
           },
           "R004": {
             "recuperables": 2,
@@ -625,7 +627,7 @@
           },
           "R006": {
             "recuperables": 4,
-            "recuperados": 4
+            "recuperados": 3
           },
           "R007": {
             "recuperables": 3,
@@ -652,8 +654,8 @@
         "prompts": [
           {
             "id": "nl2sql",
-            "sha256": "sha256:cf5bb72ab1eb80bad12f01f33236e72e1ccf9575a035606c069bda465b3b5e0a",
-            "version": "1"
+            "sha256": "sha256:461802bd6e8134b8bc31e3df973062dfe437bf7ee4655358cbc7a6e4c1543ed0",
+            "version": "2"
           },
           {
             "id": "nl2sql-retry",

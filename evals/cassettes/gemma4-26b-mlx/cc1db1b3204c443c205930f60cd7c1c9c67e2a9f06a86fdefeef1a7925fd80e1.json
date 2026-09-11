@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez países de comercio con más volumen liquidado, con el volumen en euros",
+  "rejection_code": null,
+  "sql": "SELECT f.merchant_country, SUM(f.amount_eur_minor) AS total_volume_eur FROM v_money_flow f GROUP BY f.merchant_country ORDER BY total_volume_eur DESC LIMIT 10",
+  "thinking": false
+}

@@ -41,12 +41,16 @@ from datawarden.domain.types import Principal, Role, RoleSource, ValidatedQuery
 from datawarden.evalsupport.resultset_equality import Table, compare
 from datawarden.guard.validator import validate
 from datawarden.nl2sql.loop import run_loop
-from datawarden.nl2sql.providers import CASSETTE_DIR, LocalProvider, RecordedProvider
-from gatelib import ROOT, record, wilson
+from datawarden.nl2sql.providers import LocalProvider, RecordedProvider, cassette_dir_for
+from gatelib import PROYECTO, ROOT, _hardware, record, rol_contrato, wilson
 
 QUESTIONS = ROOT / "evals" / "golden" / "questions.yaml"
 FROZEN = ROOT / "evals" / "golden" / "resultsets"
-CONTRACT_VERSION = "1.0.0"
+#: La versión del CONTRATO, no la del proyecto — y es un entero por `const: 1`.
+#: Decía "1.0.0", que parecía más informativo y era sencillamente inválido:
+#: `check_eval_reports.py` lo cazó la primera vez que se ejecutó. El 02 lee este campo
+#: para saber qué forma esperar, así que aquí no cabe una versión propia.
+CONTRACT_VERSION = 1
 GATE_PEPPER = "pimienta-del-gate-solo-para-medir-g-pii-leak"
 
 
@@ -133,7 +137,7 @@ def main() -> int:
     provider: Any = (
         _Grabando(LocalProvider(model=tag, think=False), tag)
         if args.refresh
-        else RecordedProvider(directory=ROOT / CASSETTE_DIR)
+        else RecordedProvider(directory=ROOT / cassette_dir_for(tag))
     )
 
     resultados: list[dict[str, Any]] = []
@@ -182,9 +186,29 @@ def main() -> int:
         if salida is None:
             continue
         rechazo = salida.rejection
-        acierto = (
-            not salida.accepted and rechazo is not None and rechazo.rule_id == caso["regla"]
-        )
+        # Las reglas que saltaron en CUALQUIER intento del ciclo, el último incluido.
+        reglas = [a.rejection.rule_id for a in salida.attempts if a.rejection is not None]
+        # **P-014, aprobada por Samuel el 2026-09-11.** Un caso de rechazo acierta si la
+        # regla DECLARADA saltó en algún punto del ciclo, no solo si el ciclo termina en
+        # rechazo.
+        #
+        # Antes se puntuaba el desenlace final, y eso ponía a dos metas a tirar en
+        # sentidos opuestos: el ciclo existe para RECUPERARSE de un rechazo, así que un
+        # modelo que se recupera bien —la columna prohibida se bloquea, el mensaje dice
+        # la alternativa, el modelo la usa— terminaba en una aceptación y contaba como
+        # fallo. Un modelo que mejoraba en `G-RECOVERY` empeoraba en `G-EXEC-ACC`. Medido
+        # con el 26B: en 5 de los 8 casos de rechazo fallados la regla declarada SÍ
+        # había saltado (Q-R-01, 02 y 03 con R008; Q-R-04 y 05 con R012). Es lo que
+        # Samuel vio a mano en Claude Desktop con Q-R-01 y lo que el sistema está hecho
+        # para hacer.
+        #
+        # **Tiene que ser la regla declarada, no una cualquiera.** Q-R-09 declara R006 y
+        # le salta R008: sigue fallando, que es lo correcto. Y un caso donde no salta
+        # ninguna regla —el modelo nunca llegó a pedir lo prohibido— también.
+        #
+        # Se decidió DESPUÉS de ver el número (sube de 0,4386 a 0,5263) y por eso fue
+        # una propuesta con el número escrito por delante, no un cambio del agente.
+        acierto = caso["regla"] in reglas
         resultados.append(
             {
                 "id": caso["id"],
@@ -192,6 +216,13 @@ def main() -> int:
                 "estrato": caso["estrato"],
                 "esperado": caso["regla"],
                 "obtenido": None if rechazo is None else rechazo.rule_id,
+                # La EVIDENCIA de `acierto`, publicada. Nació como diagnóstico para
+                # distinguir «el guard nunca vio nada prohibido» de «el guard lo paró y
+                # el modelo corrigió», que son cosas opuestas y antes salían igual
+                # (`obtenido: null`). Desde P-014 es la base del acierto, y se publica
+                # para que cualquiera pueda ver POR QUÉ acertó cada caso: una condición
+                # relajada sin su evidencia al lado sería un número que hay que creerse.
+                "reglas_en_el_ciclo": reglas,
                 "acierto": acierto,
             }
         )
@@ -242,14 +273,24 @@ def main() -> int:
         fila["n"] += 1
         fila["aciertos"] += int(bool(r["acierto"]))
 
+    # **El contrato exige NÚMEROS en `per_stratum`, no objetos.** Aquí se publicaban
+    # `{"n": 20, "aciertos": 5}` y el esquema pide `additionalProperties: number`: el
+    # panel del 02 esperaba una serie por estrato y recibía un diccionario. Se publica
+    # el ratio, que es lo comparable entre estratos de tamaño distinto, y los conteos
+    # crudos siguen enteros en `raw_path` — que es exactamente para lo que existe.
+    ratio_por_estrato = {
+        nombre: round(fila["aciertos"] / fila["n"], 4) if fila["n"] else 0.0
+        for nombre, fila in sorted(por_estrato.items())
+    }
+
     informe = {
         "contract_version": CONTRACT_VERSION,
         "run_id": f"exec-{dt.datetime.now(tz=dt.UTC).strftime('%Y%m%dT%H%M%SZ')}",
-        "project": "data-warden-03",
+        "project": PROYECTO,
         "suite": "exec-accuracy",
         "created_at": dt.datetime.now(tz=dt.UTC).isoformat().replace("+00:00", "Z"),
         "environment": {
-            "hardware": "MacBook Pro M4 Max, 36 GB unificada, macOS 26.5",
+            "hardware": _hardware(),
             "python": platform.python_version(),
             # `deterministic` es TRUE solo si todo salió de casetes. En un refresco es
             # false, y decirlo importa: un número que llamó al modelo no se repite.
@@ -267,9 +308,13 @@ def main() -> int:
         "prompts": [
             {
                 "id": prompt.prompt_id,
-                "version": prompt.version,
+                # ENTERA: el contrato pide `integer` y el frontmatter la trae como
+                # texto. Se escribía tal cual y el informe no validaba.
+                "version": int(prompt.version),
                 "sha256": f"sha256:{prompt.sha256}",
-                "role": "generador",
+                # En INGLÉS y del enumerado del contrato. Dentro del repo el rol se
+                # llama `generador`; el 02 no sabe español.
+                "role": rol_contrato("generador"),
             }
         ],
         "metrics": [
@@ -279,7 +324,7 @@ def main() -> int:
                 "n": total,
                 "unit": "ratio",
                 "ci95": [round(low, 4), round(high, 4)],
-                "per_stratum": por_estrato,
+                "per_stratum": ratio_por_estrato,
                 "raw_path": "evals/reports/exec-accuracy.json",
             }
         ],
@@ -354,7 +399,7 @@ class _Grabando:
     def __init__(self, inner: LocalProvider, tag: str) -> None:
         self._inner = inner
         self._tag = tag
-        self._cassettes = RecordedProvider(directory=ROOT / CASSETTE_DIR)
+        self._cassettes = RecordedProvider(directory=ROOT / cassette_dir_for(tag))
         self.name = "local"
 
     def generate(self, request: Any) -> str:

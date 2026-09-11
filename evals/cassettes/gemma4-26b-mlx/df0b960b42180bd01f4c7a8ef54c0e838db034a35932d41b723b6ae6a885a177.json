@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos clientes distintos han hecho al menos un pago",
+  "rejection_code": null,
+  "sql": "SELECT count(DISTINCT customer_sk) FROM v_payment_intent WHERE eventually_approved",
+  "thinking": false
+}

@@ -1,0 +1,44 @@
+{
+  "contract_version": 1,
+  "created_at": "2026-09-11T14:41:29.684519Z",
+  "dataset": {
+    "n_cases": 42,
+    "n_negative_cases": 14,
+    "name": "recovery-seeded",
+    "sha256": "sha256:200fcee553890860e31c42c98bed79eac45bb66c0d33451e3523998dd8290d51",
+    "version": 1
+  },
+  "environment": {
+    "deterministic": true,
+    "hardware": "MacBook Pro M4 Max, 36 GB unificada, macOS 26.5",
+    "models": {
+      "generador": "gemma4:26b-mlx (ollama:c8656f50f0a6)"
+    },
+    "python": "3.12.4"
+  },
+  "metrics": [
+    {
+      "ci95": [
+        0.6851,
+        0.943
+      ],
+      "id": "G-RECOVERY",
+      "n": 28,
+      "raw_path": "evals/reports/recovery.json",
+      "unit": "ratio",
+      "value": 0.8571
+    }
+  ],
+  "notes": "Mide si el modelo se RECUPERA de un rechazo del guard leyendo el motivo. Los no reintentables cuentan aparte: pararse en seco ahí es lo correcto.",
+  "project": "datawarden",
+  "prompts": [
+    {
+      "id": "nl2sql",
+      "role": "generator",
+      "sha256": "sha256:461802bd6e8134b8bc31e3df973062dfe437bf7ee4655358cbc7a6e4c1543ed0",
+      "version": 2
+    }
+  ],
+  "run_id": "recovery-20260911T144129Z",
+  "suite": "recovery"
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT v.age_years, v.country_code FROM v_customer AS v GROUP BY v.age_years, v.country_code",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "la edad media de los clientes por país",
+  "rejection_code": "column_policy",
+  "sql": "SELECT AVG(v.age_years), v.country_code FROM v_customer AS v GROUP BY v.age_band, v.country_code",
+  "thinking": false
+}

@@ -49,14 +49,14 @@ from datawarden.guard.validator import validate
 from datawarden.nl2sql.loop import MAX_RETRIES, Attempt, LoopResult, run_loop
 from datawarden.nl2sql.prompt import load as load_prompt
 from datawarden.nl2sql.providers import (
-    CASSETTE_DIR,
     LocalProvider,
     Provider,
     RecordedProvider,
     Request,
+    cassette_dir_for,
     extract_sql,
 )
-from gatelib import ROOT, record, wilson
+from gatelib import ROOT, eval_report, record, wilson
 from recoverylib import RecoveryCase, read
 
 MODELS_LOCK = ROOT / "models.lock"
@@ -147,6 +147,19 @@ class _Counting:
         return self._inner.generate(request)
 
 
+def sha_del_corpus() -> str:
+    """La huella del corpus sembrado. La exige el contrato del informe.
+
+    Sin ella, dos ratios de dos días distintos no se pueden comparar: no hay forma de
+    saber si el corpus cambió entre medio, y una recuperación del 75 % sobre 28 casos
+    no dice lo mismo que sobre otros 28.
+    """
+    import hashlib
+
+    ruta = ROOT / "evals" / "golden" / "recovery.yaml"
+    return "sha256:" + hashlib.sha256(ruta.read_bytes()).hexdigest()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -180,7 +193,7 @@ def main() -> int:
     retry_prompt = load_prompt("nl2sql-retry")
 
     tag, digest = models_lock(args.model_role)
-    cassettes = RecordedProvider(directory=ROOT / CASSETTE_DIR)
+    cassettes = RecordedProvider(directory=ROOT / cassette_dir_for(tag))
 
     thinking: object = not args.no_think
     if args.refresh:
@@ -198,7 +211,7 @@ def main() -> int:
 
     if not args.refresh:
         # LA PROCEDENCIA SALE DE LAS CASETES. El flag de hoy no midió nada.
-        provenance = cassette_provenance(ROOT / CASSETTE_DIR)
+        provenance = cassette_provenance(ROOT / cassette_dir_for(tag))
         models_used = list(provenance["models"])  # type: ignore[call-overload]
         modes_used = list(provenance["modes"])  # type: ignore[call-overload]
         if len(models_used) > 1:
@@ -348,6 +361,44 @@ def main() -> int:
             for o in outcomes
         ],
     }
+
+    # **El informe transversal, además de la medida del gate.** No son lo mismo y las
+    # dos hacen falta: `recovery.json` es lo que lee `goals_check.py` de este repo, y
+    # `recovery-report.json` es lo que lee el proyecto 02, que no conoce nuestro
+    # formato interno. `G-EVAL-REPORT` exige el segundo porque una evaluación que llama
+    # a un modelo y no publica su informe no es consumible desde fuera.
+    eval_report(
+        suite="recovery",
+        metric_id="G-RECOVERY",
+        value=ratio,
+        n=total,
+        unit="ratio",
+        deterministic=not args.refresh,
+        models={args.model_role: f"{tag} ({model_ref(digest)})"},
+        dataset={
+            "name": "recovery-seeded",
+            "version": 1,
+            "n_cases": len(outcomes),
+            "n_negative_cases": len(outcomes) - total,
+            # OBLIGATORIO en el contrato, y con razón: sin la huella del corpus, dos
+            # números de dos días distintos no se pueden comparar.
+            "sha256": sha_del_corpus(),
+        },
+        raw_path="evals/reports/recovery.json",
+        ci95=(low, high),
+        prompts=[
+            {
+                "id": prompt.prompt_id,
+                "version": prompt.version,
+                "sha256": f"sha256:{prompt.sha256}",
+                "role": args.model_role,
+            }
+        ],
+        notes=(
+            "Mide si el modelo se RECUPERA de un rechazo del guard leyendo el motivo. "
+            "Los no reintentables cuentan aparte: pararse en seco ahí es lo correcto."
+        ),
+    )
 
     record(
         "recovery.json",

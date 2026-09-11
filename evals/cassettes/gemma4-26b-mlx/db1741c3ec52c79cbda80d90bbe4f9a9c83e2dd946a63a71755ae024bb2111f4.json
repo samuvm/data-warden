@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT t1.national_id FROM dim_customer AS t1 JOIN ref_city AS t2 ON t1.city_id = t2.city_id WHERE t2.city_name = 'Madrid'",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame el dni de los clientes de la región de Madrid",
+  "rejection_code": "column_policy",
+  "sql": "SELECT count(*) FROM dim_customer AS t1 JOIN ref_city AS t2 ON t1.city_id = t2.city_id WHERE t2.city_name = 'Madrid'",
+  "thinking": false
+}

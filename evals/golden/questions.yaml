@@ -52,6 +52,19 @@ reescritura_p010:
   autorizada_por: "Samuel, 2026-09-10"
   medida_previa: "G-EXEC-ACC 0,1228 (7/57) sobre las preguntas originales"
   preguntas_reescritas: 26
+# Q-013, RESUELTA por Samuel el 2026-09-11. Los tres casos que el glosario firmado no
+# cubría —los `arbitrio`— tienen ya criterio, y ninguno lo ha puesto el agente:
+#   Q-E-21 «cuál es nuestro comercio más importante» → el que más `ingreso_bruto` deja.
+#   Q-E-05 «qué comercios mueven más volumen»        → `volumen_procesado`, identidad vigente.
+#   Q-E-22 «cómo va el negocio este trimestre»        → FUERA del banco. No tiene métrica
+#          canónica, y forzar una referencia sería inventar la verdad y luego puntuarse
+#          contra ella. Es la clase de pregunta que un sistema honesto tiene que poder
+#          decir que no entiende. La sustituye Q-E-51, en su mismo estrato y rol.
+decisiones_q013:
+  decididas_por: "Samuel, 2026-09-11"
+  resueltas: [Q-E-05, Q-E-21]
+  retiradas: [Q-E-22]
+  sustituta: Q-E-51
 revisado_por: null
 revisado_el: null
 glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q-004)"
@@ -271,16 +284,34 @@ ejecucion:
       AND p.event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY
 
   - id: Q-E-05
-    pregunta: qué comercios mueven más volumen
+    pregunta: dame los diez comercios que más volumen mueven y cuánto mueve cada uno
     rol: analyst
     estrato: join_o_agregacion
-    glosario: "definiciones_criticas.pago_valido"
-    arbitrio: true
+    glosario: "definiciones_criticas.ingreso + granos.lote_de_liquidacion"
+    arbitrio: false
+    decidido_por: "Samuel, 2026-09-11 (Q-013): importe procesado, identidad vigente"
     por_que: >-
-      **ARBITRIO.** «Volumen» no está en el glosario: puede ser importe procesado o
-      número de pagos, y las dos son defendibles. Y «comercios» puede querer decir la
-      versión vigente o todas. Esto NO lo decide el agente.
-    sql_referencia: null
+      **ERA ARBITRIO y lo ha resuelto Samuel.** «Volumen» es `volumen_procesado`, la
+      métrica canónica que el glosario firmado pone dentro de `ingreso` —el dinero que
+      pasó por la pasarela, `sum(gross_eur_minor)` sobre `fact_settlement_batch`— y no
+      el número de pagos. «Comercios» es la identidad VIGENTE: la liquidación va por
+      `merchant_id` y cada uno tiene exactamente una fila en `v_merchant_current`, así
+      que se atribuye todo sin perder nada.
+      **Se agrupa por `merchant_id` y no por nombre**, y no es un detalle: los 12 400
+      comercios comparten `trade_name` con algún otro —722 nombres, «Central Puerto»
+      son 23 comercios en 11 países—, y agrupar por nombre suma comercios que no
+      tienen nada que ver.
+      **No es un duplicado de Q-E-17.** Aquella dice «han liquidado»; esta dice «mueven
+      volumen» y obliga a resolver la palabra con el glosario, que es lo que G-2 firmó.
+      La pregunta decía «qué comercios mueven más volumen» sin fijar cuántos; se
+      reescribió ANTES de medirla —como arbitrio nunca se había puntuado— con el
+      criterio de P-010: la pregunta fija la FORMA de la respuesta, no el SQL.
+    sql_referencia: >-
+      SELECT m.trade_name, sum(s.gross_eur_minor) / 100.0 AS volumen_procesado
+      FROM fact_settlement_batch AS s
+      JOIN v_merchant_current AS m ON m.merchant_id = s.merchant_id
+      GROUP BY s.merchant_id, m.trade_name
+      ORDER BY volumen_procesado DESC LIMIT 10
 
   # --------------------------------------------------------------------------
   # SEGUNDA TANDA · transcritas de entradas firmadas y EJECUTADAS contra el
@@ -518,34 +549,28 @@ ejecucion:
     pregunta: cuál es nuestro comercio más importante
     rol: analyst
     estrato: join_o_agregacion
-    glosario: null
-    arbitrio: true
+    glosario: "definiciones_criticas.ingreso + granos.lote_de_liquidacion"
+    arbitrio: false
+    decidido_por: "Samuel, 2026-09-11 (Q-013): el que más ingreso bruto nos deja"
     por_que: >-
-      **ARBITRIO.** «Más importante» no está en el glosario y admite al menos cuatro
-      lecturas defendibles: más volumen procesado, más ingreso bruto para CIERZO, más
-      pagos, o más margen neto. Q-E-08 y Q-E-09 ya demuestran que dos de ellas se
-      llevan un factor de 45.
-    sql_referencia: null
+      **ERA ARBITRIO y lo ha resuelto Samuel: «importante para nosotros» es lo que nos
+      deja, no lo que pasa por el tubo.** Se transcribe `ingreso_bruto` del glosario
+      firmado —la comisión cobrada al comercio, `sum(fee_eur_minor)` sobre
+      `fact_settlement_batch`— y no `volumen_procesado` ni `margen_neto`. Medido: gana
+      Central Puerto con 5,03 M € y le saca un 34,9 % al segundo, así que la
+      referencia no depende de un empate.
+      **Aviso que no se esconde:** que «importante» signifique `ingreso_bruto` lo ha
+      decidido Samuel, pero el glosario firmado todavía NO lo dice. Un modelo que solo
+      lee el glosario tiene que adivinar la lectura entre cuatro, y la pregunta queda
+      a propósito como la haría un directivo. Si falla, el fallo es de contexto y no de
+      SQL; se arregla llevando la decisión al glosario, no cambiando la pregunta.
+    sql_referencia: >-
+      SELECT m.trade_name, sum(s.fee_eur_minor) / 100.0 AS ingreso_bruto
+      FROM fact_settlement_batch AS s
+      JOIN v_merchant_current AS m ON m.merchant_id = s.merchant_id
+      GROUP BY s.merchant_id, m.trade_name
+      ORDER BY ingreso_bruto DESC LIMIT 1
 
-  - id: Q-E-22
-    pregunta: cómo va el negocio este trimestre
-    rol: finance
-    estrato: join_o_agregacion
-    glosario: "definiciones_criticas.periodo"
-    arbitrio: true
-    por_que: >-
-      **ARBITRIO.** `periodo` resuelve «este trimestre» —el trimestre natural que
-      contiene la fecha de referencia— pero **no** resuelve «cómo va el negocio»: no
-      hay una métrica canónica para eso. Es la clase de pregunta que un directivo hace
-      de verdad y que un sistema honesto tiene que poder decir que no entiende.
-    sql_referencia: null
-
-  # --------------------------------------------------------------------------
-  # TERCERA TANDA · hasta los 60. Cada una PASA EL GUARD con su rol y DEVUELVE
-  # filas, comprobado antes de escribirse. Los estratos cuadran con los que
-  # exige `docs/PLAN.md`: 20 simples, 25 con join o agregación, 15 con ventana
-  # o subconsulta correlacionada.
-  # --------------------------------------------------------------------------
   - id: Q-E-23
     pregunta: dame el número de tarjetas de cada esquema, ordenado de más a menos
     rol: analyst
@@ -854,3 +879,23 @@ ejecucion:
     sql_referencia: >-
       SELECT count(*) AS n FROM dim_merchant m WHERE m.is_current AND NOT EXISTS (SELECT 1 FROM fact_settlement_batch s WHERE s.merchant_id = m.merchant_id)
 
+
+  - id: Q-E-51
+    pregunta: dame la tasa de reintento de cada canal, de mayor a menor
+    rol: finance
+    estrato: join_o_agregacion
+    glosario: "metricas.tasa_de_reintento"
+    arbitrio: false
+    sustituye_a: "Q-E-22, retirada por Samuel el 2026-09-11 (Q-013)"
+    por_que: >-
+      **Sustituye a Q-E-22 en su MISMO estrato y con su mismo rol**, para que la
+      estratificación de PLAN.md —20 simples, 25 con join o agregación, 15 con ventana—
+      siga exacta. Transcribe `metricas.tasa_de_reintento`, que era la entrada firmada
+      menos cubierta del banco (un solo caso, Q-E-06, y sin desglose). La fórmula firmada
+      es `count(*)::DOUBLE / count(DISTINCT payment_intent_id) FROM v_attempt_dedup`;
+      aquí se agrupa por `channel`. Sin la vista deduplicada, las reingestas cuentan
+      como reintentos que nunca ocurrieron, que es exactamente la trampa del grano.
+      Global medido 1,059, dentro de lo que el glosario declara (1,063).
+    sql_referencia: >-
+      SELECT channel, count(*)::DOUBLE / count(DISTINCT payment_intent_id) AS tasa_de_reintento
+      FROM v_attempt_dedup GROUP BY channel ORDER BY tasa_de_reintento DESC

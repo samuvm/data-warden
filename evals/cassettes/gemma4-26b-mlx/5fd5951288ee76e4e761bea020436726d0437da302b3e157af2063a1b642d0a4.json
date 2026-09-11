@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos comercios no han tenido nunca una disputa",
+  "rejection_code": null,
+  "sql": "SELECT count(merchant_sk) FROM v_merchant_current WHERE merchant_sk NOT IN (SELECT DISTINCT merchant_sk FROM fact_dispute)",
+  "thinking": false
+}

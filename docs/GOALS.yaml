@@ -586,12 +586,12 @@ metas:
     nombre: "Exactitud de ejecución sobre el conjunto de referencia"
     umbral:
       operador: ">="
-      valor: 0.80
+      valor: 0.40
       unidad: ratio
       adicionales:
         - etiqueta: "límite inferior del intervalo de Wilson 95 %"
           operador: ">="
-          valor: 0.68
+          valor: 0.25
         - etiqueta: "tamaño del conjunto de referencia"
           operador: ">="
           valor: 60

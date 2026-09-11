@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "WITH valid_payments AS (\n    SELECT DISTINCT payment_intent_id, amount_eur_minor\n    FROM v_payment_intent\n    WHERE eventually_approved = true AND is_test = false\n),\ndeduped_amounts AS (\n    SELECT SUM(amount_eur_minor) AS total\n    FROM valid_payments\n)\nSELECT total\nFROM deduped_amounts",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "el importe total de los pagos, calculado paso a paso",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT SUM(f.amount_eur_minor) AS total FROM v_payment_intent f JOIN dim_merchant m ON f.merchant_sk = m.merchant_sk WHERE f.eventually_approved = true AND f.is_test = false AND m.risk_tier = 'high' GROUP BY 1",
+  "thinking": false
+}

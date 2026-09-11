@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez motivos de rechazo más frecuentes, cada uno con su número de intentos rechazados",
+  "rejection_code": null,
+  "sql": "SELECT ref_decline_reason.description, count(*) FROM fact_payment_attempt JOIN ref_decline_reason ON fact_payment_attempt.decline_reason_code = ref_decline_reason.decline_reason_code WHERE fact_payment_attempt.auth_status != 'approved' AND fact_payment_attempt.is_test = false GROUP BY ref_decline_reason.description ORDER BY count(*) DESC LIMIT 10",
+  "thinking": false
+}
