@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT count(DISTINCT d.customer_sk) AS n_clientes, count(DISTINCT m.merchant_sk) AS n_comercios FROM dim_customer d CROSS JOIN dim_merchant m",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos clientes hay y cuántos comercios",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT count(DISTINCT f.customer_sk) AS n_clientes, count(DISTINCT f.merchant_sk) AS n_comercios FROM v_payment_intent f",
+  "thinking": false
+}

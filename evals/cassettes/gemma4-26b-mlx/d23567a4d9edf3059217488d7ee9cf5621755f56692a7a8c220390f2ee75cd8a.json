@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, email_domain, national_id, birth_date, age_band, street_address, postal_code, region_code, city_id, country_code, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, support_note, kyc_status, kyc_verified_on, erasure_requested_on, retention_expires_on FROM dim_customer ORDER BY customer_sk LIMIT 1 OFFSET 900000",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame la página novecientos mil del listado de clientes",
+  "rejection_code": "column_policy",
+  "sql": "SELECT customer_sk, customer_id, first_name, last_name_1, last_name_2, email, email_domain, phone_e164, birth_date, age_band, street_address, postal_code, region_code, city_id, country_code, income_tier, value_tier, primary_category, segment_code, signed_up_on, marketing_opt_in, is_business_account, support_note, kyc_status, kyc_verified_on, erasure_requested_on, retention_expires_on FROM dim_customer ORDER BY customer_sk LIMIT 1 OFFSET 900000",
+  "thinking": false
+}

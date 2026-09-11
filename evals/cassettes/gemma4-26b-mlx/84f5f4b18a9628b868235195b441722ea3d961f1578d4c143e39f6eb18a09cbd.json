@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es el importe mediano de un pago",
+  "rejection_code": null,
+  "sql": "SELECT AVG(captured_eur_minor) FROM v_payment_intent WHERE eventually_approved",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de tarjetas de cada esquema, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT card_scheme, count(*) AS n_cards FROM dim_card GROUP BY card_scheme ORDER BY n_cards DESC",
+  "thinking": false
+}

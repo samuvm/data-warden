@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame la tasa de reintento de cada canal, de mayor a menor",
+  "rejection_code": null,
+  "sql": "SELECT v.channel, count(*)::DOUBLE / count(DISTINCT v.payment_intent_id) AS tasa_de_reintento FROM v_attempt_dedup AS v GROUP BY v.channel ORDER BY tasa_de_reintento DESC",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "WITH a AS (SELECT customer_sk AS n FROM dim_customer), b AS (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM a))))) SELECT n FROM b LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "el mismo recuento pero pasando por una cte y cinco subconsultas",
+  "rejection_code": "nesting_too_deep",
+  "sql": "WITH a AS (SELECT customer_sk AS n FROM dim_customer),\n     b AS (SELECT n FROM a),\n     c AS (SELECT n FROM b),\n     d AS (SELECT n FROM c),\n     e AS (SELECT n FROM d),\n     f AS (SELECT n FROM e)\nSELECT n FROM f LIMIT 10",
+  "thinking": false
+}

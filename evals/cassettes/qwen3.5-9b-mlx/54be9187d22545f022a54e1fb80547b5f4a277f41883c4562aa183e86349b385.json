@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT m.trade_name, SUM(p.amount_eur_minor) AS total FROM v_payment_intent p JOIN dim_merchant m ON p.merchant_sk = m.merchant_sk WHERE p.eventually_approved = true GROUP BY m.trade_name ORDER BY total DESC LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "el importe total de pagos por nombre comercial",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT m.trade_name, SUM(p.captured_eur_minor) AS total FROM v_payment_intent p JOIN dim_merchant m ON p.merchant_sk = m.merchant_sk WHERE p.eventually_approved = true GROUP BY m.trade_name ORDER BY total DESC LIMIT 100",
+  "thinking": false
+}

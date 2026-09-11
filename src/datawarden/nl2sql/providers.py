@@ -25,14 +25,36 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol, runtime_checkable
 
 from datawarden.domain.types import RejectionReason
+from datawarden.telemetry import LlmCall, emit
+from datawarden.telemetry.otel import Dropped
 
 #: Dónde vive la caché grabada. Se versiona: es lo que hace que la evaluación se pueda
 #: repetir en otra máquina sin modelo y dé el mismo número.
 CASSETTE_DIR: Final = pathlib.Path("evals/cassettes")
+
+
+def cassette_dir_for(model_tag: str) -> pathlib.Path:
+    """La carpeta de casetes DE UN MODELO. Un subdirectorio por modelo, no un cajón.
+
+    **Nace de un fallo real del 2026-09-10.** Al pasar el generador de `qwen3.5:9b-mlx`
+    a `gemma4:26b-mlx`, las 231 grabaciones del 9B se quedaron en la misma carpeta que
+    las 127 nuevas, y `cassette_provenance` lo cazó: «las casetes vienen de dos modelos;
+    mezclar dos modelos da un número que no es de ninguno de los dos». Tenía razón.
+
+    Se podría haber resuelto borrando las viejas, y sería peor por dos motivos. Uno:
+    `models.lock` conserva el digest del generador anterior justo para que sus informes
+    sigan siendo reproducibles, y sin sus casetes esa promesa es falsa. Dos: el problema
+    volvería el día del siguiente cambio de modelo, porque dependería de que alguien se
+    acordara de limpiar. Separados por carpeta, **mezclarlos deja de ser posible**, que
+    es la única forma de arreglo que no hay que recordar.
+    """
+    return CASSETTE_DIR / model_tag.replace(":", "-").replace("/", "-")
+
 
 #: Los envoltorios que un modelo pone alrededor del SQL aunque se le pida que no.
 _FENCES: Final = ("```sql", "```duckdb", "```")
@@ -227,11 +249,18 @@ class LocalProvider:
     model: str
     name: str = "local"
     endpoint: str = "http://localhost:11434/api/generate"
-    #: **600 s y no 120.** Medido el 2026-09-03: `qwen3.5:9b-mlx` en modo razonador
-    #: tarda ~70 s por llamada, y una punta por encima del tope se convertiría en un
-    #: rechazo `INTERNAL` que la evaluación contaría como «no se recuperó». Estaría
-    #: midiendo el reloj y publicándolo como si fuera el modelo.
-    timeout_s: float = 600.0
+    #: **1200 s, y el mismo argumento que llevó de 120 a 600.** Medido el 2026-09-03:
+    #: `qwen3.5:9b-mlx` en modo razonador tarda ~70 s por llamada, y una punta por
+    #: encima del tope se convierte en un rechazo `INTERNAL` que la evaluación contaría
+    #: como «no se recuperó». Estaría midiendo el reloj y publicándolo como si fuera el
+    #: modelo.
+    #:
+    #: Se sube el 2026-09-10 al pasar el generador a `gemma4:26b-mlx`, que es el doble
+    #: de grande: con 600 s, `REC-R002-3` murió con `TimeoutError` y la medida lo tuvo
+    #: que descartar como fallo de MEDIDA. Subirlo no ablanda nada —un modelo lento
+    #: sigue siendo lento y se ve en el informe—; lo que evita es publicar un cero que
+    #: es del reloj y no del modelo.
+    timeout_s: float = 1200.0
     #: Modo razonador. `None` deja el del modelo; `False` lo apaga. Va al informe
     #: porque cambia el número: la misma consulta salía en 0,3 s sin razonar y en
     #: 71 s razonando, y dos medidas con modos distintos no son comparables.
@@ -244,6 +273,28 @@ class LocalProvider:
     #: este proyecto no admite. La semilla va al informe con todo lo demás.
     temperature: float = 0.0
     seed: int = 20260903
+    #: **Tope de tokens de salida. Sin él, un prompt puede colgar la evaluación entera.**
+    #:
+    #: Medido el 2026-09-10 con `gemma4:26b-mlx` y el caso `REC-R002-3` —reescribir un
+    #: `LIKE ... ESCAPE` que R002 rechaza—: sin `num_predict`, Ollama se queda generando
+    #: y no vuelve. Reproducido tres veces con el modelo ya cargado, a 240 s, 200 s y
+    #: 300 s. Con `num_predict=1500` vuelve en 29 s y `done_reason: "length"`.
+    #:
+    #: Subir el `timeout_s` NO lo arreglaba, y ese fue el primer intento: con 1200 s
+    #: seguía muriendo. El problema no es que el modelo sea lento, es que no para.
+    #:
+    #: Y la diferencia importa para lo que se publica: sin tope, el caso salía como
+    #: `INTERNAL` y la evaluación tenía que DESCARTARLO como fallo de medida; con tope,
+    #: sale una respuesta truncada que el guard rechaza, o sea **una recuperación
+    #: fallida de verdad**, que es lo que hay que contar. Un tope no ablanda la medida:
+    #: convierte un agujero en un dato.
+    max_tokens: int = 1500
+    #: A dónde van los atributos OTel de cada llamada. `None` los tira, y es el valor
+    #: por defecto a propósito: medir no puede ser obligatorio para poder generar.
+    telemetry: Callable[[dict[str, Any]], None] | None = None
+    #: `app.spans.dropped` de `docs/CONTRACTS/otel-genai.md §4`. Va aquí y no en un
+    #: global para que dos proveedores no se pisen el contador.
+    dropped: Dropped = field(default_factory=Dropped)
 
     def generate(self, request: Request) -> str:
         import urllib.request
@@ -254,7 +305,11 @@ class LocalProvider:
             "model": self.model,
             "prompt": render(request),
             "stream": False,
-            "options": {"temperature": self.temperature, "seed": self.seed},
+            "options": {
+                "temperature": self.temperature,
+                "seed": self.seed,
+                "num_predict": self.max_tokens,
+            },
         }
         if self.think is not None:
             payload_out["think"] = self.think
@@ -264,4 +319,48 @@ class LocalProvider:
         )
         with urllib.request.urlopen(req, timeout=self.timeout_s) as response:  # noqa: S310
             payload = json.loads(response.read().decode("utf-8"))
+        # **La emisión va DESPUÉS de leer y no envuelve la llamada**: §6 del contrato
+        # OTel dice que un fallo de observabilidad nunca tumba la aplicación, y `emit`
+        # ya no lanza — pero además así queda claro que generar no depende de medir.
+        if self.telemetry is not None:
+            emit(self.llm_call(payload), self.telemetry, dropped=self.dropped)
         return extract_sql(str(payload.get("response", "")))
+
+    def llm_call(self, payload: dict[str, Any]) -> LlmCall:
+        """La respuesta de Ollama, en el modelo INTERNO. Ni un nombre del estándar.
+
+        Los nombres de la izquierda son de Ollama (`prompt_eval_count`, `eval_count`,
+        `done_reason`) y los de la derecha son nuestros. La traducción al estándar pasa
+        después, en `telemetry/otel.py`, y es la única que conoce `gen_ai.*`. Son dos
+        traducciones seguidas a propósito: así una ruptura de la spec no llega hasta
+        aquí, y un cambio de Ollama no llega hasta el estándar.
+
+        `gen_ai.response.model` sale de `payload["model"]` y no de `self.model`: es el
+        modelo que respondió DE VERDAD, que es justo lo que el contrato pide distinguir.
+        """
+        from urllib.parse import urlparse
+
+        servidor = urlparse(self.endpoint)
+        return LlmCall(
+            operation="chat",
+            provider="ollama",
+            requested_model=self.model,
+            responded_model=str(payload.get("model") or self.model),
+            input_tokens=int(payload.get("prompt_eval_count") or 0),
+            output_tokens=int(payload.get("eval_count") or 0),
+            finish_reasons=(str(payload.get("done_reason") or "stop"),),
+            server_address=servidor.netloc or servidor.path,
+            temperature=self.temperature,
+            # Ahora `gen_ai.request.max_tokens` lleva un valor de verdad: es un
+            # parámetro que se envía, no un campo decorativo del modelo interno.
+            max_tokens=self.max_tokens,
+            # Ollama da la latencia en NANOsegundos; `app.ttft_ms` va en milisegundos.
+            ttft_ms=_ns_a_ms(payload.get("prompt_eval_duration")),
+        )
+
+
+def _ns_a_ms(nanosegundos: object) -> float | None:
+    """Nanosegundos de Ollama a milisegundos. `None` si no vino, que no es lo mismo que 0."""
+    if not isinstance(nanosegundos, int):
+        return None
+    return round(nanosegundos / 1_000_000, 3)

@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez comercios que más volumen han liquidado, con su nombre comercial y el volumen en euros",
+  "rejection_code": null,
+  "sql": "SELECT v_merchant_current.trade_name, SUM(fact_settlement_batch.gross_eur_minor) AS volumen_eur FROM fact_settlement_batch JOIN v_merchant_current ON fact_settlement_batch.merchant_id = v_merchant_current.merchant_id GROUP BY v_merchant_current.trade_name ORDER BY volumen_eur DESC LIMIT 10",
+  "thinking": false
+}

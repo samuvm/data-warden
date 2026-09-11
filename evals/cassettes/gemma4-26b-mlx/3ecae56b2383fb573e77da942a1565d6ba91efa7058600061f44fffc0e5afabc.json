@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT n FROM (SELECT customer_sk AS n FROM dim_customer)))))) LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los identificadores de cliente, envueltos capa a capa",
+  "rejection_code": "nesting_too_deep",
+  "sql": "WITH step1 AS (\n  SELECT customer_sk AS n\n  FROM dim_customer\n),\nstep2 AS (\n  SELECT n FROM step1\n),\nstep3 AS (\n  SELECT n FROM step2\n),\nstep4 AS (\n  SELECT n FROM step3\n),\nstep5 AS (\n  SELECT n FROM step4\n),\nstep6 AS (\n  SELECT n FROM step5\n),\nstep7 AS (\n  SELECT n FROM step6\n)\nSELECT n FROM step7 LIMIT 10",
+  "thinking": false
+}

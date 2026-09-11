@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos dispositivos usan más de un cliente",
+  "rejection_code": null,
+  "sql": "SELECT count(*) FROM (SELECT device_sk FROM bridge_customer_device GROUP BY device_sk HAVING count(DISTINCT customer_sk) > 1) AS subquery",
+  "thinking": false
+}

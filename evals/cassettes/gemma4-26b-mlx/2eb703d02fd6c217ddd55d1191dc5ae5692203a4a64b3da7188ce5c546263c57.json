@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es el ticket medio en euros",
+  "rejection_code": null,
+  "sql": "SELECT AVG(v.captured_eur_minor) FROM v_payment_intent v WHERE v.eventually_approved AND NOT v.is_test",
+  "thinking": false
+}

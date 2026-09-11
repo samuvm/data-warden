@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT c.customer_sk, d.device_sk FROM dim_customer AS c CROSS JOIN dim_device AS d LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "todas las combinaciones posibles de cliente y dispositivo",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT c.customer_sk, d.device_sk FROM dim_customer AS c JOIN bridge_customer_device AS b ON c.customer_sk = b.customer_sk JOIN dim_device AS d ON b.device_sk = d.device_sk",
+  "thinking": false
+}

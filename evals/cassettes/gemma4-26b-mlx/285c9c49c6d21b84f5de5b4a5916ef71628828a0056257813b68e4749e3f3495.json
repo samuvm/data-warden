@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame la tasa de aprobación en porcentaje de cada esquema de tarjeta, ordenada de mayor a menor",
+  "rejection_code": null,
+  "sql": "SELECT card_scheme, 100.0 * count(*) FILTER (WHERE auth_status = 'approved') / count(*) FROM v_attempt_dedup JOIN dim_card ON v_attempt_dedup.card_sk = dim_card.card_sk WHERE NOT is_test GROUP BY card_scheme ORDER BY 2 DESC",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT d.country_code, COUNT(DISTINCT c.customer_sk) AS n_clientes FROM dim_customer c JOIN v_payment_intent p ON c.customer_sk = p.customer_sk WHERE p.eventually_approved GROUP BY d.country_code ORDER BY n_clientes DESC LIMIT 10",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez países con más clientes que hayan comprado alguna vez, con el número de clientes de cada uno",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT c.country_code, COUNT(DISTINCT c.customer_sk) AS n_clientes FROM dim_customer c JOIN v_payment_intent p ON c.customer_sk = p.customer_sk WHERE p.eventually_approved GROUP BY c.country_code ORDER BY n_clientes DESC LIMIT 10",
+  "thinking": false
+}

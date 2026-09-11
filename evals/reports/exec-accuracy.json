@@ -2,8 +2,8 @@
   "metas": {
     "G-EXEC-ACC": {
       "adicionales": {
-        "límite inferior del intervalo de Wilson 95 %": 0.1113,
-        "tamaño del conjunto de referencia": 57.0
+        "límite inferior del intervalo de Wilson 95 %": 0.3931,
+        "tamaño del conjunto de referencia": 60.0
       },
       "command": "make eval",
       "detail": {
@@ -11,42 +11,11 @@
           {
             "acierto": false,
             "clase": "rechazo",
-            "esperado": "R008",
-            "estrato": "simple",
-            "id": "Q-R-02",
-            "obtenido": null
-          },
-          {
-            "acierto": false,
-            "clase": "rechazo",
-            "esperado": "R008",
-            "estrato": "simple",
-            "id": "Q-R-03",
-            "obtenido": "R002"
-          },
-          {
-            "acierto": false,
-            "clase": "rechazo",
-            "esperado": "R012",
-            "estrato": "join_o_agregacion",
-            "id": "Q-R-04",
-            "obtenido": null
-          },
-          {
-            "acierto": false,
-            "clase": "rechazo",
-            "esperado": "R012",
-            "estrato": "join_o_agregacion",
-            "id": "Q-R-05",
-            "obtenido": null
-          },
-          {
-            "acierto": false,
-            "clase": "rechazo",
             "esperado": "R010",
             "estrato": "simple",
             "id": "Q-R-07",
-            "obtenido": null
+            "obtenido": null,
+            "reglas_en_el_ciclo": []
           },
           {
             "acierto": false,
@@ -54,7 +23,8 @@
             "esperado": "R004",
             "estrato": "simple",
             "id": "Q-R-08",
-            "obtenido": null
+            "obtenido": null,
+            "reglas_en_el_ciclo": []
           },
           {
             "acierto": false,
@@ -62,30 +32,19 @@
             "esperado": "R006",
             "estrato": "simple",
             "id": "Q-R-09",
-            "obtenido": "R008"
-          },
-          {
-            "acierto": false,
-            "clase": "rechazo",
-            "esperado": "R008",
-            "estrato": "join_o_agregacion",
-            "id": "Q-R-10",
-            "obtenido": "R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-01",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "obtenido": "R008",
+            "reglas_en_el_ciclo": [
+              "R008",
+              "R008",
+              "R008"
+            ]
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "join_o_agregacion",
             "id": "Q-E-02",
-            "intentos": 1,
+            "intentos": 3,
             "motivo": "cell_value"
           },
           {
@@ -93,6 +52,14 @@
             "clase": "ejecucion",
             "estrato": "join_o_agregacion",
             "id": "Q-E-04",
+            "intentos": 2,
+            "motivo": "cell_value"
+          },
+          {
+            "acierto": false,
+            "clase": "ejecucion",
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-05",
             "intentos": 1,
             "motivo": "cell_value"
           },
@@ -117,8 +84,8 @@
             "clase": "ejecucion",
             "estrato": "join_o_agregacion",
             "id": "Q-E-10",
-            "intentos": 2,
-            "motivo": "la consulta generada no corrió: BinderException"
+            "intentos": 1,
+            "motivo": "cell_value"
           },
           {
             "acierto": false,
@@ -133,8 +100,8 @@
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-12",
-            "intentos": 2,
-            "motivo": "la consulta generada no corrió: OutOfMemoryException"
+            "intentos": 1,
+            "motivo": "cell_value"
           },
           {
             "acierto": false,
@@ -157,136 +124,56 @@
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-15",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "join_o_agregacion",
-            "id": "Q-E-16",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "intentos": 2,
+            "motivo": "cell_value"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-17",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "join_o_agregacion",
-            "id": "Q-E-18",
-            "intentos": 2,
-            "motivo": "la consulta generada no corrió: BinderException"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "ventana_o_correlada",
-            "id": "Q-E-19",
-            "intentos": 2,
+            "intentos": 1,
             "motivo": "cell_value"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
-            "estrato": "ventana_o_correlada",
-            "id": "Q-E-20",
-            "intentos": 2,
-            "motivo": "la consulta generada no corrió: BinderException"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-24",
-            "intentos": 1,
-            "motivo": "row_count"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-25",
-            "intentos": 1,
-            "motivo": "la consulta generada no corrió: BinderException"
+            "estrato": "join_o_agregacion",
+            "id": "Q-E-21",
+            "intentos": 3,
+            "motivo": "rechazada por R004"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "simple",
             "id": "Q-E-27",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-28",
-            "intentos": 3,
-            "motivo": "rechazada por R008"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-29",
             "intentos": 1,
-            "motivo": "cell_value"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-31",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "simple",
-            "id": "Q-E-32",
-            "intentos": 1,
-            "motivo": "column_count"
+            "motivo": "row_count"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "join_o_agregacion",
             "id": "Q-E-33",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "intentos": 1,
+            "motivo": "cell_type"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "join_o_agregacion",
             "id": "Q-E-34",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "intentos": 1,
+            "motivo": "cell_value"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "join_o_agregacion",
             "id": "Q-E-35",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "join_o_agregacion",
-            "id": "Q-E-37",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "intentos": 2,
+            "motivo": "cell_type"
           },
           {
             "acierto": false,
@@ -294,7 +181,7 @@
             "estrato": "join_o_agregacion",
             "id": "Q-E-39",
             "intentos": 1,
-            "motivo": "row_count"
+            "motivo": "column_count"
           },
           {
             "acierto": false,
@@ -317,24 +204,16 @@
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-42",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "intentos": 1,
+            "motivo": "cell_value"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-43",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "ventana_o_correlada",
-            "id": "Q-E-44",
-            "intentos": 2,
-            "motivo": "la consulta generada no corrió: BinderException"
+            "intentos": 1,
+            "motivo": "cell_value"
           },
           {
             "acierto": false,
@@ -342,7 +221,7 @@
             "estrato": "ventana_o_correlada",
             "id": "Q-E-45",
             "intentos": 1,
-            "motivo": "la consulta generada no corrió: BinderException"
+            "motivo": "row_count"
           },
           {
             "acierto": false,
@@ -357,38 +236,30 @@
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-47",
-            "intentos": 3,
-            "motivo": "rechazada por R002"
-          },
-          {
-            "acierto": false,
-            "clase": "ejecucion",
-            "estrato": "ventana_o_correlada",
-            "id": "Q-E-48",
-            "intentos": 1,
-            "motivo": "column_count"
+            "intentos": 2,
+            "motivo": "cell_type"
           },
           {
             "acierto": false,
             "clase": "ejecucion",
             "estrato": "ventana_o_correlada",
             "id": "Q-E-50",
-            "intentos": 3,
-            "motivo": "rechazada por R004"
+            "intentos": 1,
+            "motivo": "la consulta generada no corrió: OutOfMemoryException"
           }
         ],
         "perfil": "full",
         "por_estrato": {
           "join_o_agregacion": {
-            "aciertos": 5,
-            "n": 22
+            "aciertos": 12,
+            "n": 25
           },
           "simple": {
-            "aciertos": 5,
+            "aciertos": 14,
             "n": 20
           },
           "ventana_o_correlada": {
-            "aciertos": 1,
+            "aciertos": 5,
             "n": 15
           }
         },
@@ -396,7 +267,7 @@
         "provenance": "agente_transcrito_del_glosario_firmado",
         "superconjuntos": []
       },
-      "value": 0.193
+      "value": 0.5167
     },
     "G-QUESTIONS-BANK": {
       "adicionales": {},
@@ -408,11 +279,7 @@
           "simple": 13,
           "ventana_o_correlada": 15
         },
-        "necesitan_criterio_de_samuel": [
-          "Q-E-05",
-          "Q-E-21",
-          "Q-E-22"
-        ],
+        "necesitan_criterio_de_samuel": [],
         "objetivo": 60,
         "perfil": "full",
         "problemas": [],
@@ -420,11 +287,7 @@
         "rechazos": 10,
         "rechazos_verificados_ejecutando_el_guard": 10,
         "referencia_devuelve_cero_filas": [],
-        "sin_sql_de_referencia": [
-          "Q-E-05",
-          "Q-E-21",
-          "Q-E-22"
-        ],
+        "sin_sql_de_referencia": [],
         "total": 60
       },
       "value": 0.0

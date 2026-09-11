@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de disputas distintas de cada categoría de motivo, ordenado de más a menos",
+  "rejection_code": null,
+  "sql": "SELECT reason_category, count(DISTINCT dispute_case_id) FROM fact_dispute GROUP BY reason_category ORDER BY count(DISTINCT dispute_case_id) DESC",
+  "thinking": false
+}

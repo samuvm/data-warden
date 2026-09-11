@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez países con MAYOR TASA de aprobación, con su tasa en porcentaje, contando solo los que tengan al menos mil intentos",
+  "rejection_code": null,
+  "sql": "SELECT v_payment_geo.ip_country, 100.0 * count(*) FILTER (WHERE v_attempt_dedup.auth_status = 'approved') / count(*) AS tasa_aprobacion FROM v_attempt_dedup JOIN v_payment_geo ON v_attempt_dedup.ingestion_id = v_payment_geo.ingestion_id WHERE v_attempt_dedup.is_test = false GROUP BY v_payment_geo.ip_country HAVING count(*) >= 1000 ORDER BY tasa_aprobacion DESC LIMIT 10",
+  "thinking": false
+}

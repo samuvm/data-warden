@@ -1,0 +1,32 @@
+{
+  "columns": [
+    "channel",
+    "tasa_de_reintento"
+  ],
+  "glosario": "metricas.tasa_de_reintento",
+  "id": "Q-E-51",
+  "perfil": "full",
+  "pregunta": "dame la tasa de reintento de cada canal, de mayor a menor",
+  "rol": "finance",
+  "row_count": 4,
+  "rows": [
+    [
+      "pos",
+      "1.0712418667081196"
+    ],
+    [
+      "recurring",
+      "1.0569730016708927"
+    ],
+    [
+      "ecommerce",
+      "1.0569116527808622"
+    ],
+    [
+      "app",
+      "1.0567579484990215"
+    ]
+  ],
+  "sql_referencia": "SELECT channel, count(*)::DOUBLE / count(DISTINCT payment_intent_id) AS tasa_de_reintento FROM v_attempt_dedup GROUP BY channel ORDER BY tasa_de_reintento DESC",
+  "sql_sha256": "sha256:cc396d92ceb6607e4517d647db4fdc9e819619b18bd622c3f4e055cf7b5ba060"
+}

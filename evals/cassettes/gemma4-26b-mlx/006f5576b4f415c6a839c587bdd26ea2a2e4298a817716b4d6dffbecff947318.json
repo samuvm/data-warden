@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT count(*) AS n FROM dim_customer; SELECT count(*) AS n FROM dim_merchant",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos clientes hay y cuántos comercios",
+  "rejection_code": "unparseable_input",
+  "sql": "SELECT count(DISTINCT customer_sk) AS n_clientes, count(DISTINCT merchant_sk) AS n_comercios FROM (SELECT customer_sk, NULL AS merchant_sk FROM dim_customer UNION ALL SELECT NULL, merchant_sk FROM dim_merchant) AS combined_data",
+  "thinking": false
+}

@@ -1,0 +1,11 @@
+{
+  "attempt": 3,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT card_scheme, count(DISTINCT v_payment_intent.payment_intent_id) AS num_pagos_validos FROM v_payment_intent JOIN dim_card ON v_payment_intent.card_sk = dim_card.card_sk WHERE v_payment_intent.eventually_approved GROUP BY card_scheme ORDER BY num_pagos_validos DESC",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame el número de pagos válidos por tipo de financiación de la tarjeta, ordenado de más a menos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT dim_card.card_scheme, count(DISTINCT v_payment_intent.payment_intent_id) AS num_pagos_validos FROM v_payment_intent JOIN dim_card ON v_payment_intent.card_sk = dim_card.card_sk WHERE v_payment_intent.eventually_approved GROUP BY dim_card.card_scheme ORDER BY num_pagos_validos DESC",
+  "thinking": false
+}

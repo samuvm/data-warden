@@ -104,7 +104,7 @@
       "axiom": false,
       "blocking_from": 2,
       "id": "G-GUARD-P95",
-      "measured": 0.837,
+      "measured": 0.848,
       "operator": "<=",
       "passed": true,
       "threshold": 25,
@@ -229,9 +229,39 @@
       "passed": true,
       "threshold": 20,
       "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 8,
+      "id": "G-EXEC-ACC",
+      "measured": 0.5167,
+      "operator": ">=",
+      "passed": true,
+      "threshold": 0.4,
+      "unit": "ratio"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 8,
+      "id": "G-EVAL-REPORT",
+      "measured": 0.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
+    },
+    {
+      "axiom": false,
+      "blocking_from": 8,
+      "id": "G-OTEL-ATTRS",
+      "measured": 0.0,
+      "operator": "==",
+      "passed": true,
+      "threshold": 0,
+      "unit": "count"
     }
   ],
-  "milestone": 7,
+  "milestone": 9,
   "passed": true,
   "problems": []
 }

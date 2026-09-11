@@ -1,0 +1,29 @@
+# Convenciones semánticas OpenTelemetry GenAI · versión PINEADA.
+#
+# Lo exige `docs/CONTRACTS/otel-genai.md §3`, que es una copia literal de `_comun/` y
+# un contrato con los proyectos 01, 02 y 04. Subir esta versión es un cambio
+# consciente, con entrada en JOURNAL.md y revisión del traductor. Nunca es automático.
+#
+# ---------------------------------------------------------------------------
+# DISCREPANCIA CON EL CONTRATO, verificada el 2026-09-10 contra la API de GitHub
+# ---------------------------------------------------------------------------
+# El contrato dice `repo: open-telemetry/semantic-conventions-genai`, `version: v1.42.0`.
+# Ese repositorio EXISTE (creado 2026-05-05) pero **no tiene ni un solo tag ni una sola
+# release**: `GET /repos/open-telemetry/semantic-conventions-genai/git/ref/tags/v1.42.0`
+# devuelve 404 y las listas de tags y releases vuelven vacías. O sea que la referencia
+# que el contrato manda fijar no se puede fijar todavía.
+#
+# Lo que SÍ es verificable es `v1.42.0` del repositorio principal, y además es la
+# elección coherente: el propio contrato (§1) dice que las convenciones GenAI se
+# ELIMINARON del repo principal en v1.43.0, así que v1.42.0 es la última versión de ese
+# repo que todavía las contiene. Se fija esa, y no se inventa un sha para la otra.
+#
+# Queda abierto como decisión del contrato compartido, porque afecta a los cuatro
+# proyectos: si el 01 y el 02 pinean otra cosa, la integración que el contrato existe
+# para garantizar deja de estar garantizada, y eso no lo puede decidir un solo repo.
+
+repo:    open-telemetry/semantic-conventions
+version: v1.42.0
+sha:     ae3a98640194ed405c4c797281502e4d3bd258b3
+verificado: 2026-09-10 · GET /repos/open-telemetry/semantic-conventions/git/ref/tags/v1.42.0
+motivo:  ultima version del repo principal que contiene gen_ai.* (eliminadas en v1.43.0)

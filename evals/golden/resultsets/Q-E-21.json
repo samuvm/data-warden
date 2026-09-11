@@ -1,0 +1,20 @@
+{
+  "columns": [
+    "trade_name",
+    "ingreso_bruto"
+  ],
+  "glosario": "definiciones_criticas.ingreso + granos.lote_de_liquidacion",
+  "id": "Q-E-21",
+  "perfil": "full",
+  "pregunta": "cuál es nuestro comercio más importante",
+  "rol": "analyst",
+  "row_count": 1,
+  "rows": [
+    [
+      "Central Puerto",
+      "5034410.82"
+    ]
+  ],
+  "sql_referencia": "SELECT m.trade_name, sum(s.fee_eur_minor) / 100.0 AS ingreso_bruto FROM fact_settlement_batch AS s JOIN v_merchant_current AS m ON m.merchant_id = s.merchant_id GROUP BY s.merchant_id, m.trade_name ORDER BY ingreso_bruto DESC LIMIT 1",
+  "sql_sha256": "sha256:1176b736765ab192e11149b1e2e81e332a17e3b79a4af6e518adae007d872cfc"
+}

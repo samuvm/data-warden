@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT first_name AS n FROM dim_customer ORDER BY n LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "los clientes ordenados por su nombre de pila",
+  "rejection_code": "column_policy",
+  "sql": "SELECT first_name FROM dim_customer ORDER BY first_name LIMIT 100",
+  "thinking": false
+}

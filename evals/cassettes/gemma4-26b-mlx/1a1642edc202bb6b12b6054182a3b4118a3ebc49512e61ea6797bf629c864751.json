@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT m.trade_name FROM v_merchant_current m JOIN fact_settlement_batch s ON m.merchant_sk = s.merchant_sk GROUP BY m.trade_name ORDER BY SUM(s.net_eur_minor) DESC LIMIT 1",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es nuestro comercio más importante",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT m.trade_name FROM v_merchant_current m JOIN fact_settlement_batch s ON m.merchant_sk = s.merchant_sk GROUP BY m.trade_name ORDER BY SUM(s.net_eur_minor) DESC LIMIT 1",
+  "thinking": false
+}

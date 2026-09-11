@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c, dim_merchant AS m LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame clientes y comercios juntos",
+  "rejection_code": "cartesian_join",
+  "sql": "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN v_payment_intent AS p ON c.customer_sk = p.customer_sk JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk LIMIT 100",
+  "thinking": false
+}

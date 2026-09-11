@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los diez comercios que más volumen mueven y cuánto mueve cada uno",
+  "rejection_code": null,
+  "sql": "SELECT merchant_id, SUM(gross_eur_minor) AS gross_eur_minor FROM fact_settlement_batch GROUP BY merchant_id ORDER BY gross_eur_minor DESC LIMIT 10",
+  "thinking": false
+}

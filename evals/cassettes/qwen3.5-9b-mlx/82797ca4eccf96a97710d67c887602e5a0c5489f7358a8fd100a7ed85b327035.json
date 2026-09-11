@@ -1,0 +1,11 @@
+{
+  "attempt": 4,
+  "model": "qwen3.5:9b-mlx",
+  "previous_sql": "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN dim_merchant AS m ON c.customer_sk = m.customer_sk LIMIT 100",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "enséñame clientes y comercios juntos",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT c.customer_sk, m.merchant_sk FROM dim_customer AS c JOIN dim_merchant AS m ON c.customer_sk = m.customer_sk LIMIT 100",
+  "thinking": false
+}

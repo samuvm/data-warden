@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame la comisión efectiva en porcentaje de cada nivel de riesgo de comercio, ordenada de mayor a menor",
+  "rejection_code": null,
+  "sql": "SELECT m.risk_tier, 100.0 * SUM(s.fee_eur_minor) / SUM(s.gross_eur_minor) AS mdr_efectivo FROM fact_settlement_batch s JOIN dim_merchant m ON s.merchant_id = m.merchant_id GROUP BY m.risk_tier ORDER BY mdr_efectivo DESC",
+  "thinking": false
+}

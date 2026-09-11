@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT count(DISTINCT payment_intent_id) FROM v_payment_intent WHERE eventually_approved AND event_date >= (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 1 MONTH AND event_date < (SELECT max(event_date) FROM fact_payment_attempt)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos pagos hubo el mes pasado",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT count(DISTINCT v.payment_intent_id) FROM v_payment_intent v JOIN fact_payment_attempt f ON v.payment_intent_id = f.payment_intent_id WHERE v.eventually_approved AND f.event_date >= (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 1 MONTH AND f.event_date < (SELECT max(event_date) FROM fact_payment_attempt)",
+  "thinking": false
+}

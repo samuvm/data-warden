@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuál es el importe por debajo del cual está el noventa por ciento de los pagos",
+  "rejection_code": null,
+  "sql": "SELECT percentile_cont(0.9) WITHIN GROUP (ORDER BY captured_eur_minor) FROM v_payment_intent WHERE eventually_approved",
+  "thinking": false
+}

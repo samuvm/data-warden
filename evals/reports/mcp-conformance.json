@@ -107,6 +107,16 @@
             "ok": true
           },
           {
+            "detail": "rows · aviso=True",
+            "name": "blando-no-rompe-al-cliente-que-no-confirma",
+            "ok": true
+          },
+          {
+            "detail": "rejected/over_budget",
+            "name": "duro-sigue-rechazando-sin-preguntar",
+            "ok": true
+          },
+          {
             "detail": "[['ES', 2375936], ['FR', 1057525], ['DE', 984764]]",
             "name": "run_query-devuelve-filas",
             "ok": true
@@ -133,8 +143,8 @@
           }
         ],
         "como_se_mide": "se levanta `warden mcp serve` como proceso hijo y se le habla JSON-RPC por stdio con el cliente del SDK, igual que hace Claude Desktop. No se inspecciona ninguna estructura en proceso.",
-        "passed": 12,
-        "total": 12
+        "passed": 14,
+        "total": 14
       },
       "value": 0.0
     },
@@ -142,7 +152,7 @@
       "adicionales": {},
       "command": "python scripts/check_role_source.py",
       "detail": {
-        "files_checked": 70,
+        "files_checked": 73,
         "problems": []
       },
       "value": 0

@@ -1,0 +1,11 @@
+{
+  "attempt": 2,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "SELECT count(DISTINCT customer_sk) FROM v_payment_intent WHERE eventually_approved AND customer_sk IN (SELECT customer_sk FROM v_payment_intent WHERE eventually_approved AND event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY)",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "cuántos clientes activos hay",
+  "rejection_code": "relation_out_of_scope",
+  "sql": "SELECT count(DISTINCT customer_sk) FROM v_payment_intent WHERE eventually_approved AND customer_sk IN (SELECT customer_sk FROM fact_payment_attempt WHERE event_date > (SELECT max(event_date) FROM fact_payment_attempt) - INTERVAL 90 DAY)",
+  "thinking": false
+}

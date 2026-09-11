@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "model": "gemma4:26b-mlx",
+  "previous_sql": "",
+  "prompt_id": "nl2sql",
+  "prompt_version": "2",
+  "question": "dame los motivos de devolución con su número de devoluciones y su importe total en euros, ordenados por número de devoluciones",
+  "rejection_code": null,
+  "sql": "SELECT reason_category, count(*) AS n_devoluciones, sum(refund_amount_eur_minor) AS importe_total_eur FROM fact_refund GROUP BY reason_category ORDER BY n_devoluciones",
+  "thinking": false
+}
