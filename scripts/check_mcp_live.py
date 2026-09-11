@@ -43,6 +43,14 @@ SOFT_BUDGET_SQL = (
     "SELECT p.amount_eur_minor, p.risk_score, m.trade_name "
     "FROM fact_payment_attempt AS p JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk"
 )
+#: Y una MEDIDA por encima del presupuesto duro de `analyst` (600 MB). Es el control
+#: del arreglo de P-013: el blando deja de romper al cliente que no sabe confirmar, y
+#: el duro tiene que seguir rechazando solo contra ese mismo cliente.
+HARD_BUDGET_SQL = (
+    "SELECT p.amount_eur_minor, p.risk_score, p.latency_ms, p.auth_code, "
+    "p.decline_reason_code, p.fee_minor, p.interchange_minor, p.scheme_fee_minor, "
+    "p.three_ds_result, p.sca_exemption FROM fact_payment_attempt AS p"
+)
 DATABASE = ROOT / "datagen" / "out" / "cierzo-full.duckdb"
 
 
@@ -185,6 +193,44 @@ async def exercise() -> list[tuple[str, bool, str]]:
                     "mrtr-confirmada-si-se-ejecuta",
                     body.get("outcome") == "rows" and bool(filas),
                     f"{body.get('outcome')} · {len(filas)} filas",
+                )
+            )
+
+        # 0.quinquies · **EL CLIENTE QUE NO SABE CONTESTAR.** P-013.
+        #     Los dos checks de arriba pasan un `elicitation_callback`, o sea que
+        #     miden un cliente que NO es el que se usa: Claude Desktop no declara esa
+        #     capacidad. Contra él, devolverle `InputRequiredResult` no le pedía algo
+        #     que no sabe dar, le rompía la llamada con `MCPError: Elicitation not
+        #     supported` — y con ella TODA la franja del presupuesto blando. En la
+        #     prueba manual de Q-009 murieron así 17 de 92 llamadas, el 18 %, y las 17
+        #     eran `Decision.CONFIRM`.
+        #
+        #     Es el mismo error de método que ya costó `G-PII-LEAK`, `G-SECRETS`,
+        #     `G-MCP-CONFORM` y este propio fichero: medir un camino que no se ejecuta.
+        #     Así que aquí se levanta un cliente SIN callback, que es el que falla.
+        async with Client(params) as mudo:
+            out = await mudo.call_tool("run_query", {"question_sql": SOFT_BUDGET_SQL})
+            body = out.structured_content or {}
+            cuerpo = body.get("result") or {}
+            checks.append(
+                (
+                    "blando-no-rompe-al-cliente-que-no-confirma",
+                    body.get("outcome") == "rows" and bool(cuerpo.get("budget_warning")),
+                    f"{body.get('outcome')} · aviso={bool(cuerpo.get('budget_warning'))}",
+                )
+            )
+
+            # Y el DURO sigue rechazando solo contra ese mismo cliente. Sin esto, el
+            # arreglo de arriba podría haberse llevado por delante el presupuesto
+            # entero y el check diría que todo va bien. `G-BUDGET-ESCAPE` es un axioma.
+            out = await mudo.call_tool("run_query", {"question_sql": HARD_BUDGET_SQL})
+            body = out.structured_content or {}
+            rej = body.get("rejected") or {}
+            checks.append(
+                (
+                    "duro-sigue-rechazando-sin-preguntar",
+                    body.get("outcome") == "rejected" and rej.get("code") == "over_budget",
+                    f"{body.get('outcome')}/{rej.get('code')}",
                 )
             )
 

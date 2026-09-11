@@ -253,6 +253,19 @@ def _mrtr_run_query(tools: WardenTools) -> Any:
         # arrancar y romperse en la primera consulta cara.
         if tools.budget_decision(question_sql) is not Decision.CONFIRM:
             return tools.run_query(question_sql, question=question)
+        # **P-013: un cliente que no sabe contestar no puede quedarse sin respuesta.**
+        # Devolver `InputRequiredResult` a un cliente que no declaró `elicitation` no
+        # le pide algo que no sabe dar: le rompe la llamada con un error de protocolo
+        # —`MCPError: Elicitation not supported`—, y eso deja la herramienta inservible
+        # en TODA la franja blanda. Medido en la prueba manual de Q-009 con Claude
+        # Desktop: 17 de 92 llamadas (18 %) murieron así, y las 17 eran `CONFIRM`.
+        #
+        # Contra ese cliente, el blando vuelve a lo que significaba antes de MRTR:
+        # ejecutar con aviso. No se debilita nada — el **duro** sigue rechazando solo y
+        # `G-BUDGET-ESCAPE` cubre ese, no este—, y el aviso viaja en la respuesta para
+        # que cruzar el umbral no sea silencioso.
+        if not _sabe_confirmar(ctx):
+            return _con_aviso(tools.run_query(question_sql, question=question))
         if ctx.request_state != _CONFIRM_STATE:
             return _peticion_de_confirmacion(question_sql)
         if not _confirmado(ctx.input_responses):
@@ -260,6 +273,39 @@ def _mrtr_run_query(tools: WardenTools) -> Any:
         return tools.run_query(question_sql, question=question)
 
     return run_query
+
+
+def _sabe_confirmar(ctx: Context[Any, Any]) -> bool:
+    """¿Declaró el cliente que sabe contestar a una petición de entrada?
+
+    Se mira lo que el cliente DECLARÓ, no lo que se espera de él. `client_capabilities`
+    es `None` cuando no declaró ninguna, y ahí la respuesta es que no: preguntarle sería
+    romperle la llamada.
+    """
+    capacidades = ctx.client_capabilities
+    return capacidades is not None and capacidades.elicitation is not None
+
+
+#: El aviso que acompaña a una consulta que cruzó el blando sin poder preguntar.
+AVISO_BLANDO: Final = (
+    "this query crossed the soft budget for this role; it ran because the client "
+    "cannot answer a confirmation request. Narrow it — a date range or fewer columns "
+    "usually does it — if you did not mean to scan this much"
+)
+
+
+def _con_aviso(payload: dict[str, Any]) -> dict[str, Any]:
+    """Cuelga el aviso del resultado, sin tocar las filas.
+
+    Va dentro de `result` y no al lado porque el `oneOf` del `outputSchema` distingue
+    exactamente dos desenlaces, y meter una tercera clave arriba obligaría a un cliente
+    a tratar un caso más para algo que no es un desenlace distinto: son filas, con una
+    nota. En un rechazo no se pone nada: el rechazo ya trae su motivo.
+    """
+    cuerpo = payload.get("result")
+    if isinstance(cuerpo, dict):
+        cuerpo["budget_warning"] = AVISO_BLANDO
+    return payload
 
 
 def _no_confirmada() -> dict[str, Any]:

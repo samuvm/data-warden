@@ -111,6 +111,14 @@ def rows_schema() -> dict[str, Any]:
                 "items": {"type": "string"},
                 "description": "Las columnas que el anillo 4 reescribió. Evidencia, no promesa",
             },
+            # OPCIONAL, y solo aparece cuando el presupuesto BLANDO se cruzó sin
+            # poder preguntar (P-013). Un umbral blando que se cruza en silencio es
+            # decorativo; si el cliente no sabe contestar a MRTR, al menos que la
+            # respuesta lleve escrito lo que costó.
+            "budget_warning": {
+                "type": "string",
+                "description": "Cruzó el presupuesto blando y el cliente no sabe confirmar",
+            },
         },
         "additionalProperties": False,
     }
