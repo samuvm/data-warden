@@ -1,130 +1,136 @@
 <h1 align="center">Data Warden</h1>
 
+<p align="center"><b>English</b> · <a href="README.es.md">Español</a></p>
+
 <p align="center">
-  <strong>Un agente que traduce lenguaje natural a SQL sobre un lakehouse, y cinco anillos de
-  control deterministas que garantizan que lo que salga de ahí no pueda hacer daño.</strong>
+  <strong>An agent that translates natural language into SQL over a lakehouse, and five
+  deterministic control rings that guarantee whatever comes out of it cannot do harm.</strong>
 </p>
 
 <p align="center">
-  <img alt="fases" src="https://img.shields.io/badge/fases-0%E2%80%938%20cerradas-brightgreen">
-  <img alt="metas" src="https://img.shields.io/badge/metas-26%2F26%20en%20verde-brightgreen">
+  <img alt="phases" src="https://img.shields.io/badge/phases-0%E2%80%938%20closed-brightgreen">
+  <img alt="goals" src="https://img.shields.io/badge/goals-26%2F26%20green-brightgreen">
   <img alt="tests" src="https://img.shields.io/badge/tests-820-informational">
   <img alt="mcp" src="https://img.shields.io/badge/MCP-2026--07--28-7c3aed">
   <img alt="python" src="https://img.shields.io/badge/python-3.12-blue">
-  <img alt="licencia" src="https://img.shields.io/badge/licencia-Apache--2.0-lightgrey">
+  <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-lightgrey">
 </p>
 
 <p align="center">
   <img src="docs/img/flow.gif" width="820"
-       alt="Una petición recorre los cinco anillos: contexto, generación, guard, coste y salida. El guard rechaza una consulta que expone una columna enmascarada dentro de un PARTITION BY, el coste se calcula leyendo cero filas, y el registro de auditoría anota tanto lo ejecutado como lo rechazado.">
+       alt="A request goes through the five rings: context, generation, guard, cost and output. The guard rejects a query that exposes a masked column inside a PARTITION BY, the cost is computed reading zero rows, and the audit record logs both what was executed and what was rejected.">
 </p>
 
 <p align="center">
-  <sub><b>Una petición, de principio a fin.</b> El rechazo no es el caso de error: es el producto.<br>
-  <a href="docs/img/flow.mp4">Versión en vídeo</a> · <a href="docs/img/flow.png">fotograma estático</a></sub>
+  <sub><b>One request, end to end.</b> The rejection is not the error path: it is the product.<br>
+  <a href="docs/img/flow.mp4">Video version</a> · <a href="docs/img/flow.png">static frame</a></sub>
 </p>
 
 ---
 
-## En una frase
+## In one sentence
 
-Traducir lenguaje natural a SQL ya está resuelto. Lo que impide llevarlo a producción en una
-empresa con datos de verdad es todo lo que viene después: **quién puede ver qué columna, qué
-pasa si el modelo escribe un `DELETE`, cuánto cuesta la consulta antes de lanzarla y quién
-responde cuando alguien pregunta qué se ejecutó el martes a las tres.**
+Translating natural language into SQL is a solved problem. What keeps it out of production in
+a company with real data is everything that comes after: **who can see which column, what
+happens if the model writes a `DELETE`, how much a query costs before it runs, and who answers
+when someone asks what was executed last Tuesday at three.**
 
-Data Warden es ese «después». El modelo propone y **el sistema decide**, con reglas que no
-viven en el prompt. Por eso da igual qué cliente se conecte o qué modelo use: **no puede
-saltarse las reglas, porque no están de su lado.**
+Data Warden is that "after". The model proposes and **the system decides**, with rules that do
+not live in the prompt. That is why it does not matter which client connects or which model it
+uses: **it cannot bypass the rules, because the rules are not on its side.**
 
-## Qué demuestra
+## What it demonstrates
 
-| | Garantía | Evidencia |
+| | Guarantee | Evidence |
 |---|---|---|
-| 🛡️ | **El SQL se valida como árbol, no como texto**, y lo que se ejecuta es el árbol validado, nunca la cadena que entró. Allowlist de 14 reglas: lo desconocido se rechaza | 0 evasiones en una reserva escrita a ciegas y en 3.388 variantes mutadas; 0 excepciones en 20.000 entradas arbitrarias |
-| 💶 | **El coste se conoce antes de ejecutar**, leyendo metadatos de Iceberg y sin tocar una fila | 0 consultas caras llegan al motor; una de 3 GB se rechaza en 1,4 ms |
-| 🎭 | **El enmascarado por rol reescribe el AST**, así que tampoco escapa por un `WHERE`, un `GROUP BY` o un alias | 0 fugas de datos personales en proyección, predicado y agregación |
-| 🔗 | **Todo queda auditado, también lo rechazado**, en una cadena de hashes que delata cualquier edición | 100 % de invocaciones auditadas; 100 % de 1.299 manipulaciones detectadas |
-| 🪪 | **El rol lo fija quien instala el servidor**, nunca quien pregunta | 0 suplantaciones aceptadas vía `_meta` o argumentos de herramienta |
-| 🤖 | **La IA se mide con intervalo, no con un número bonito** | exactitud 0,517 · Wilson 95 % [0,39 – 0,64] sobre 60 preguntas, con un modelo local de 26B |
+| 🛡️ | **SQL is validated as a tree, not as text**, and what runs is the validated tree, never the incoming string. A 14-rule allowlist: anything unknown is rejected | 0 evasions on a blind-written holdout and on 3,388 mutated variants; 0 exceptions on 20,000 arbitrary inputs |
+| 💶 | **Cost is known before execution**, from Iceberg metadata, without touching a single row | 0 expensive queries reach the engine; a 3 GB query is rejected in 1.5 ms |
+| 🎭 | **Role-based masking rewrites the AST**, so data cannot leak through a `WHERE`, a `GROUP BY` or an alias either | 0 personal-data leaks in projection, predicate and aggregation |
+| 🔗 | **Everything is audited, rejections included**, in a hash chain that exposes any edit | 100 % of invocations audited; 100 % of 1,299 tamperings detected |
+| 🪪 | **The role is set by whoever installs the server**, never by whoever asks | 0 spoofing attempts accepted via `_meta` or tool arguments |
+| 🤖 | **The AI is measured with an interval, not a pretty number** | accuracy 0.517 · Wilson 95 % [0.39 – 0.64] on 60 questions, with a local 26B model |
 
-Cada cifra sale de un artefacto de `evals/reports/` y lleva al lado el comando que la
-reproduce ([tabla completa](#resultados)).
+Every figure comes from an artifact in `evals/reports/` and sits next to the command that
+reproduces it ([full table](#results)).
 
-## Verlo funcionando
+## See it working
 
 <p align="center">
   <a href="docs/proof/video/proof.mp4">
     <img src="docs/proof/images/rechazo-presupuesto.png" width="820"
-         alt="Claude Desktop pide todos los intentos de pago con importe, comisiones, riesgo y motivo de rechazo. El servidor responde que la tabla tiene 66,6 M de filas y volcarla entera pide 1,13 GB, el doble del presupuesto de escaneo, así que la consulta se rechaza y hay que acotarla.">
+         alt="Claude Desktop asks for every payment attempt with amount, fees, risk and decline reason. The server answers that the table has 66.6 M rows and dumping it would take 1.13 GB, twice the scan budget, so the query is rejected and has to be narrowed.">
   </a>
 </p>
 
 <p align="center">
-  <sub><b>90 segundos, sin cortes, contra el dataset completo.</b>
-  <a href="docs/proof/video/proof.mp4">▶ Ver el vídeo</a></sub>
+  <sub><b>90 seconds, uncut, against the full dataset.</b>
+  <a href="docs/proof/video/proof.mp4">▶ Watch the video</a></sub>
 </p>
 
-Tres preguntas seguidas en un cliente MCP real, y las tres respuestas que definen el sistema:
+Three questions in a row from a real MCP client (asked in Spanish in the video), and the three
+answers that define the system:
 
-1. **Una pregunta normal** — *«¿cuántos clientes hay por país?»* — se contesta: 9.199.249 clientes
-   repartidos en 30 países.
-2. **Una que la política no permite** — *«dame los clientes nacidos antes de 1990»* — se **rechaza**,
-   y el rechazo trae la alternativa publicada, así que la respuesta sigue siendo útil.
-3. **Una demasiado cara** — *«dame todos los intentos de pago con importe, comisiones, riesgo y
-   motivo de rechazo»* — se **rechaza antes de ejecutarse**, con el tamaño calculado sin leer datos,
-   y el cliente acota a un trimestre y un resumen agregado hasta obtener la respuesta.
+1. **A normal question** — *"how many customers are there per country?"* — gets answered:
+   9,199,249 customers across 30 countries.
+2. **One the policy does not allow** — *"give me the customers born before 1990"* — is
+   **rejected**, and the rejection carries the published alternative, so the answer is still
+   useful.
+3. **One that is too expensive** — *"give me every payment attempt with amount, fees, risk and
+   decline reason"* — is **rejected before it runs**, with its size computed without reading
+   data, and the client narrows it to one quarter and an aggregated summary until it gets an
+   answer.
 
 <table>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/proof/images/rechazo-r008-age-band.png"
-     alt="El servidor rechaza filtrar por fecha de nacimiento porque la política la tiene enmascarada para ese rol y solo permite proyectarla, y ofrece age_band como alternativa publicada. El cliente responde con el desglose por bandas de edad.">
+     alt="The server refuses to filter by birth date because the policy masks it for that role and only allows projecting it, and offers age_band as the published alternative. The client answers with the breakdown by age band.">
 </td>
 <td width="50%" valign="top">
 <img src="docs/proof/images/gate-fast-verde.png"
-     alt="Salida de make gate-fast: ruff, ruff format, mypy sin incidencias, los cuatro contratos de capas en KEPT y 695 tests en verde en 26 segundos.">
+     alt="Output of make gate-fast: ruff, ruff format, mypy clean, the four layer contracts KEPT and 695 tests green in 26 seconds.">
 </td>
 </tr>
 <tr>
-<td valign="top"><sub><b>El rechazo es el producto.</b> <code>birth_date</code> está enmascarada para
-ese rol y solo puede proyectarse, nunca filtrarse. El sistema lo dice, nombra la alternativa
-—<code>age_band</code>— y el cliente contesta con ella, incluida la parte que <b>no</b> puede
-afinar sin la fecha exacta.</sub></td>
-<td valign="top"><sub><b>Y se verifica en 26 segundos.</b> <code>make gate-fast</code> sobre un clon
-limpio: tipos, los cuatro contratos de capas y 695 tests, sin necesidad de generar el dataset.</sub></td>
+<td valign="top"><sub><b>The rejection is the product.</b> <code>birth_date</code> is masked for
+that role and may only be projected, never filtered on. The system says so, names the
+alternative —<code>age_band</code>— and the client answers with it, including the part it
+<b>cannot</b> refine without the exact date.</sub></td>
+<td valign="top"><sub><b>And it verifies in 26 seconds.</b> <code>make gate-fast</code> on a clean
+clone: types, the four layer contracts and 695 tests, no dataset generation needed.</sub></td>
 </tr>
 </table>
 
-## Cómo funciona
+## How it works
 
 ```
-    lenguaje natural
+    natural language
           │
           ▼
-    ①  CONTEXTO      catálogo generado + glosario de negocio firmado
-          │          el modelo no adivina la estructura: la lee
+    ①  CONTEXT       generated catalog + signed business glossary
+          │          the model does not guess the schema: it reads it
           ▼
-    ②  GENERACIÓN    NL → SQL · la única parte con un LLM · se corrige leyendo el rechazo
+    ②  GENERATION    NL → SQL · the only part with an LLM · self-corrects by reading the rejection
           │
           ▼
-    ③  VALIDACIÓN    sqlglot → AST → guard de ALLOWLIST · 14 reglas · fail-closed
-          │          nodo o función desconocidos ⇒ rechazo
+    ③  VALIDATION    sqlglot → AST → ALLOWLIST guard · 14 rules · fail-closed
+          │          unknown node or function ⇒ rejection
           ▼
-    ④  COSTE         estimado desde los manifiestos de Iceberg, sin leer datos
-          │          blando: pide confirmación · duro: no se ejecuta
+    ④  COST          estimated from Iceberg manifests, without reading data
+          │          soft: asks for confirmation · hard: does not run
           ▼
-    ⑤  SALIDA        enmascarado por rol reescribiendo el AST · límite de filas
-          │          auditoría append-only con hash encadenado (JCS, RFC 8785)
+    ⑤  OUTPUT        role-based masking by rewriting the AST · row limit
+          │          append-only audit with a hash chain (JCS, RFC 8785)
           ▼
-    resultado, o un rechazo que dice qué regla saltó y qué hacer en su lugar
+    a result, or a rejection that says which rule fired and what to do instead
 ```
 
-Los anillos ③ a ⑤ son **deterministas**: no dependen del modelo, se prueban con TDD,
-propiedades y mutación, y funcionan igual con cualquier cliente. El ② es el único
-probabilístico, y por eso **se mide con evaluaciones y no se prueba con asserts**.
+Rings ③ to ⑤ are **deterministic**: they do not depend on the model, they are tested with TDD,
+property-based tests and mutation testing, and they behave the same with any client. Ring ② is
+the only probabilistic one, and that is why **it is measured with evaluations rather than tested
+with asserts**.
 
-Un rechazo no es un error de protocolo: es la respuesta más útil que da el sistema.
+A rejection is not a protocol error: it is the most useful answer the system gives.
 
 ```
 R008 · column dim_customer.birth_date is masked for role analyst: it may only appear
@@ -132,294 +138,304 @@ R008 · column dim_customer.birth_date is masked for role analyst: it may only a
        → use dim_customer.age_band instead
 ```
 
-El mismo núcleo se sirve por **MCP 2026-07-28** (stdio) y por **HTTP** (FastAPI). Un test de
-contrato exige que los dos transportes devuelvan el mismo resultset normalizado y que
-ninguno importe al otro: el dominio no depende del transporte.
+The same core is served over **MCP 2026-07-28** (stdio) and over **HTTP** (FastAPI). A contract
+test requires both transports to return the same normalized resultset and neither to import
+the other: the domain does not depend on the transport.
 
-## Probarlo
+## Try it
 
-Requiere **Python 3.12** y [`uv`](https://docs.astral.sh/uv/). No hay servidor que levantar,
-ni puertos, ni credenciales: DuckDB va embebido y los datos son Parquet.
+Requires **Python 3.12** and [`uv`](https://docs.astral.sh/uv/). No server to start, no ports,
+no credentials: DuckDB is embedded and the data is Parquet.
 
-### 1 · Verificar sin datos · menos de un minuto
+### 1 · Verify without data · under a minute
 
 ```bash
 git clone https://github.com/samuvm/data-warden.git && cd data-warden
-uv sync                  # versiones exactas desde uv.lock
-make gate-fast           # lint · tipos · contratos de capas · 695 tests
+uv sync                  # exact versions from uv.lock
+make gate-fast           # lint · types · layer contracts · 695 tests
 ```
 
-No hace falta generar nada: el catálogo, la política de acceso y las estadísticas de coste
-van versionados.
+Nothing needs to be generated: the catalog, the access policy and the cost statistics are
+versioned.
 
-### 2 · Generar el dataset
+### 2 · Generate the dataset
 
-El dataset no se versiona. Se genera y sale **idéntico byte a byte** desde su semilla:
+The dataset is not versioned. It is generated **byte-for-byte identical** from its seed:
 
 ```bash
-make dataset PROFILE=dev     # ~15 s · 3,1 M filas · 91 MB    · para explorar
-make dataset PROFILE=full    # minutos · 294,8 M filas · 7,46 GB · el de los números publicados
+make dataset PROFILE=dev     # ~15 s · 3.1 M rows · 91 MB     · to explore
+make dataset PROFILE=full    # minutes · 294.8 M rows · 7.46 GB · the one behind the published numbers
 ```
 
-### 3 · Conectarlo a un cliente MCP
+### 3 · Connect it to an MCP client
 
-Con Claude Desktop, el bloque de configuración es este (la guía completa, con la
-pimienta, los errores típicos y cómo comprobarlo antes de reiniciar, está en
-[`docs/instalar-en-claude-desktop.md`](docs/instalar-en-claude-desktop.md)):
+For Claude Desktop, this is the configuration block (the full guide, with the pepper, common
+mistakes and how to check it before restarting, is in
+[`docs/instalar-en-claude-desktop.md`](docs/instalar-en-claude-desktop.md), in Spanish):
 
 ```json
 "mcpServers": {
   "data-warden": {
-    "command": "<la salida de `which uv`>",
-    "args": ["run", "--directory", "<ruta absoluta al repositorio>", "warden", "mcp", "serve"],
+    "command": "<the output of `which uv`>",
+    "args": ["run", "--directory", "<absolute path to the repository>", "warden", "mcp", "serve"],
     "env": {
-      "DATAWARDEN_MASK_PEPPER": "<32 caracteres o más: openssl rand -hex 24>",
+      "DATAWARDEN_MASK_PEPPER": "<32 characters or more: openssl rand -hex 24>",
       "WARDEN_ROLE": "analyst"
     }
   }
 }
 ```
 
-El servidor usa el perfil `full` por defecto. Para probar con `dev`, añade
-`"--database", "datagen/out/cierzo-dev.duckdb"` al final de `args`; el presupuesto sigue
-tarifando `full`, así que con `dev` rechaza algo más de lo necesario, nunca menos.
+The server uses the `full` profile by default. To try it with `dev`, append
+`"--database", "datagen/out/cierzo-dev.duckdb"` to `args`; the budget still prices `full`, so
+with `dev` it rejects somewhat more than necessary, never less.
 
-Y después, dos preguntas: *«¿cuántos clientes hay por país?»* debe responder;
-*«dame los clientes nacidos antes de 1990»* debe salir **rechazada**, con la regla y la
-alternativa. Si responde la primera y rechaza la segunda, el sistema está haciendo su
-trabajo.
+Then ask two questions: *"how many customers are there per country?"* must be answered;
+*"give me the customers born before 1990"* must come back **rejected**, with the rule and the
+alternative. If it answers the first and rejects the second, the system is doing its job.
 
-### 4 · Reproducir los números publicados
+### 4 · Reproduce the published numbers
 
-Necesitan el perfil `full` generado.
+These need the `full` profile generated.
 
 ```bash
-make eval                # exactitud NL→SQL · determinista · NO necesita ningún modelo
-make gate-full           # la suite completa, cobertura, secretos y ataques
-make done MILESTONE=8    # las 13 condiciones de «hecho» · incluye mutación: tarda
+make eval                # NL→SQL accuracy · deterministic · needs NO model
+make gate-full           # the full suite, coverage, secrets and attacks
+make done MILESTONE=8    # the 13 conditions of "done" · includes mutation testing: slow
 ```
 
-`make eval` reproduce la métrica de exactitud **sin llamar a ningún modelo**: las respuestas
-del generador están grabadas por modelo y por petición, así que el número se repite en
-cualquier máquina. Solo `make eval-refresh-exec` vuelve a llamar al modelo local, que es
-`gemma4:26b-mlx` sobre Ollama, fijado por digest en `models.lock`.
+`make eval` reproduces the accuracy metric **without calling any model**: the generator's
+answers are recorded per model and per request, so the number repeats on any machine. Only
+`make eval-refresh-exec` calls the local model again, which is `gemma4:26b-mlx` on Ollama,
+pinned by digest in `models.lock`.
 
-<a id="resultados"></a>
-## Resultados
+<a id="results"></a>
+## Results
 
-Medido sobre **MacBook Pro M4 Max · 36 GB · macOS 26.5**. Umbrales en
-[`docs/GOALS.yaml`](docs/GOALS.yaml), sellados con `thresholds.lock`. Esta tabla **no se
-escribe a mano**: la genera `make readme` desde `evals/reports/`.
+Measured on a **MacBook Pro M4 Max · 36 GB · macOS 26.5**. Thresholds in
+[`docs/GOALS.yaml`](docs/GOALS.yaml), sealed with `thresholds.lock`. This table is **not
+written by hand**: `make readme` generates it from `evals/reports/`.
 
-<!-- numeros:inicio · lo genera `make readme`, no se edita a mano -->
+<!-- numbers:start · generated by `make readme`, do not edit by hand -->
 
-**Garantías · axiomas: su umbral no admite rebaja**
+**Guarantees · axioms: their threshold can never be lowered**
 
-| Qué se mide | Umbral | Medido | Comando |
+| What is measured | Threshold | Measured | Command |
 |---|---|---|---|
-| Consultas de escritura o evasión que el guard deja pasar | 0 | **0 evasiones** · reserva 15/15, Wilson 95 % [0,80 – 1,00] | `make attack-holdout` |
-| … sobre variantes generadas mutando el AST | 0 | **0 evasiones** en 3.388 mutantes | `make attack-mut` |
-| Excepciones que escapan del guard (fail-closed) | 0 | **0** en 20.000 entradas arbitrarias | `make guard-property` |
-| Consultas que se ejecutan como cadena y no como AST validado | 0 | **0** | `make arch-checks` |
-| Consultas caras que llegan al motor | 0 | **0** · una de 3 GB se rechaza en 1,4 ms | `make budget-invariant` |
-| Datos personales que salen sin enmascarar | 0 | **0** en proyección, predicado y agregación | `make pii-suite` |
-| Invocaciones al motor sin registro de auditoría | 100 % auditadas | **100 %** | `pytest tests/property/test_audit_coverage.py` |
-| Suplantaciones de rol aceptadas (vía `_meta` o argumentos) | 0 | **0** | `pytest tests/adversarial/test_role_spoofing.py` |
-| Secretos nuevos en el repositorio | 0 | **0** | `make secrets` |
+| Write or evasion queries the guard lets through | 0 | **0 evasions** · holdout 15/15, Wilson 95 % [0.80 – 1.00] | `make attack-holdout` |
+| … on variants generated by mutating the AST | 0 | **0 evasions** in 3,388 mutants | `make attack-mut` |
+| Exceptions escaping the guard (fail-closed) | 0 | **0** in 20,000 arbitrary inputs | `make guard-property` |
+| Queries executed as a string instead of the validated AST | 0 | **0** | `make arch-checks` |
+| Expensive queries that reach the engine | 0 | **0** · a 3 GB query is rejected in 1.5 ms | `make budget-invariant` |
+| Personal data leaving unmasked | 0 | **0** in projection, predicate and aggregation | `make pii-suite` |
+| Engine invocations without an audit record | 100 % audited | **100 %** | `pytest tests/property/test_audit_coverage.py` |
+| Role spoofing accepted (via `_meta` or arguments) | 0 | **0** | `pytest tests/adversarial/test_role_spoofing.py` |
+| New secrets in the repository | 0 | **0** | `make secrets` |
 
-**Rendimiento, coste y trazabilidad**
+**Performance, cost and traceability**
 
-| Qué se mide | Umbral | Medido | Comando |
+| What is measured | Threshold | Measured | Command |
 |---|---|---|---|
-| Latencia del guard | p95 ≤ 25 ms | **p95 0,87 ms** · p99 1,21 · máx. 3,98 | `make bench-guard` |
-| Error del estimador de coste | p95(real/est.) ≤ 1,5 | **1,077** | `make cost-calibration` |
-| Manipulaciones de la auditoría detectadas | 100 % | **100 %** de 1.299 bytes alterados | `pytest tests/property/test_audit_chain.py` |
+| Guard latency | p95 ≤ 25 ms | **p95 0.85 ms** · p99 1.17 · max 4.20 | `make bench-guard` |
+| Cost estimator error | p95(actual/est.) ≤ 1.5 | **1.077** | `make cost-calibration` |
+| Audit tampering detected | 100 % | **100 %** of 1,299 altered bytes | `pytest tests/property/test_audit_chain.py` |
 
-**Calidad de la base de código**
+**Codebase quality**
 
-| Qué se mide | Umbral | Medido | Comando |
+| What is measured | Threshold | Measured | Command |
 |---|---|---|---|
-| Cobertura de línea · global / módulos críticos | ≥ 90 % / ≥ 95 % | **98,0 % / 97,48 %** | `make coverage` |
-| Funciones públicas sin un solo test | 0 | **0** | `make coverage` |
-| Mutación · reglas del guard | ≥ 85 % | **85,46 %** | `make mutation` |
-| Mutación · resto del núcleo | ≥ 70 % | **71,6 %** | `make mutation` |
-| Conformidad con MCP 2026-07-28 | 11/11 | **11/11** | `make mcp-conformance` |
+| Line coverage · global / critical modules | ≥ 90 % / ≥ 95 % | **98.0 % / 97.48 %** | `make coverage` |
+| Public functions without a single test | 0 | **0** | `make coverage` |
+| Mutation score · guard rules | ≥ 85 % | **85.46 %** | `make mutation` |
+| Mutation score · rest of the core | ≥ 70 % | **71.6 %** | `make mutation` |
+| MCP 2026-07-28 conformance | 11/11 | **11/11** | `make mcp-conformance` |
 
-**La parte con IA · se mide, no se testea**
+**The AI part · measured, not unit-tested**
 
-| Qué se mide | Umbral | Medido | Comando |
+| What is measured | Threshold | Measured | Command |
 |---|---|---|---|
-| Exactitud NL→SQL sobre 60 preguntas de referencia | ≥ 0,40 · Wilson ≥ 0,25 | **0,517** (31/60) · Wilson 95 % [0,39 – 0,64] | `make eval` |
-| Recuperación tras un rechazo del guard | ≥ 0,70 | **0,857** (24/28) · Wilson 95 % [0,69 – 0,94] | `make eval-recovery` |
-| Elección de la herramienta MCP correcta | 20/20 | **20/20** | `make eval-toolchoice` |
+| NL→SQL execution accuracy on 60 reference questions | ≥ 0.40 · Wilson ≥ 0.25 | **0.517** (31/60) · Wilson 95 % [0.39 – 0.64] | `make eval` |
+| Recovery after a guard rejection | ≥ 0.70 | **0.857** (24/28) · Wilson 95 % [0.69 – 0.94] | `make eval-recovery` |
+| Choosing the right MCP tool | 20/20 | **20/20** | `make eval-toolchoice` |
 
-<!-- numeros:fin -->
+<!-- numbers:end -->
 
-### Cómo leer el número de exactitud
+### How to read the accuracy number
 
-Es el número más fácil de malinterpretar, así que va con todo el contexto:
+It is the easiest number to misread, so here it is with all its context:
 
-- **Se publica el intervalo, no el punto.** Con 60 preguntas, «0,517» sin su intervalo de
-  Wilson [0,39 – 0,64] sería un número sin significado.
-- **El umbral inicial era 0,80 y se redefinió a 0,40** tras cuatro medidas con dos modelos
-  locales. Se decidió con los datos delante y se dice aquí: bajar el listón *y* subir el
-  modelo fueron la misma decisión. Con el modelo de 9B el sistema daba 0,19; con el de 26B,
-  el fallo dejó de ser sintáctico (tablas inventadas: de 12 a 2; SQL que no compila: de 6
-  a 0) y pasó a ser semántico. **El trabajo que queda está en el contexto de negocio, no en
-  el modelo.**
-- **Las 60 preguntas** están estratificadas (20 simples, 25 con join o agregación, 15 con
-  ventana o subconsulta correlacionada) y **10 tienen «rechazo» como respuesta correcta**:
-  preguntas que un analista haría de buena fe y que su rol no le permite contestar.
-- **La verdad se compara sobre resultsets normalizados**, nunca sobre el texto del SQL. Dos
-  consultas distintas que devuelven lo mismo aciertan las dos. Las reglas están en
+- **The interval is published, not the point estimate.** With 60 questions, "0.517" without
+  its Wilson interval [0.39 – 0.64] would be meaningless.
+- **The initial threshold was 0.80 and I redefined it to 0.40** after four measurements with
+  two local models. The decision was made with the data in front of me and is stated here:
+  lowering the bar *and* moving up a model size were the same decision. With the 9B model the
+  system scored 0.19; with the 26B model the failures stopped being syntactic (invented tables:
+  from 12 to 2; SQL that does not compile: from 6 to 0) and became semantic. **The remaining
+  work is in the business context, not in the model.**
+- **The 60 questions** are stratified (20 simple, 25 with a join or aggregation, 15 with a
+  window function or correlated subquery) and **10 have "rejection" as the correct answer**:
+  questions an analyst would ask in good faith that their role does not allow them to answer.
+- **Truth is compared on normalized resultsets**, never on the SQL text. Two different queries
+  that return the same thing are both correct. The rules are in
   [`docs/spec/resultset-equality.md`](docs/spec/resultset-equality.md).
-- **Es autoevaluado**: las referencias las escribió el mismo agente que construyó el sistema,
-  transcribiendo definiciones de un glosario de negocio firmado por una persona, y todavía no
-  las ha revisado nadie más. Ver [limitaciones](#limitaciones).
+- **It is self-assessed**: the reference answers came out of the same workflow that built the
+  system, transcribing definitions from the business glossary I wrote, and nobody outside the
+  project has reviewed them yet. See [limitations](#limitations).
 
-## Decisiones de diseño
+## Design decisions
 
-| Decisión | Por qué |
+| Decision | Why |
 |---|---|
-| **Allowlist, no denylist** | Una denylist no puede prohibir lo que todavía no se le ha ocurrido a nadie. Un nodo o una función que no estén declarados se rechazan, y esa asimetría es el diseño entero |
-| **Se ejecuta el AST validado, nunca la cadena** | Validar un texto y ejecutar otro abre la puerta a cualquier diferencia entre los dos. `Engine.execute()` solo acepta un `ValidatedQuery`, y un check de arquitectura lo exige |
-| **Fail-closed** | Si el guard falla por dentro, o se pasa de tiempo, el resultado es un rechazo. Nunca un paso |
-| **El enmascarado reescribe el AST** | Post-procesar el resultado por nombre de columna no ve un `WHERE iban LIKE 'ES91…%'`, que extrae el dato sin imprimirlo. La regla R008 decide por rol *y por posición en la consulta*, siguiendo el linaje a través de alias, CTE y vistas |
-| **Coste desde los manifiestos de Iceberg** | `EXPLAIN ANALYZE` ejecuta la consulta, y un motor en la nube cobra antes de decir cuánto escaneó. El manifiesto da bytes por columna y por partición sin leer una fila. Lo dudoso se redondea hacia arriba: subestimar dejaría pasar una consulta cara |
-| **Auditoría con hash encadenado** | Detecta la edición de cualquier registro. Su límite —no impide que alguien con acceso al fichero lo trunque entero— está escrito en el [modelo de amenaza, §4.1](docs/threat-model.md) |
-| **El rol sale del entorno del proceso** | `_meta` y los argumentos de una herramienta son datos que controla quien pregunta. Tratarlos como autoridad es regalar el rol |
-| **MCP sin sesión, con MRTR** | El presupuesto blando pide confirmación con el patrón de petición de entrada de la especificación 2026-07-28. Si el cliente no sabe contestar, se ejecuta con un aviso en la respuesta, y el presupuesto duro sigue rechazando solo |
-| **Evaluaciones grabadas** | Temperatura 0, semilla fija y respuestas grabadas por modelo y por petición. Un número que no se puede volver a obtener no es un número |
-| **Telemetría con modelo propio** | Ningún atributo `gen_ai.*` de OpenTelemetry es estable todavía. El dominio usa su propio modelo y un traductor es el único módulo que conoce los nombres del estándar: la próxima ruptura de la especificación es un fichero, no una migración |
+| **Allowlist, not denylist** | A denylist cannot forbid what nobody has thought of yet. A node or function that is not declared is rejected, and that asymmetry is the whole design |
+| **Run the validated AST, never the string** | Validating one text and running another opens the door to any difference between the two. `Engine.execute()` only accepts a `ValidatedQuery`, and an architecture check enforces it |
+| **Fail-closed** | If the guard fails internally, or times out, the outcome is a rejection. Never a pass |
+| **Masking rewrites the AST** | Post-processing the result by column name does not see a `WHERE iban LIKE 'ES91…%'`, which extracts the value without printing it. Rule R008 decides by role *and by position in the query*, following lineage through aliases, CTEs and views |
+| **Cost from Iceberg manifests** | `EXPLAIN ANALYZE` runs the query, and a cloud engine bills before telling you how much it scanned. The manifest gives bytes per column and per partition without reading a row. Anything uncertain is rounded up: underestimating would let an expensive query through |
+| **Hash-chained audit log** | Detects edits to any record. Its limit —it does not stop someone with access to the file from truncating it entirely— is written down in the [threat model, §4.1](docs/threat-model.md) |
+| **The role comes from the process environment** | `_meta` and tool arguments are data controlled by whoever asks. Treating them as authority gives the role away |
+| **Stateless MCP, with MRTR** | The soft budget asks for confirmation using the input-request pattern of the 2026-07-28 spec. If the client cannot answer, the query runs with a warning in the response, and the hard budget still rejects on its own |
+| **Recorded evaluations** | Temperature 0, fixed seed and answers recorded per model and per request. A number that cannot be obtained again is not a number |
+| **Telemetry with its own model** | No OpenTelemetry `gen_ai.*` attribute is stable yet. The domain uses its own model and a translator is the only module that knows the standard's names: the next spec break is one file, not a migration |
 
-## Lo que encontraron las comprobaciones
+## What the checks found
 
-El proyecto publica sus fallos porque cada uno cambió un test o una regla. Los más serios:
+The project publishes its failures because each one changed a test or a rule. The most serious:
 
-- **El anillo de enmascarado no estaba en el camino de ejecución, y su axioma daba 0 fugas.**
-  La medida probaba una función que el sistema no llamaba. Hoy se mide a través del ejecutor
-  real y un check de arquitectura exige que ese camino pase por el anillo
-  ([modelo de amenaza §5.2](docs/threat-model.md)).
-- **El estimador cobraba 0 bytes por una tabla de 4,1 GB.** Una clave de partición mal
-  serializada vaciaba la poda, y cualquier consulta con fecha habría pasado el presupuesto. Lo
-  encontró la calibración, no una revisión ([§5.1](docs/threat-model.md)).
-- **El mensaje de rechazo del guard era un canal de inyección de prompt.** Un nombre de tabla
-  con saltos de línea fabricaba secciones falsas en el prompt de corrección. Hoy se sanea todo
-  lo que vuelve al modelo ([§4.3.1](docs/threat-model.md)).
-- **El check de secretos no podía fallar**, porque el escáner reescribía la propia línea base
-  contra la que comparaba; y después resultó que no miraba los ficheros aún no añadidos a git.
-  Ambos se demostraron plantando una clave falsa.
-- **Un `SIGSEGV` en el `sqlglot` compilado** con `x UNION SELECT 1`. Una caída nativa no la
-  atrapa ningún `except`: se cierra en R001, antes de cualificar el árbol.
+- **The masking ring was not on the execution path, and its axiom reported 0 leaks.** The
+  measurement exercised a function the system never called. Today it is measured through the
+  real executor, and an architecture check requires that path to go through the ring
+  ([threat model §5.2](docs/threat-model.md)).
+- **The cost estimator charged 0 bytes for a 4.1 GB table.** A badly serialized partition key
+  emptied the pruning, and any query with a date filter would have passed the budget. Calibration
+  found it, not a review ([§5.1](docs/threat-model.md)).
+- **The guard's rejection message was a prompt-injection channel.** A table name with line
+  breaks forged fake sections in the correction prompt. Everything that goes back to the model
+  is now sanitized ([§4.3.1](docs/threat-model.md)).
+- **The secrets check could not fail**, because the scanner rewrote the very baseline it compared
+  against; and later it turned out it did not look at files not yet added to git. Both were
+  proven by planting a fake key.
+- **A `SIGSEGV` in compiled `sqlglot`** with `x UNION SELECT 1`. No `except` catches a native
+  crash: it is closed off in R001, before the tree is qualified.
 
-El patrón que se repite, y la lección del proyecto: **no basta con medir un anillo, hay que
-medirlo por el camino que se ejecuta.** El detalle está en [`docs/JOURNAL.md`](docs/JOURNAL.md),
-con los errores dentro.
+The pattern that repeats, and the lesson of the project: **measuring a ring is not enough; it
+has to be measured along the path that actually runs.** The details are in
+[`docs/JOURNAL.md`](docs/JOURNAL.md), mistakes included.
 
-<a id="limitaciones"></a>
-## Limitaciones
+<a id="limitations"></a>
+## Limitations
 
-Se dicen aquí porque no decirlas sería el fallo:
+They are stated here because not stating them would be the failure:
 
-- **Los números son autoevaluados.** La reserva de ataques la escribió un agente que no vio
-  el código del guard, pero ese aislamiento es disciplina, no un control técnico. El banco de
-  preguntas lo escribió el mismo agente que construyó el sistema, transcribiendo un glosario
-  firmado por una persona. Ninguno de los dos lo ha revisado todavía alguien externo.
-- **La reserva de ataques tiene 15 casos.** Por eso se publica el intervalo [0,80 – 1,00] y no
-  «100 % de bloqueo».
-- **La exactitud NL→SQL (0,517) está lejos de lo que pediría un uso en producción sin
-  supervisión.** El sistema está diseñado para que eso no sea peligroso —lo que falla, falla
-  cerrado—, pero no lo convierte en útil por sí solo.
-- **Athena: NO VERIFICADO.** El motor en la nube (Athena + Glue sobre Iceberg en S3) es una
-  ampliación del plan que no se ha construido por falta de cuenta AWS. La interfaz del motor
-  está preparada y el estimador de coste ya trabaja sobre los metadatos que Athena usaría,
-  pero **ninguna afirmación de este documento está comprobada contra Athena**.
-- **La telemetría traduce al estándar OpenTelemetry pero no exporta.** Los atributos cumplen el
-  contrato GenAI y se comprueban sobre el camino real, pero no hay un colector conectado.
-- **El enmascarado es determinista, con pimienta fija.** Permite comparar respuestas entre
-  ejecuciones y a cambio pierde resistencia a correlacionar dos sesiones. La pimienta llega a
-  los logs del motor una vez por conexión ([§4.2.1](docs/threat-model.md)).
-- **La cadena de auditoría detecta ediciones, no truncados completos** del fichero por alguien
-  con acceso a él ([§4.1](docs/threat-model.md)).
-- **El dataset es sintético.** Imita una pasarela de pagos europea con sus trampas reales
-  (reintentos, reingestas, dimensiones que cambian con el tiempo), pero no es de nadie.
+- **The numbers are self-assessed.** The attack holdout was written by an isolated agent session
+  that never saw the guard code, but that isolation is discipline, not a technical control. The
+  question bank's reference answers came out of the same workflow that built the system,
+  transcribing the business glossary I wrote. Nobody outside the project has reviewed either
+  yet.
+- **The attack holdout has 15 cases.** That is why the interval [0.80 – 1.00] is published and
+  not "100 % blocked".
+- **NL→SQL accuracy (0.517) is far from what unsupervised production use would require.** The
+  system is designed so that this is not dangerous —what fails, fails closed— but that does not
+  make it useful on its own.
+- **Athena: NOT VERIFIED.** The cloud engine (Athena + Glue over Iceberg on S3) is an extension
+  that has not been built for lack of an AWS account. The engine interface is ready and the cost
+  estimator already works on the metadata Athena would use, but **no claim in this document has
+  been checked against Athena**.
+- **Telemetry translates to the OpenTelemetry standard but does not export.** The attributes
+  follow the GenAI contract and are checked on the real path, but no collector is connected.
+- **Masking is deterministic, with a fixed pepper.** That makes answers comparable across runs
+  and in exchange loses resistance to correlating two sessions. The pepper reaches the engine's
+  logs once per connection ([§4.2.1](docs/threat-model.md)).
+- **The audit chain detects edits, not complete truncation** of the file by someone with access
+  to it ([§4.1](docs/threat-model.md)).
+- **The dataset is synthetic.** It mimics a European payment gateway with its real traps
+  (retries, re-ingestions, dimensions that change over time), but it belongs to nobody.
 
-## El dataset · CIERZO
+## The dataset · CIERZO
 
-Una pasarela de pagos europea que no existe: **12.400 comercios, 9,2 M de clientes y 66,6 M
-de intentos de autorización** en dos años. **24 tablas, 294,8 M de filas, 7,46 GB** en
-Parquet, materializadas también como tablas **Apache Iceberg v2**, que es lo que hace posible
-estimar el coste sin leer datos. Se publica el generador, no los datos.
+A European payment gateway that does not exist: **12,400 merchants, 9.2 M customers and 66.6 M
+authorization attempts** over two years. **24 tables, 294.8 M rows, 7.46 GB** of Parquet, also
+materialized as **Apache Iceberg v2** tables, which is what makes it possible to estimate cost
+without reading data. The generator is published, not the data.
 
-Tiene trampas a propósito, las que hacen fallar a un sistema NL→SQL en una empresa real: un
-pago que se reintenta son varias filas, las reingestas duplican el 0,35 % de los intentos,
-contar ingresos contando filas sobrestima un 24 %, y los comercios cambian de versión con el
-tiempo. Las cifras las genera `datagen/report.py` en cada build
-([`datagen/MEASURED-full.md`](datagen/MEASURED-full.md)); ninguna está escrita a mano.
+It has traps on purpose, the ones that make an NL→SQL system fail in a real company: a retried
+payment is several rows, re-ingestions duplicate 0.35 % of attempts, counting revenue by
+counting rows overestimates it by 24 %, and merchants change version over time. The figures are
+generated by `datagen/report.py` on every build
+([`datagen/MEASURED-full.md`](datagen/MEASURED-full.md)); none is written by hand.
 
-## Contratos
+## Contracts
 
-Lo que el sistema puede hacer no está en el código: está en ficheros firmados que el build
-compila a JSON. El dominio nunca parsea YAML.
+What the system may do is not in the code: it is in signed files that the build compiles to
+JSON. The domain never parses YAML.
 
-| Fichero | Qué fija |
+| File | What it fixes |
 |---|---|
-| [`docs/spec/policy.yaml`](docs/spec/policy.yaml) | Matriz rol × columna × posición: `allow`, `mask` o `deny` |
-| [`docs/spec/glossary.yaml`](docs/spec/glossary.yaml) | Qué significa cada tabla y cada métrica en lenguaje de negocio |
-| [`docs/spec/budgets.yaml`](docs/spec/budgets.yaml) | Límites de coste por rol: ejecutar, confirmar o rechazar |
-| [`docs/spec/tools.yaml`](docs/spec/tools.yaml) | Las cuatro herramientas MCP y la descripción exacta que ve el cliente |
-| [`docs/spec/resultset-equality.md`](docs/spec/resultset-equality.md) | Cuándo dos resultsets son «el mismo» |
-| [`docs/spec/rejection.schema.json`](docs/spec/rejection.schema.json) · [`audit-record.schema.json`](docs/spec/audit-record.schema.json) | La forma de un rechazo y de un registro de auditoría |
+| [`docs/spec/policy.yaml`](docs/spec/policy.yaml) | Role × column × position matrix: `allow`, `mask` or `deny` |
+| [`docs/spec/glossary.yaml`](docs/spec/glossary.yaml) | What each table and each metric means in business language |
+| [`docs/spec/budgets.yaml`](docs/spec/budgets.yaml) | Cost limits per role: run, confirm or reject |
+| [`docs/spec/tools.yaml`](docs/spec/tools.yaml) | The four MCP tools and the exact description the client sees |
+| [`docs/spec/resultset-equality.md`](docs/spec/resultset-equality.md) | When two resultsets are "the same" |
+| [`docs/spec/rejection.schema.json`](docs/spec/rejection.schema.json) · [`audit-record.schema.json`](docs/spec/audit-record.schema.json) | The shape of a rejection and of an audit record |
 
-Un contrato firmado lleva el `sha256` de su propio texto, y un test falla si alguien lo edita
-sin volver a firmarlo. `docs/CONTRACTS/` son copias literales de contratos compartidos con
-otros proyectos, y un test compara byte a byte.
+A signed contract carries the `sha256` of its own text, and a test fails if someone edits it
+without signing it again. `docs/CONTRACTS/` holds literal copies of contracts shared with other
+projects, and a test compares them byte by byte.
 
-## Estructura
+## Structure
 
 ```
 src/datawarden/
-  domain/        tipos congelados y puros
-  catalog/       introspección, linaje y estadísticas de Iceberg
-  guard/         el corazón · allowlist + 14 reglas
-  cost/          estimador y presupuesto
-  mask/          enmascarado por reescritura del AST
-  audit/         cadena de auditoría · el único camino al motor
-  principal/     rol, política y presupuesto por rol
-  nl2sql/        generación, ciclo de corrección y proveedores de modelo
-  service/       las cuatro operaciones, sin transporte
-  mcp/  http/    los dos transportes, que no se conocen entre sí
-  telemetry/     modelo interno de llamadas a modelo y traductor a OpenTelemetry
-  engines/       adaptador de DuckDB
+  domain/        frozen, pure types
+  catalog/       introspection, lineage and Iceberg statistics
+  guard/         the core · allowlist + 14 rules
+  cost/          estimator and budget
+  mask/          masking by AST rewriting
+  audit/         audit chain · the only path to the engine
+  principal/     role, policy and per-role budget
+  nl2sql/        generation, correction loop and model providers
+  service/       the four operations, transport-agnostic
+  mcp/  http/    the two transports, which do not know about each other
+  telemetry/     internal model of model calls and OpenTelemetry translator
+  engines/       DuckDB adapter
 
 tests/     unit · property · contract · integration · adversarial · holdout
-attacks/   el cuaderno de evasiones, que crece con cada una encontrada
-evals/     banco de preguntas · respuestas grabadas · informes
-datagen/   el generador del dataset y su semilla
+attacks/   the evasion notebook, which grows with every one found
+evals/     question bank · recorded answers · reports
+datagen/   the dataset generator and its seed
 ```
 
-**Cada zona tiene su régimen de prueba, y son distintos a propósito.** El guard exige TDD
-puro, mutación al 85 % y cobertura al 95 %; los adaptadores, contrato; y en el generador de
-SQL **el TDD está prohibido**: un componente no determinista se mide, y fingir que se prueba
-con asserts es engañarse. El mapa completo está en [`docs/RULES.md`](docs/RULES.md).
+**Each zone has its own testing regime, and they differ on purpose.** The guard requires pure
+TDD, 85 % mutation score and 95 % coverage; the adapters, contract tests; and in the SQL
+generator **TDD is forbidden**: a non-deterministic component is measured, and pretending to
+test it with asserts is fooling yourself. The full map is in [`docs/RULES.md`](docs/RULES.md).
 
-## Cómo se construyó
+## How it was built
 
-El proyecto se construye contra reglas ejecutables, no contra buenas intenciones:
+I built Data Warden with an agentic workflow (Claude Code) that I designed with one goal: to
+make a coding agent's work **verifiable rather than trusted**. The agent writes code; what it
+cannot do is move the bar it is measured against.
 
-- **[`docs/GOALS.yaml`](docs/GOALS.yaml)** fija 26 metas, cada una con su umbral, su comando y
-  su artefacto, selladas por `thresholds.lock`. Ocho son **axiomas**: su umbral no admite
-  propuesta de rebaja.
-- **`make done MILESTONE=N`** son 13 condiciones con salida `0` o nada, y es la única
-  definición de «hecho» del repositorio. Deja un punto de retorno.
-- **[`docs/RULES.md`](docs/RULES.md)** recoge los invariantes, cada uno con el check que lo
-  verifica, y el régimen de prueba de cada módulo.
-- **[`docs/JOURNAL.md`](docs/JOURNAL.md)** es la bitácora, con las decisiones, los números antes
-  y después, y los errores.
+- **Goals are code, not prose.** [`docs/GOALS.yaml`](docs/GOALS.yaml) sets 26 goals, each with
+  its threshold, its command and its artifact, sealed by `thresholds.lock`: changing a threshold
+  breaks the gate. Eight are **axioms** whose threshold can never be lowered.
+- **"Done" is a command.** `make done MILESTONE=N` is 13 conditions with exit `0` or nothing,
+  and it leaves a restore point. There is no other definition of finished.
+- **Each zone has its testing regime**, written in [`docs/RULES.md`](docs/RULES.md) next to the
+  invariants and the check that verifies each one: pure TDD in the guard, contract tests in the
+  adapters, evaluation —and no TDD— in the generator.
+- **Separation of knowledge.** The attack holdout was written by an isolated agent session with
+  no access to the guard code, against the specification only.
+- **The decisions that are not engineering are mine:** the access policy, the business glossary,
+  the cost budgets and the thresholds live in signed contracts the build compiles. The agent
+  proposes; I decide.
+- **The gate audited itself too**: several checks turned out to be unable to fail, and each was
+  fixed by first proving that it now did —for example, by planting a fake key for the secrets
+  check.
 
-Y el gate también se ha auditado a sí mismo: varias de sus comprobaciones resultaron no poder
-fallar, y cada una se corrigió demostrando primero que ahora sí fallaba.
+[`docs/JOURNAL.md`](docs/JOURNAL.md) is the engineering log: decisions, numbers before and
+after, and the mistakes. The documentation under `docs/` is in Spanish; code, identifiers,
+logs and error messages are in English.
 
-## Licencia
+## License
 
 [Apache-2.0](LICENSE).

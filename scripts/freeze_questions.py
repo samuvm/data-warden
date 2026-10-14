@@ -16,7 +16,8 @@ referencia lleve `ORDER BY`, los nombres de columna solo si la pregunta los ped�
 guardar el crudo obligaría a reimplementar esa decisión en cada comparación.
 
 **No lo firma este script.** Congelar es mecánico; decidir que el número congelado es
-la respuesta correcta es de Samuel, y `provenance` lo sigue diciendo hasta que lo haga.
+la respuesta correcta exige revisión humana, y `provenance` lo sigue diciendo hasta que
+la tenga.
 """
 
 from __future__ import annotations
@@ -120,7 +121,7 @@ def main() -> int:
     conexion.close()
     print(f"freeze_questions: {congelados} resultsets congelados · perfil {perfil}")
     if sin_sql:
-        print(f"  sin SQL de referencia (arbitrio de Samuel): {sin_sql}")
+        print(f"  sin SQL de referencia (caso de arbitrio): {sin_sql}")
     if problemas:
         for p in problemas:
             print(f"  · {p}")

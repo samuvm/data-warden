@@ -1,7 +1,7 @@
 # =============================================================================
 # Presupuestos por rol · contrato propio, separado de la matriz de columnas
 #
-# NACE DEL CAMBIO C-7 DE LA FIRMA DE Q-003. `presupuesto_gb` y `limite_filas`
+# NACE DEL CAMBIO C-7 DE LA POLÍTICA FIRMADA. `presupuesto_gb` y `limite_filas`
 # vivían dentro de `docs/spec/policy.yaml`, junto a la matriz rol × columna. Son
 # dos contratos con dos ritmos de cambio distintos:
 #
@@ -12,11 +12,11 @@
 # fichero firmado que se toca cada semana deja de estar firmado.
 #
 # QUÉ ESTÁ FIRMADO Y QUÉ NO, dicho explícitamente porque son cosas distintas:
-#   · `hard_gb` y `max_rows` los firmó Samuel al responder Q-003, con estas
+#   · `hard_gb` y `max_rows` se firmaron junto con la política, con estas
 #     palabras: «ops 0,05 GB / 2.000 filas es agresivo y correcto: ops mira un
 #     pago concreto; si necesita más, es que está haciendo análisis y ese no es
 #     su rol».
-#   · `soft_gb` NO está firmado. Lo propone el agente y se calibra en la fase 3.
+#   · `soft_gb` NO está firmado. Es una propuesta técnica y se calibra en la fase 3.
 #     Va marcado `origen: agente_por_calibrar` en cada fila para que nadie lo
 #     publique como si fuera una decisión de negocio.
 # =============================================================================
@@ -24,7 +24,7 @@
 version: 1
 estado: FIRMADO           # los `hard_gb` y `max_rows`; ver `soft_gb` abajo
 firmado_por: Samuel
-firmado_el: 2026-09-01    # respuesta a Q-003, cambio C-7
+firmado_el: 2026-09-01    # cambio C-7 de la política
 extraido_de: docs/spec/policy.yaml
 extraido_el: 2026-09-02
 
@@ -119,7 +119,7 @@ limites_declarados:
 
   - limite: "`soft_gb` no está calibrado"
     descripcion: >-
-      Es la mitad del duro, elegido por el agente y no por medida. Hasta que
+      Es la mitad del duro, elegido a ojo y no por medida. Hasta que
       `make cost-calibration` corra sobre 60 consultas reales en la fase 3, el
       número es una hipótesis con forma de contrato.
     fuera_de_alcance_hoy: true

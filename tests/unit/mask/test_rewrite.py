@@ -2,7 +2,7 @@
 
 FASE ROJA.
 
-`docs/PLAN.md` lo exige con esas palabras: **reescribiendo el AST antes de ejecutar,
+El plan de la fase 4 lo exige con esas palabras: **reescribiendo el AST antes de ejecutar,
 nunca post-procesando el DataFrame por nombre de columna.** La diferencia no es de
 estilo. Post-procesar por nombre falla en cuanto hay un alias, una vista que renombra
 o dos columnas con el mismo nombre en dos tablas; y sobre todo, deja el valor real
@@ -132,7 +132,7 @@ def test_ultimos_n_conserva_exactamente_los_n_que_declara_la_politica() -> None:
 def test_hash_estable_llama_a_la_macro_del_motor_y_no_lleva_la_pimienta() -> None:
     """`ip_address_int` para analyst. Permite contar sesiones distintas sin verlas.
 
-    **Y la pimienta NO aparece en el árbol.** Es P-008: el hash se calcula en el
+    **Y la pimienta NO aparece en el árbol.** Es la macro: el hash se calcula en el
     motor, así que la clave tiene que llegarle de algún modo; con la macro llega una
     vez por conexión en vez de una vez por consulta, y sobre todo **deja de acabar en
     el campo `sql` del registro de auditoría**, que es el que cualquier subproceso del
@@ -386,7 +386,7 @@ def test_una_proyeccion_sin_alias_se_enmascara_y_conserva_su_nombre() -> None:
 
 
 # =============================================================================
-# P-008 · la macro del motor. Aprobada por Samuel el 2026-09-02 "en dos tiempos":
+# La macro del motor. Aprobada el 2026-09-02 "en dos tiempos":
 # la macro ahora, y el pseudonimo `_sk` generado en construccion cuando se
 # regenere el dataset.
 # =============================================================================
@@ -410,7 +410,7 @@ def test_un_nodo_que_no_esta_en_el_conjunto_tampoco_pasa() -> None:
     """La otra mitad de la comprobación: no solo se vigilan las funciones anónimas.
 
     `exp.SHA2` es el caso perfecto para este test, porque fue lo que el enmascarador
-    emitía ANTES de P-008. Si mañana alguien reintroduce el hash inline sin pasar por
+    emitía ANTES de la macro. Si mañana alguien reintroduce el hash inline sin pasar por
     la macro, esto lo caza: el nodo dejó de estar en el conjunto el día que la
     pimienta salió del árbol.
     """

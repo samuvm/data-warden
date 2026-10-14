@@ -1,6 +1,6 @@
 """Nivel 2 · DuckDB de verdad. Criterio de salida de la fase 0.
 
-`docs/PLAN.md` pide para esta fase «integración: DuckDB con 1 mes de datos y
+El criterio de salida de esta fase pide «integración: DuckDB con 1 mes de datos y
 `row_count`» y «tres consultas SQL a mano». Aquí están las dos cosas, y una
 tercera que vale más que las dos: **las tres consultas comprueban los números que
 el glosario declara**, en vez de limitarse a no dar error.
@@ -11,7 +11,7 @@ la definición de negocio dicen lo mismo. Y si un día dejan de decirlo, esto se
 entera.
 
 **Nunca en el gate rápido** (I-17 del stack, error 17 de RULES §7): nivel 2 corre
-en `make done`, que es donde Samuel pidió que fuera exigible.
+en `make done`, que es donde se decidió que fuera exigible.
 """
 
 from __future__ import annotations
@@ -116,7 +116,7 @@ def test_el_mdr_efectivo_coincide_con_el_del_glosario(con) -> None:
 
 
 def test_el_margen_neto_es_menor_que_el_ingreso_bruto(con) -> None:
-    """G-2 de la firma: son dos métricas distintas y una es aproximadamente la mitad.
+    """Glosario firmado: son dos métricas distintas y una es aproximadamente la mitad.
 
     El `ojo:` del glosario avisaba de que restar interchange y scheme fee «cambia el
     resultado a la mitad». Si algún día dejaran de diferir, es que alguien juntó las
@@ -154,7 +154,7 @@ def test_unir_el_scd2_por_la_clave_natural_sin_acotar_infla_las_filas(con) -> No
     # El glosario firmado dice «+53 %» y ese número NO reproduce sobre ninguno de los
     # tres perfiles. La trampa es real y grave —un ranking de comercios sale un tercio
     # inflado—; la cifra está vieja. Corregirla es tocar un contrato firmado, así que
-    # va como propuesta P-003 en docs/PARA-SAMUEL.md y aquí se asierta la verdad.
+    # se corrige aparte, con su firma, y aquí se asierta la verdad.
     assert 25.0 <= inflacion <= 45.0, f"la inflación medida es {inflacion:.1f} %"
 
 

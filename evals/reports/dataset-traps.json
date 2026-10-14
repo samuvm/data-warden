@@ -5,7 +5,7 @@
     "applies_to": "las nueve por igual",
     "exceptions": [],
     "relative": 0.2,
-    "why": "Una tolerancia por trampa elegida a ojo es el mando con el que se pone verde el script sin tocar el dato (P-003, condición de Samuel, 2026-09-02)."
+    "why": "Una tolerancia por trampa elegida a ojo es el mando con el que se pone verde el script sin tocar el dato (decisión del 2026-09-02)."
   },
   "traps": [
     {

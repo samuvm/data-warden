@@ -77,16 +77,16 @@ def test_toda_columna_generalizada_es_visible_para_quien_la_necesita(policy) -> 
 
 
 def test_la_regla_de_composicion_se_cumple_hoy(policy) -> None:
-    """C-5 de la firma de Q-003, sobre la matriz REAL y no sobre un fixture."""
+    """La regla de composición de la política, sobre la matriz REAL y no sobre un fixture."""
     assert policy.derivation_violations() == ()
 
 
 def test_toda_excepcion_al_invariante_de_admin_esta_declarada(policy) -> None:
-    """C-2. Las dos que hay están firmadas; una tercera sin declarar es un fallo."""
+    """Excepción de admin: las dos que hay están firmadas; una tercera sin declarar falla."""
     assert policy.undeclared_admin_denials() == ()
 
 
-def test_la_politica_esta_firmada_por_samuel(policy) -> None:
+def test_la_politica_esta_firmada(policy) -> None:
     assert policy.signed_by == "Samuel"
     assert len(policy.source_sha256) == 64
 
@@ -100,7 +100,7 @@ def test_el_catalogo_valida_contra_su_contrato() -> None:
 
 
 def test_el_catalogo_publicado_no_lleva_las_columnas_excluidas(policy, catalog) -> None:
-    """C-3: si `traffic_weight` se publicara, el generador la propondría."""
+    """Si `traffic_weight` se publicara, el generador la propondría."""
     publicado = catalog.published()
     for ref in policy.excluded_from_catalog:
         table_name, _, column = ref.partition(".")

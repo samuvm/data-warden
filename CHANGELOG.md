@@ -114,7 +114,7 @@ dos transportes que no se conocen entre sí.
 - **`warden mcp serve`, MCP 2026-07-28 por stdio.** El cliente lanza el proceso: no hay
   demonio, no hay puerto y **no hace falta ningún modelo** — las herramientas reciben
   SQL y quien lo escribe es el modelo del cliente.
-- **`http/` con FastAPI**, y va antes que MCP en `PLAN.md` por el argumento: si las
+- **`http/` con FastAPI**, y va antes que MCP en el plan por el argumento: si las
   mismas cuatro operaciones se sirven por dos transportes sin tocar `guard/`, `cost/`,
   `mask/` ni `audit/`, «el dominio no depende del transporte» deja de ser una frase.
   Hay un test de contrato que lo exige comparando **resultsets normalizados**, y otro
@@ -154,19 +154,20 @@ dos transportes que no se conocen entre sí.
 |---|---|---|---|
 | `G-MCP-CONFORM` | == 11 | **11 / 11** | `make mcp-conformance` |
 | `G-ROLE-SPOOF` *(axioma)* | == 0 | **0** en 32 casos | `pytest tests/adversarial/test_role_spoofing.py` |
-| `G-TOOL-CHOICE` | == 20 *(subido por P-009)* | **20 / 20**, línea base 18 | `make eval-toolchoice` |
+| `G-TOOL-CHOICE` | == 20 *(subido desde >= 18)* | **20 / 20**, línea base 18 | `make eval-toolchoice` |
 | Servidor contestando por stdio | — | **12 / 12** | `make mcp-live` |
 | De clon limpio a servidor contestando | — | **68 s** | `clone · uv sync · dataset · catalog · mcp-live` |
 
 ### Límite declarado
 
 - **Los 68 segundos miden la MÁQUINA, no a la persona leyendo el README.** El número de
-  Q-009 —«de cero a primera consulta siguiendo solo el README»— no está medido: la
-  primera pasada se topó con cuatro defectos del documento, ya corregidos, y nadie ha
-  vuelto a hacerla desde cero. Se publicará cuando alguien que no escribió el README lo
-  siga entero.
-- **Q-009 encontró cuatro defectos y ninguno los habría encontrado el autor**: un README
-  que borraba la configuración de Claude Desktop, un marcador que parecía un valor, una
+  la prueba manual con Claude Desktop —«de cero a primera consulta siguiendo solo el
+  README»— no está medido: la primera pasada se topó con cuatro defectos del documento,
+  ya corregidos, y nadie ha vuelto a hacerla desde cero. Se publicará cuando alguien que
+  no escribió el README lo siga entero.
+- **La prueba manual con Claude Desktop encontró cuatro defectos y ninguno los habría
+  encontrado el autor**: un README que borraba la configuración de Claude Desktop, un
+  marcador que parecía un valor, una
   clave `cwd` que el cliente ignora, y un servidor indescubrible cuyo rechazo mandaba a
   un sitio al que no se podía ir.
 - **MRTR necesita un cliente que lo entienda.** Uno que no lo haga recibe un resultado
@@ -406,7 +407,8 @@ La mutación. Y el motivo está medido, no supuesto: **sobre 80 supervivientes d
 Subió de 38,61 % a 50,73 % tapando huecos reales —el corpus no asertaba `position` ni
 `subject`; R013 estaba «probada» por casos que paraban otro mecanismo; `screen()` no
 tenía ni un test unitario— y ahí se agotó lo que la meta puede enseñar sobre este
-código. Propuesta **P-005**, que **no pide bajar ningún umbral**.
+código. La salida propuesta **no baja ningún umbral**: sacar los textos de los
+mensajes del alcance de la medida.
 
 ## [0.2.0] · fase 2 · 2026-09-02
 
@@ -441,8 +443,9 @@ está en la tasa de acierto, está en la garantía sobre el fallo.*
 - **`OFFSET` escondido en una subconsulta.** R006 solo miraba la raíz, así que
   `SELECT * FROM (SELECT … OFFSET 9000000) s` hacía que el motor produjera y tirara
   nueve millones de filas. Lo encontró la mutación de AST y es caso permanente.
-- **La exclusión C-3 se saltaba por la vista.** Lo encontró el subagente
-  `qa-adversario` escribiendo la reserva, que es exactamente para lo que existe.
+- **La exclusión C-3 se saltaba por la vista.** Lo encontró el agente aislado, sin
+  acceso a `src/datawarden/guard/`, que escribió la reserva contra la especificación,
+  que es exactamente para lo que existe.
 - **`Any` y `All` fuera de la allowlist**; **`Var` dentro**, como decisión y con caso.
 
 ### Medido
@@ -458,14 +461,14 @@ está en la tasa de acierto, está en la garantía sobre el fallo.*
 | `G-COV-LINE` guard | >= 95 % | **96,5 %** |
 
 **El número del holdout se publica como intervalo y etiquetado como AUTOEVALUADO**,
-porque D-09 no está instalado y el aislamiento de `tests/holdout/` es hoy disciplina
-y no ejecución. Nunca «100 % de bloqueo» a secas.
+porque el aislamiento de `tests/holdout/` es hoy disciplina y no un mecanismo que lo
+imponga. Nunca «100 % de bloqueo» a secas.
 
-### Pendiente de Samuel
+### Pendiente
 
-- **P-004**: `G-WRITE-BLOCK-DEV` tiene umbral `== 25` y la regla de oro del repo dice
-  que el cuaderno crece con cada evasión. Un `==` convierte encontrar una evasión en
-  un fallo de gate. Se propone `>= 25`, sin bajar el número.
+- `G-WRITE-BLOCK-DEV` tiene umbral `== 25` y la regla de oro del repo dice que el
+  cuaderno crece con cada evasión. Un `==` convierte encontrar una evasión en un fallo
+  de gate. Hay que pasarlo a `>= 25`, sin bajar el número.
 
 ## [0.1.0] · fase 0 · 2026-09-02
 
@@ -506,9 +509,9 @@ Cierra la **fase 0** y la **fase 1**, que el plan declara paralelas.
 
 ### Firmado
 
-- **`docs/spec/policy.yaml`**: FIRMADO con los siete cambios de la respuesta a Q-003
+- **`docs/spec/policy.yaml`**: FIRMADO con siete cambios sobre el borrador
   (C-1 a C-7), aplicados uno a uno y anotados en la fila que tocan.
-- **`docs/spec/glossary.yaml`**: FIRMADO con las cinco correcciones de Q-004
+- **`docs/spec/glossary.yaml`**: FIRMADO con cinco correcciones sobre el borrador
   (G-1 a G-5).
 - **`docs/spec/budgets.yaml`**: nace del cambio C-7, que saca los presupuestos de la
   matriz firmada porque tienen ritmos de cambio distintos.
@@ -524,7 +527,7 @@ Cierra la **fase 0** y la **fase 1**, que el plan declara paralelas.
   por iguales dos importes distintos fuera del rango de `float`, que ambos
   convierten a `inf`. Los dos los encontraron tests.
 - **`dim_merchant.traffic_weight` declara su excepción a «admin lo ve todo»**. Era
-  la segunda, no estaba marcada, y la encontró el test que Samuel pidió en C-2
+  la segunda, no estaba marcada, y la encontró el test que C-2 exigió
   exactamente para eso.
 
 ### Medido
@@ -538,11 +541,11 @@ Cierra la **fase 0** y la **fase 1**, que el plan declara paralelas.
 | `G-COV-LINE` | >= 90 % / >= 95 % críticos | **99,23 % / 100 %** |
 | `G-SECRETS` | == 0 hallazgos nuevos | **0** |
 
-### Pendiente de Samuel
+### Pendiente
 
-- **P-002**: declarar `PyYAML` como dependencia de desarrollo. Hoy entra por vía
+- Declarar `PyYAML` como dependencia de desarrollo. Hoy entra por vía
   transitiva. `src/` no la importa en ninguna parte.
-- **P-003**: dos de las nueve trampas del glosario no reproducen su número medido.
+- Dos de las nueve trampas del glosario no reproducen su número medido.
   El SCD tipo 2 infla un 31,9 % y no un 53 %; los clientes que nunca compraron son
   el 6,2 % y no el 4,3 %, y ahí el error está en el generador, que publica el
   objetivo con nombre de medida. Las otras siete reproducen, cuatro de ellas con

@@ -67,8 +67,8 @@ class ColumnSpec:
     family: str
     nullable: bool
     ordinal: int
-    #: `False` si `docs/spec/policy.yaml` la excluye del catálogo del anillo 1
-    #: (cambio C-3 de la firma de Q-003). Sigue estando aquí porque el esquema
+    #: `False` si `docs/spec/policy.yaml` la excluye del catálogo del anillo 1.
+    #: Sigue estando aquí porque el esquema
     #: describe lo que EXISTE; publicar es otra decisión.
     published: bool = True
     #: `True` si `docs/spec/catalog-overlay.yaml` la marca obsoleta. El motor no
@@ -151,7 +151,7 @@ class CatalogSchema:
         return tuple(t.name for t in self.tables)
 
     def published(self) -> CatalogSchema:
-        """El catálogo del anillo 1: sin las columnas que C-3 excluye.
+        """El catálogo del anillo 1: sin las columnas que la política excluye.
 
         Se calcula, no se guarda: el fichero generado describe lo que existe, y lo
         que se publica es una vista de eso. Si fueran dos ficheros, el día que

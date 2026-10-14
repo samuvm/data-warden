@@ -4,7 +4,7 @@ familias: [funcion_desconocida, funcion_de_motor, lectura_de_fichero]
 por_que: >-
   `exp.Anonymous` es lo que sqlglot construye cuando no sabe qué es una función.
   Es decir: exactamente el conjunto de cosas sobre cuyo comportamiento el guard no
-  puede razonar. `CLAUDE.md` lo dice en una línea: `exp.Anonymous` implica rechazo.
+  puede razonar. `docs/RULES.md` lo dice en una línea: `exp.Anonymous` implica rechazo.
 accept:
   - id: R003-A1
     rol: analyst

@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """`G-CONTRACTS-FROZEN` e invariante I-17. Los dos tipos de contrato, separados.
 
-**`docs/CONTRACTS/` son COPIAS literales e inmutables de `_comun/CONTRACTS/`.** Un
-`diff` byte a byte contra el original es el test, y por eso el directorio está en
-`permissions.deny`: si el agente pudiera editarlo, «cumplir el contrato compartido»
-consistiría en reescribirlo. Este proyecto copia exactamente TRES —`goals.schema.json`,
-`otel-genai.md` y `eval-report.schema.json`— y una copia huérfana de las otras tres
-sería ruido que el gate detecta.
+**`docs/CONTRACTS/` son COPIAS literales e inmutables del directorio de contratos
+compartidos** (por defecto `../_comun/CONTRACTS/`, configurable con
+`DW_COMUN_CONTRACTS`). Un `diff` byte a byte contra el original es el test, y por eso
+el directorio está en `permissions.deny`: si se pudiera editar desde aquí, «cumplir el
+contrato compartido» consistiría en reescribirlo. Este proyecto copia exactamente
+TRES —`goals.schema.json`, `otel-genai.md` y `eval-report.schema.json`— y una copia
+huérfana de las otras tres sería ruido que el gate detecta.
 
 **`docs/spec/` son los contratos PROPIOS y ahí sí se escribe.** Son cuatro:
 `policy.yaml`, `resultset-equality.md`, `audit-record.schema.json` y
@@ -47,7 +48,7 @@ SPEC = ROOT / "docs" / "spec"
 REPORT = ROOT / "evals" / "reports" / "arch-checks.json"
 
 #: Los tres que este proyecto copia. `chunks-ddl.sql`, `retrieval-metrics.md` y
-#: `pricing-table.md` NO aplican al 03 (docs/PLAN.md §1).
+#: `pricing-table.md` NO aplican a este proyecto.
 COPIED = ("goals.schema.json", "otel-genai.md", "eval-report.schema.json")
 
 #: Los CUATRO contratos propios que cuenta `G-CONTRACTS-FROZEN`.
@@ -69,7 +70,7 @@ JSON_SCHEMAS = (
 
 
 def check_copies(problems: list[str]) -> int:
-    """Byte a byte contra `_comun/`. Sin excepciones y sin normalizar nada."""
+    """Byte a byte contra el original compartido. Sin excepciones y sin normalizar nada."""
     checked = 0
     if not COMUN.exists():
         problems.append(
@@ -85,13 +86,14 @@ def check_copies(problems: list[str]) -> int:
             problems.append(f"docs/CONTRACTS/{name} no existe y debería ser copia literal")
             continue
         if not origin.exists():
-            problems.append(f"_comun/CONTRACTS/{name} no existe y la copia sí")
+            problems.append(f"{origin} no existe y la copia sí")
             continue
         if origin.read_bytes() != copy.read_bytes():
             problems.append(
-                f"docs/CONTRACTS/{name} DIFIERE de _comun/CONTRACTS/{name}. Es una "
-                "copia literal: si el contrato transversal tiene que cambiar, se "
-                "edita en _comun/, se sube su versión y se vuelve a copiar. Nunca al revés."
+                f"docs/CONTRACTS/{name} DIFIERE de {origin}. Es una "
+                "copia literal: si el contrato transversal tiene que cambiar, se edita "
+                "el original compartido, se sube su versión y se vuelve a copiar. Nunca "
+                "al revés."
             )
         checked += 1
 
@@ -202,7 +204,7 @@ def main() -> int:
             print(f"  · {p}")
         return 1
     print(
-        f"check_contracts: ok · {copies} copias idénticas a _comun/, "
+        f"check_contracts: ok · {copies} copias idénticas al original compartido, "
         f"{own} contratos propios firmados, {len(OWN_EXTRA)} propios adicionales"
     )
     return 0

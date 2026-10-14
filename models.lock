@@ -1,16 +1,15 @@
 # Modelos locales, fijados POR DIGEST y no por tag.
 #
-# El mismo argumento que llevó a firmar `sqlglot==30.17.0` en Q-002: un tag de
+# El mismo argumento que llevó a pinar `sqlglot==30.17.0`: un tag de
 # Ollama es MÓVIL. `qwen3.5:9b-mlx` puede apuntar a otro peso dentro de tres meses
 # y `G-RECOVERY` cambiaría de valor sin que nadie tocara una línea de código.
 #
 # Verificado el 2026-09-01 con `ollama list` sobre Ollama 0.33.0.
-# Q-007 de docs/PARA-SAMUEL.md, respondida por Samuel.
 #
 # El juez NUNCA es el modelo que genera: usar el mismo infla la métrica de forma
 # sistemática, y aquí está evitado por diseño y no por disciplina.
 #
-# CAMBIO DE GENERADOR · 2026-09-10, con P-011 resuelta.
+# CAMBIO DE GENERADOR · 2026-09-10.
 #
 # El generador pasa de `qwen3.5:9b-mlx` a `gemma4:26b-mlx`. No es una preferencia: es lo
 # medido. Con el 9B, `G-EXEC-ACC` da 0,193 (11/57), y sus 46 fallos son 12 `R004` —se

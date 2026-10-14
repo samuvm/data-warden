@@ -190,7 +190,7 @@ def test_el_contador_del_motor_cuadra_con_los_registros_ejecutados() -> None:
 
 
 def test_el_registro_de_un_rechazo_del_guard_lleva_el_centinela_en_sql_digest() -> None:
-    """**P-007.** No hay árbol validado, luego no hay SQL re-serializado que hashear.
+    """**El centinela.** No hay árbol validado, luego no hay SQL re-serializado que hashear.
 
     Hashear la ENTRADA sería exactamente lo que el contrato prohíbe: la auditoría
     certificaría algo distinto de lo que corrió. El centinela de 64 ceros casa el

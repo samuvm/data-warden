@@ -33,7 +33,7 @@ Una frase que empieza por el verbo. Qué se elige y **qué se renuncia explícit
 - Qué se vuelve más fácil.
 - Qué se vuelve más difícil, y qué queda expresamente sin cubrir.
 - Qué invariante, meta o contrato queda afectado (`I-NN`, `G-XXXX`, fichero de `docs/spec/` si es propio del
-  proyecto, o de `docs/CONTRACTS/` si es una copia transversal — y entonces el cambio se hace en `_comun/`).
+  proyecto, o de `docs/CONTRACTS/` si es una copia transversal — y entonces el cambio se hace en el directorio de contratos compartidos, no aquí).
 - Qué señal indicaría que esta decisión fue equivocada, y qué habría que medir para saberlo.
 
 ## Estado
@@ -65,4 +65,4 @@ quien lo escriba, por orden de aparición; esta lista es el inventario, no la nu
 | 60 preguntas estratificadas en vez de 100, con Wilson publicado | 8 | Recorta 7-13 h humanas y cambia cómo se publica el número |
 | Iceberg spec v2 y no v3; DuckLake descartado | 0 y 9 | Athena no soporta la v3: con v3 el criterio de aceptación nº 5 falla por el formato, no por la abstracción |
 | Python 3.12 porque MWAA no ofrece más | 0 | Existen 3.13 y 3.14. Decir "porque lo pide la oferta" es transcripción; decir "porque MWAA no ofrece más" es ingeniería |
-| Terraform propio mínimo; no se importan módulos del proyecto 05 | 9 | La dependencia que declaraba el mapa está invertida en el tiempo |
+| Terraform propio mínimo; no se importan módulos del repositorio de infraestructura compartida | 9 | La dependencia que declaraba el mapa está invertida en el tiempo |

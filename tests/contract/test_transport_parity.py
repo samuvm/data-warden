@@ -1,7 +1,7 @@
 """Los dos transportes dan LO MISMO. Nivel 3, contrato.
 
-**Esta es la prueba de que `http/` sirve para lo que dice servir.** `docs/PLAN.md` lo
-pone antes que `mcp/` en la fase 7 con un argumento: si las mismas cuatro operaciones se
+**Esta es la prueba de que `http/` sirve para lo que dice servir.** La fase 7 lo
+pone antes que `mcp/` con un argumento: si las mismas cuatro operaciones se
 sirven por dos transportes sin tocar `guard/`, `cost/`, `mask/` ni `audit/`, entonces
 «el dominio no depende del transporte» deja de ser una frase del README.
 

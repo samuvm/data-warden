@@ -69,7 +69,7 @@
         "se_calcula": "SELECT max(event_date) FROM fact_payment_attempt"
       },
       "limites": "cerrado_por_abajo_abierto_por_arriba",
-      "por_que_importa": "Con un dataset congelado hay dos lecturas de cada periodo relativo y la diferencia es del 100 % de las filas. Sin esta entrada, entre 15 y 20 de las 60 preguntas de Q-010 tienen dos resultsets de referencia igual de legítimos, y eso se descubre al escribir la número cuarenta.",
+      "por_que_importa": "Con un dataset congelado hay dos lecturas de cada periodo relativo y la diferencia es del 100 % de las filas. Sin esta entrada, entre 15 y 20 de las 60 preguntas del banco tienen dos resultsets de referencia igual de legítimos, y eso se descubre al escribir la número cuarenta.",
       "pregunta": "¿Qué es «el mes pasado» sobre un almacén congelado?",
       "zona_horaria": "Europe/Madrid"
     }
@@ -127,7 +127,7 @@
   },
   "reviewed_by": "Samuel",
   "source": "docs/spec/glossary.yaml",
-  "source_sha256": "183841ca6bfef1a345e8de7a3d191cc403ea9403f8c58e9b69857f0c0475adb2",
+  "source_sha256": "9d8285ad90e21c2184b3c7e9ecf45f461e34bc873a8ef4f2a9e6f91c01549c3b",
   "tables": {
     "bridge_customer_device": "Qué persona usó qué dispositivo. Muchos a muchos en ambos sentidos.",
     "bridge_merchant_account_manager": "Qué gestor lleva qué comercio, con peso y vigencia.",

@@ -189,7 +189,7 @@ class RecordedProvider:
                 f"no hay grabación para esta petición ({path.name}). "
                 "`make eval-recovery` NO llama al modelo: es determinista y gratis a "
                 "propósito. Si el corpus o el prompt han cambiado, regraba con "
-                "`make eval-refresh`, que sí exige el modelo local de Q-007."
+                "`make eval-refresh`, que sí exige el modelo local (Ollama)."
             )
             raise KeyError(message)
         payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
@@ -241,7 +241,7 @@ class RecordedProvider:
 class LocalProvider:
     """Ollama en el HOST, nunca en compose.
 
-    Q-007 lo dice y es una decisión medida: Docker en macOS no pasa la GPU, y meter
+    Es una decisión medida: Docker en macOS no pasa la GPU, y meter
     Ollama dentro destruye la latencia. El modelo se fija por digest desde
     `models.lock`, no por tag.
     """

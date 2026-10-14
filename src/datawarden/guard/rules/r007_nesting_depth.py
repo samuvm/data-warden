@@ -7,7 +7,7 @@ motor por el número de filas del nivel de arriba, y el estimador de la fase 3 m
 bytes escaneados, que en una correlacionada no capturan nada de eso.
 
 **Ocho niveles no es una cifra redonda elegida al azar.** Las quince preguntas del
-banco con «ventana o subconsulta correlacionada» que exige `docs/PLAN.md` llegan
+banco con «ventana o subconsulta correlacionada» que exige la fase 8 llegan
 como mucho a cuatro: dos de CTE, una de subconsulta y una de ventana. Ocho deja el
 doble de margen y sigue acotando el peor caso.
 """

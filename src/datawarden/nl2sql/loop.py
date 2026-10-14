@@ -1,6 +1,6 @@
 """El ciclo de corrección: generar → validar → mensaje accionable → reintentar.
 
-**Un bucle propio de sesenta líneas, y no un framework.** `docs/PLAN.md` lo pide así
+**Un bucle propio de sesenta líneas, y no un framework.** Es una decisión de diseño,
 y el motivo es que este bucle es el sitio donde se demuestra la tesis del proyecto:
 *el valor no está en la tasa de acierto, está en la garantía sobre el fallo.* Un
 framework que hiciera esto por dentro dejaría el número de `G-RECOVERY` a merced de su

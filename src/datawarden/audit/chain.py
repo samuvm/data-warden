@@ -37,7 +37,7 @@ from datawarden.domain.types import Role, RoleSource, Status
 #: árbol validado que hashear». Hoy no colisionan porque son campos distintos y un
 #: verificador los lee por NOMBRE, pero el primer registro de una cadena que además
 #: sea un rechazo pre-parseo llevará los mismos 64 ceros en `prev_hash` y en
-#: `sql_digest` a la vez. Lo señaló Samuel al aprobar P-007: los valores son
+#: `sql_digest` a la vez. Quedó fijado al aprobar este centinela: los valores son
 #: correctos y no se cambian, pero nadie debe escribir jamás un ayudante genérico
 #: del tipo «¿esto es un centinela?». Se leen por campo, nunca por valor.
 GENESIS: Final = "0" * 64

@@ -7,8 +7,8 @@ se escribieron PARA parar estos veinticinco casos**, así que pasar el 100 % es 
 sobre el conjunto de entrenamiento. `PROJECT.md` pedía «100 % sobre una suite de 40
 intentos» y su propio hito 1 explicaba por qué eso no mide nada.
 
-El número publicable es el del HOLDOUT (`G-WRITE-BLOCK`), que escribe un subagente
-que no ha visto ni el guard ni este fichero, más la mutación de AST.
+El número publicable es el del HOLDOUT (`G-WRITE-BLOCK`), que escribió un agente
+aislado que no ha visto ni el guard ni este fichero, más la mutación de AST.
 
 Y cada ataque declara **qué regla debe pararlo**. Que lo pare otra es un fallo, no un
 aprobado: un rechazo por la regla equivocada es un acierto por casualidad, y el día

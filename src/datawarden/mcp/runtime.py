@@ -35,11 +35,12 @@ from datawarden.service.tools import WardenTools
 
 #: La raíz del repositorio, DEDUCIDA DEL PAQUETE y no del directorio de trabajo.
 #:
-#: **Esto nace de un fallo real de Q-009.** El README decía que se pusiera `cwd` en la
-#: configuración del cliente, y **Claude Desktop lo ignora**: lanzaba el proceso desde
-#: otro sitio y `uv run warden` moría con `Failed to spawn: warden`. Un servidor que
-#: lo lanza una aplicación de escritorio no puede dar por hecho su directorio de
-#: trabajo — lo elige quien lo lanza, y no hay forma de obligarle.
+#: **Esto nace de un fallo real de la prueba manual con Claude Desktop.** El README
+#: decía que se pusiera `cwd` en la configuración del cliente, y **Claude Desktop lo
+#: ignora**: lanzaba el proceso desde otro sitio y `uv run warden` moría con
+#: `Failed to spawn: warden`. Un servidor que lo lanza una aplicación de escritorio
+#: no puede dar por hecho su directorio de trabajo — lo elige quien lo lanza, y no
+#: hay forma de obligarle.
 #:
 #: Los artefactos generados (`schema.json`, `policy.json`, `budgets.json`) ya eran
 #: relativos al paquete y por eso no fallaron. Estos dos no lo eran.
@@ -55,10 +56,10 @@ SERVER_VERSION: Final = "0.7.0"
 
 INSTRUCTIONS: Final = (
     "Almacén analítico de pagos con guard por AST, presupuesto y enmascarado por rol. "
-    # EMPIEZA POR AQUÍ, y va lo primero por un motivo medido: en Q-009 un cliente sin
-    # lectura de recursos MCP dejó al modelo adivinando nombres de tabla a ciegas
-    # —`customers`, `clientes`, `pagos`— hasta rendirse. Los recursos son OPCIONALES
-    # para un cliente; las herramientas no.
+    # EMPIEZA POR AQUÍ, y va lo primero por un motivo medido: en la prueba manual con
+    # Claude Desktop un cliente sin lectura de recursos MCP dejó al modelo adivinando
+    # nombres de tabla a ciegas —`customers`, `clientes`, `pagos`— hasta rendirse.
+    # Los recursos son OPCIONALES para un cliente; las herramientas no.
     "EMPIEZA llamando a `describe_table` SIN argumentos: devuelve las tablas que "
     "existen. Después `describe_table` con una de ellas para ver sus columnas. "
     "Solo entonces escribe SQL `SELECT` de DuckDB en `run_query`. "
@@ -72,7 +73,7 @@ def load_contract(path: pathlib.Path = TOOLS_CONTRACT) -> dict[str, Any]:
     """Lee el contrato de herramientas. Lo parsea el ADAPTADOR, no el dominio.
 
     PyYAML no está en `[project.dependencies]` —entra transitivamente— y ningún
-    módulo de dominio lo importa (P-002). Aquí es admisible por el mismo motivo que
+    módulo de dominio lo importa. Aquí es admisible por el mismo motivo que
     en `scripts/`: esto es el borde, corre una vez al arrancar y no está en el camino
     crítico de ninguna consulta.
     """
@@ -253,11 +254,11 @@ def _mrtr_run_query(tools: WardenTools) -> Any:
         # arrancar y romperse en la primera consulta cara.
         if tools.budget_decision(question_sql) is not Decision.CONFIRM:
             return tools.run_query(question_sql, question=question)
-        # **P-013: un cliente que no sabe contestar no puede quedarse sin respuesta.**
+        # **Un cliente que no sabe contestar no puede quedarse sin respuesta.**
         # Devolver `InputRequiredResult` a un cliente que no declaró `elicitation` no
         # le pide algo que no sabe dar: le rompe la llamada con un error de protocolo
         # —`MCPError: Elicitation not supported`—, y eso deja la herramienta inservible
-        # en TODA la franja blanda. Medido en la prueba manual de Q-009 con Claude
+        # en TODA la franja blanda. Medido en la prueba manual con Claude
         # Desktop: 17 de 92 llamadas (18 %) murieron así, y las 17 eran `CONFIRM`.
         #
         # Contra ese cliente, el blando vuelve a lo que significaba antes de MRTR:

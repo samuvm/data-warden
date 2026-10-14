@@ -44,8 +44,8 @@ SOFT_BUDGET_SQL = (
     "FROM fact_payment_attempt AS p JOIN dim_merchant AS m ON p.merchant_sk = m.merchant_sk"
 )
 #: Y una MEDIDA por encima del presupuesto duro de `analyst` (600 MB). Es el control
-#: del arreglo de P-013: el blando deja de romper al cliente que no sabe confirmar, y
-#: el duro tiene que seguir rechazando solo contra ese mismo cliente.
+#: del arreglo del presupuesto blando: el blando deja de romper al cliente que no sabe
+#: confirmar, y el duro tiene que seguir rechazando solo contra ese mismo cliente.
 HARD_BUDGET_SQL = (
     "SELECT p.amount_eur_minor, p.risk_score, p.latency_ms, p.auth_code, "
     "p.decline_reason_code, p.fee_minor, p.interchange_minor, p.scheme_fee_minor, "
@@ -132,10 +132,10 @@ async def exercise() -> list[tuple[str, bool, str]]:
         checks.append(("recurso-catalogo", "warden://catalog" in uris, str(uris)))
 
         # 0 · SE PUEDE DESCUBRIR EL ALMACÉN SIN SABER NADA. Es lo que fallaba en
-        #     Q-009: el catálogo solo estaba como recurso MCP, el cliente no tenía
-        #     lectura de recursos, y el modelo acabó adivinando `customers`,
-        #     `clientes`, `pagos` hasta rendirse. Los recursos son OPCIONALES para un
-        #     cliente; las herramientas no.
+        #     la prueba manual con Claude Desktop: el catálogo solo estaba como
+        #     recurso MCP, el cliente no tenía lectura de recursos, y el modelo acabó
+        #     adivinando `customers`, `clientes`, `pagos` hasta rendirse. Los recursos
+        #     son OPCIONALES para un cliente; las herramientas no.
         out = await client.call_tool("describe_table", {})
         body = (out.structured_content or {}).get("result") or {}
         tablas = [fila[0] for fila in body.get("rows", [])]
@@ -196,13 +196,13 @@ async def exercise() -> list[tuple[str, bool, str]]:
                 )
             )
 
-        # 0.quinquies · **EL CLIENTE QUE NO SABE CONTESTAR.** P-013.
+        # 0.quinquies · **EL CLIENTE QUE NO SABE CONTESTAR.**
         #     Los dos checks de arriba pasan un `elicitation_callback`, o sea que
         #     miden un cliente que NO es el que se usa: Claude Desktop no declara esa
         #     capacidad. Contra él, devolverle `InputRequiredResult` no le pedía algo
         #     que no sabe dar, le rompía la llamada con `MCPError: Elicitation not
         #     supported` — y con ella TODA la franja del presupuesto blando. En la
-        #     prueba manual de Q-009 murieron así 17 de 92 llamadas, el 18 %, y las 17
+        #     prueba manual con Claude Desktop murieron así 17 de 92 llamadas, el 18 %, y las 17
         #     eran `Decision.CONFIRM`.
         #
         #     Es el mismo error de método que ya costó `G-PII-LEAK`, `G-SECRETS`,

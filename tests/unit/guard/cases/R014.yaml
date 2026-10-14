@@ -2,7 +2,7 @@ rule_id: R014
 nombre: "Nada de esquemas de sistema"
 familias: [esquema_de_sistema, enumeracion_de_catalogo]
 por_que: >-
-  La política excluye `dim_merchant.traffic_weight` del catálogo publicado (C-3), y
+  La política excluye `dim_merchant.traffic_weight` del catálogo publicado, y
   el motor sí sabe que existe. Leer el catálogo REAL por debajo del catálogo
   publicado convierte una decisión de negocio en una sugerencia.
 accept:
@@ -31,7 +31,7 @@ reject:
     posicion: statement
     sujeto: "information_schema"
     reintentable: false
-    por_que: "Enumera TODAS las columnas, incluidas las que C-3 excluyó del catálogo."
+    por_que: "Enumera TODAS las columnas, incluidas las que la política excluyó del catálogo."
   - id: R014-R2
     rol: admin
     sql: "SELECT table_name FROM information_schema.tables"

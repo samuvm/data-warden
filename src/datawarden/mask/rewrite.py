@@ -1,6 +1,6 @@
 """Anillo 4 · el enmascarado, **reescribiendo el AST antes de ejecutar**.
 
-`docs/PLAN.md` lo exige con esas palabras, y la alternativa —post-procesar el
+El plan de la fase 4 lo exige con esas palabras, y la alternativa —post-procesar el
 DataFrame por nombre de columna— falla de tres maneras distintas: en cuanto hay un
 alias, en cuanto una vista renombra, y en cuanto dos tablas tienen una columna con el
 mismo nombre. Pero el motivo de fondo es otro y es más grave: **post-procesar deja el
@@ -31,7 +31,7 @@ tanto en los logs del motor y en el campo `sql` del registro de auditoría. Es l
 consecuencia directa de que el enmascarado sea una reescritura de AST y no un
 post-proceso; no hay forma de hashear en el motor sin darle la clave. Afecta a dos
 columnas (`dim_device.device_fingerprint` y `fact_payment_attempt.ip_address_int`) y
-está abierto como **P-008** en `docs/PARA-SAMUEL.md`. Se declara aquí en vez de
+se trató aparte: ver `mask/macro.py`. Se declara aquí en vez de
 descubrirse leyendo un registro de auditoría.
 """
 
@@ -206,7 +206,7 @@ def _mask_expression(
 def _mask_body(column: exp.Column, column_policy: object) -> exp.Expression | None:
     """El sustituto, sin la envoltura que preserva NULL.
 
-    Ya no recibe la configuración: desde P-008 la pimienta vive en la macro del motor
+    Ya no recibe la configuración: desde que existe la macro del motor la pimienta vive en ella
     y no en el árbol, así que este módulo no necesita tocarla. Dejar el parámetro
     habría sido una firma que miente sobre qué secreto maneja quién.
     """
@@ -242,7 +242,7 @@ def _mask_body(column: exp.Column, column_policy: object) -> exp.Expression | No
     if transformation == "hash_estable":
         # `warden_hash(CAST(col AS TEXT))`. **La pimienta y el truncado viven DENTRO
         # de la macro** (`mask/macro.py`), así que la clave no viaja en cada consulta
-        # ni acaba en el campo `sql` del registro de auditoría. P-008.
+        # ni acaba en el campo `sql` del registro de auditoría.
         return exp.Anonymous(this=MACRO_NAME, expressions=[_as_text(column)])
 
     return None

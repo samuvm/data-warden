@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Puntúa SQL escrito por un cliente EXTERNO contra los resultsets congelados.
 
-**Esto NO es `G-EXEC-ACC` y no escribe su artefacto.** Es para la prueba manual de
-Q-009: pegar en un cliente MCP real —Claude Desktop— las preguntas del banco, recoger
-el SQL que generó y compararlo con la referencia. Sirve para saber **si un modelo
-frontera pasaría de 0,80**, que es lo que decide entre las tres salidas de P-011.
+**Esto NO es `G-EXEC-ACC` y no escribe su artefacto.** Es para la prueba manual con
+Claude Desktop: pegar en un cliente MCP real las preguntas del banco, recoger el SQL
+que generó y compararlo con la referencia. Sirve para saber **si un modelo frontera
+pasaría de 0,80**, que es lo que decide cómo cerrar la distancia entre el modelo
+local y el umbral de `G-EXEC-ACC`.
 
 **Por qué no puede ser la métrica.** No es automatizable, no es reproducible por otro y
 no está anclado a un modelo de `models.lock`. Publicarlo como `G-EXEC-ACC` sería

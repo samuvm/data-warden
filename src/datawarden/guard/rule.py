@@ -1,6 +1,6 @@
 """El protocolo de regla. **Se congela ANTES de escribir la primera regla.**
 
-`docs/PLAN.md` lo pide en ese orden y no es ceremonia: si el protocolo se decide
+El orden es deliberado y no es ceremonia: si el protocolo se decide
 mientras se escriben las reglas, cada regla acaba con una firma un poco distinta y
 la parametrización del corpus —«una regla = un fichero = un test»— deja de ser
 posible. Catorce reglas con catorce formas de invocarse son catorce tests.

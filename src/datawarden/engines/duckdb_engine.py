@@ -27,7 +27,7 @@ class DuckDBEngine:
     def __init__(self, database: pathlib.Path, setup_sql: tuple[str, ...] = ()) -> None:
         self._database = database
         # DDL que se ejecuta UNA VEZ al abrir la conexión. Hoy sirve para instalar la
-        # macro de enmascarado (P-008), y el motor NO sabe qué es: recibe cadenas y
+        # macro de enmascarado (`mask/macro.py`), y el motor NO sabe qué es: recibe cadenas y
         # las ejecuta. Saberlo exigiría que `engines` importara `mask`, y el contrato
         # de capas lo prohíbe —con razón: un adaptador que conoce la política deja de
         # ser un adaptador—. Quien decide qué va aquí es `audit/`, que puede ver los

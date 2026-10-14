@@ -4,20 +4,21 @@ version = "0.1.0"
 description = "Acceso conversacional a un lakehouse con cinco anillos de control. Servidor MCP."
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = "==3.12.*"        # ADR-002 de citebound-01: MWAA no ofrece más
+requires-python = "==3.12.*"        # compatibilidad con MWAA, que no ofrece más
 authors = [{ name = "Samuel Viciana", email = "sviciana@blueoption.io" }]
 
 # -----------------------------------------------------------------------------
 # TODAS LAS VERSIONES SON EXACTAS, Y NO ES PEDANTERÍA.
 #
 # `docs/STACK.md` da RANGOS: son la investigación, de qué línea coger. El `==`
-# vive aquí y en `uv.lock`, y cada número está firmado en `Q-002` de
-# `docs/PARA-SAMUEL.md` (Samuel, 2026-08-28). Que STACK diga `mcp>=2,<3` y esto
-# diga `mcp==2.1.1` NO es una contradicción: es la constitución §7.2 funcionando.
+# vive aquí y en `uv.lock`, cada número fijado el 2026-08-28 y anotado en
+# `docs/JOURNAL.md`. Que STACK diga `mcp>=2,<3` y esto diga `mcp==2.1.1` NO es
+# una contradicción: es el rango acotado y la versión elegida dentro de él.
 #
 # `sqlglot` es la excepción que exigió firma explícita: su API de AST cambia
 # entre minors sin semver estricto, así que una subida silenciosa cambia cómo se
-# parsea una consulta — es decir, cambia QUÉ ES SEGURO. Subirla vuelve al buzón.
+# parsea una consulta — es decir, cambia QUÉ ES SEGURO. Subirla es una decisión
+# explícita, nunca una actualización de rutina.
 # -----------------------------------------------------------------------------
 dependencies = [
   # El corazón. `[c]` es el compilado con mypyc, y es lo que hace alcanzable el
@@ -40,14 +41,14 @@ dependencies = [
 
 [project.optional-dependencies]
 # La capa HTTP equivalente, para demostrar que el dominio no depende del
-# transporte. Heredadas de citebound-01, no ejercitadas aquí todavía.
+# transporte. Heredadas de un proyecto anterior, no ejercitadas aquí todavía.
 http = [
   "fastapi==0.141.1",
   "uvicorn[standard]==0.52.1",
 ]
 
 [project.scripts]
-warden = "datawarden.cli:main"      # D-02: el CLI se llama `warden`
+warden = "datawarden.cli:main"      # el CLI se llama `warden`
 
 [dependency-groups]
 dev = [
@@ -67,10 +68,10 @@ dev = [
   # de arrastrarla el gate entero no arranca. `src/` no importa YAML en ninguna
   # parte —`compile_contracts.py` los traduce a JSON y el dominio lee solo JSON,
   # porque parsear YAML dentro del camino crítico de `G-GUARD-P95` sería tiempo
-  # tirado en el peor sitio posible—. P-002, aprobada por Samuel el 2026-09-02.
+  # tirado en el peor sitio posible—. Declarada el 2026-09-02.
   "pyyaml==6.0.3",
   # El generador del dataset sintético. Vive hoy en `datagen/` y se porta a
-  # `scripts/` como trabajo de la fase 0 (P-001, aprobada).
+  # `scripts/` como trabajo de la fase 0.
   "Faker==40.37.0",
 ]
 
@@ -243,7 +244,7 @@ source_paths = [
 # test unitario que fuerza una regla a estallar.
 pytest_add_cli_args_test_selection = ["tests/unit", "tests/contract"]
 
-# P-005, aprobada RECORTADA por Samuel el 2026-09-02. Sale de la medida el TEXTO
+# Decisión del 2026-09-02, deliberadamente recortada. Sale de la medida el TEXTO
 # literal de los mensajes de rechazo, y NADA MÁS: la composición —qué `Position` es,
 # cuál es el `subject`, si es `retryable`— se queda dentro y el corpus la asierta por
 # su VALOR desde el mismo día.

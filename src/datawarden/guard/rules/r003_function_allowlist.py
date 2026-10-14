@@ -46,7 +46,7 @@ class FunctionAllowlistRule:
                 continue
             # LA DECISIÓN se queda aquí y se mide: una función que lee de fuera del
             # proceso no es reintentable, y una desconocida sí. El TEXTO de cada una
-            # está en `messages.py`, fuera de la mutación (P-005).
+            # está en `messages.py`, fuera de la mutación.
             dangerous = name in KNOWN_DANGEROUS
             retryable = not dangerous
             message, suggestion = messages.function_not_allowed(name, dangerous=dangerous)

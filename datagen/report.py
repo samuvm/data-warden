@@ -133,7 +133,7 @@ def build(data_dir: pathlib.Path, db_path: pathlib.Path) -> str:
         f"| **{mc['top_1pct_measured_on_traffic']:.2%} / {mc['top_10pct_measured_on_traffic']:.2%}** |",
         f"| (el mismo objetivo sobre el vector de pesos, que **no** es lo publicado) "
         f"| {mc['top_1pct_share']:.0%} / {mc['top_10pct_share']:.0%} |",
-        # P-003-b: la fila decía «objetivo X | Y» con Y = el propio sorteo de la
+        # La fila decía «objetivo X | Y» con Y = el propio sorteo de la
         # cohorte, que sigue al objetivo por construcción. Publicar eso como medida es
         # el error que el proyecto existe para no cometer. Las tres son distintas y se
         # publican con su nombre; y NINGUNA es la del glosario, que declara el 6,2 % de

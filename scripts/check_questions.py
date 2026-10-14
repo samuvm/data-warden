@@ -16,9 +16,9 @@ Los **de ejecución** sí necesitan criterio, pero no todo el criterio es igual 
   `docs/spec/glossary.yaml`. Aquí se comprueba que esa entrada existe de verdad, para
   que la procedencia no pueda apuntar a una definición inventada. Revisar una
   transcripción cuesta segundos; decidir una definición, veinte minutos.
-- Si declara `arbitrio: true`, el glosario no lo cubre y **hace falta Samuel**. Se
-  cuentan aparte y se listan, porque sus horas tienen que gastarse ahí y no en
-  releer transcripciones.
+- Si declara `arbitrio: true`, el glosario no lo cubre y **hace falta criterio
+  humano**. Se cuentan aparte y se listan, porque las horas de revisión tienen que
+  gastarse ahí y no en releer transcripciones.
 
 **Y se ejecuta el SQL de referencia contra el dataset.** Un SQL de referencia que no
 corre no es una referencia, y uno que devuelve cero filas casi nunca es lo que se
@@ -56,7 +56,7 @@ def _database(raw: dict[str, object]) -> pathlib.Path:
 
 MAX_ROWS = 50_000
 
-#: Lo exige `docs/GOALS.yaml` :: G-EXEC-ACC y lo estratifica `docs/PLAN.md`.
+#: Lo exige `docs/GOALS.yaml` :: G-EXEC-ACC.
 CORPUS_MINIMO = 60
 RECHAZOS_MINIMO = 10
 
@@ -139,7 +139,7 @@ def main() -> int:
     # rechazaría: al medir, el modelo acertaría el SQL y aun así fallaría, y el
     # número culparía al modelo de una política que el propio banco incumple.
     #
-    # **Y aquí estaba el agujero de P-012: esto llamaba a `validate()`.** El guard es
+    # **Y aquí estaba el agujero: esto llamaba a `validate()`.** El guard es
     # el anillo 3; el presupuesto es el 4. `eval_exec.py` pasa el candidato del modelo
     # por `screen()`, o sea por los DOS, así que un check que solo mira el guard
     # aprueba referencias que la medida rechaza. Pasó exactamente eso: 20 de las 47
@@ -215,7 +215,7 @@ def main() -> int:
             "rechazos": len(rechazos),
             "rechazos_verificados_ejecutando_el_guard": verificados,
             "ejecucion": len(ejecucion),
-            "necesitan_criterio_de_samuel": arbitrio,
+            "necesitan_criterio_humano": arbitrio,
             "sin_sql_de_referencia": sin_sql,
             "referencia_devuelve_cero_filas": vacios,
             "estratos": dict(estratos),
@@ -228,7 +228,7 @@ def main() -> int:
 
     print(f"check_questions: {total}/{CORPUS_MINIMO} casos · {len(rechazos)} de rechazo")
     print(f"  rechazos verificados ejecutando el guard : {verificados}/{len(rechazos)}")
-    print(f"  necesitan criterio de Samuel             : {len(arbitrio)} {arbitrio}")
+    print(f"  necesitan criterio humano (arbitrio)     : {len(arbitrio)} {arbitrio}")
     print(f"  sin SQL de referencia todavía            : {len(sin_sql)} {sin_sql}")
     if vacios:
         print(f"  AVISO · referencia con cero filas        : {vacios}")
@@ -236,7 +236,7 @@ def main() -> int:
     if raw.get("provenance") != "revisado_humano":
         print(
             "  El banco NO está firmado todavía. Hasta que lo esté, cualquier número "
-            "medido contra él es el agente puntuándose a sí mismo."
+            "medido contra él es autoevaluado."
         )
     if problemas:
         print(f"\ncheck_questions: FALLO · {len(problemas)} problemas")

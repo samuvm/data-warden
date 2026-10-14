@@ -106,8 +106,8 @@ def test_la_ruta_por_defecto_de_la_cadena_no_depende_del_directorio_de_trabajo()
 
     Cuando el servidor lo lanza una aplicación de escritorio, el directorio de
     trabajo lo elige ella —Claude Desktop ignora el `cwd` de la configuración, y eso
-    se descubrió en Q-009—. Con una ruta relativa, la auditoría aparecería en un
-    sitio distinto según quién arrancara el proceso.
+    se descubrió en la prueba manual con Claude Desktop—. Con una ruta relativa, la
+    auditoría aparecería en un sitio distinto según quién arrancara el proceso.
     """
     assert DEFAULT_AUDIT_DB.is_absolute()
     assert DEFAULT_AUDIT_DB.name == "audit.sqlite3"

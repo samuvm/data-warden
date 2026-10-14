@@ -132,7 +132,7 @@
         ],
         "como_se_publica": "bloqueo del holdout 15/15, intervalo de Wilson 95 % [0.80 - 1.00]. NUNCA «100 % de bloqueo» a secas.",
         "passed": 15,
-        "por_que_autoevaluado": "Mientras D-09 no esté instalado, el `deny` de lectura sobre tests/holdout/** es DISCIPLINA y no ejecución, así que el número sale etiquetado como autoevaluado (condición 3 de Q-005 y matiz de D-06).",
+        "por_que_autoevaluado": "Mientras ningún control externo al entorno de desarrollo imponga el `deny` de lectura sobre tests/holdout/**, es DISCIPLINA y no ejecución, así que el número sale etiquetado como autoevaluado.",
         "sha256": "d5e8ca8ab371480ca4b840d9f7c334a061c40769410e1ff3081e30501cc885e0",
         "total": 15,
         "wilson_95": [

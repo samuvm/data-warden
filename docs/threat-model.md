@@ -121,7 +121,7 @@ dos sesiones producen los mismos hashes y se pueden cruzar. Se cambió porque co
 resultset de toda consulta con columna `mask` deja de ser comparable entre ejecuciones, y entonces
 las preguntas del banco de 60 que tocan una columna enmascarada **no pueden tener respuesta de
 referencia** — o sea, `G-EXEC-ACC` dejaría de poder medirse sobre ellas. Es un cambio, no una
-errata, y va escrito aquí como pérdida (P-006).
+errata, y va escrito aquí como pérdida.
 
 ### 4.2.1 · Dónde está la pimienta, exactamente
 
@@ -148,7 +148,7 @@ clave: necesitan un **pseudónimo estable**, que es el patrón que este almacén
 distintas se conserva entera y **la pimienta deja de existir para ellas**: un problema de gestión de
 claves se convierte en uno de modelado de datos, que es mucho más barato de tener. Va cuando se
 regenere el dataset, porque hacerlo hoy invalida el `MANIFEST` contra el que cerraron las fases 0, 1
-y 2 (P-008).
+y 2.
 
 ### 4.3 · El modelo
 

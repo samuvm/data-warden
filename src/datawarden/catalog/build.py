@@ -7,7 +7,7 @@ primero. Dos rutas de código que generan «lo mismo» acaban generando dos cosa
 
 Las anotaciones que el motor no puede dar —columnas excluidas de la publicación y
 columnas obsoletas— llegan ya compiladas a JSON por `scripts/compile_contracts.py`.
-El dominio no parsea YAML: ver el encabezado de ese script y la propuesta P-002.
+El dominio no parsea YAML: ver el encabezado de ese script.
 """
 
 from __future__ import annotations

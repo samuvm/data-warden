@@ -78,7 +78,7 @@
       "maxLength": 500
     },
     "sql_digest": {
-      "description": "sha256 hex del SQL RE-SERIALIZADO desde el AST validado -- lo que de verdad se ejecutó (I-02)-- y nunca de la cadena de entrada. Si se hasheara la entrada, la auditoría certificaría algo distinto de lo que corrió. CENTINELA (P-007, aprobada por Samuel el 2026-09-02): cuando el rechazo ocurre ANTES de que exista arbol validado -- R001 sobre una consulta que ni parsea -- no hay nada legitimo que hashear, y hashear la entrada seria justo lo que este campo prohibe. En ese caso el campo lleva 64 ceros: un valor legal, que casa el patron, distinguible de cualquier sha real, y el mismo vocabulario que este contrato ya usa para el genesis de `prev_hash`. OJO, y por eso se escribe aqui: `prev_hash` y `sql_digest` usan EL MISMO relleno de 64 ceros con DOS significados distintos -- «primero de la cadena» y «no hubo arbol»--. No colisiona, porque son campos distintos y se leen por nombre; pero un ayudante generico del tipo «¿esto es un centinela?» los confundiria. Se leen por campo, nunca por valor.",
+      "description": "sha256 hex del SQL RE-SERIALIZADO desde el AST validado -- lo que de verdad se ejecutó (I-02)-- y nunca de la cadena de entrada. Si se hasheara la entrada, la auditoría certificaría algo distinto de lo que corrió. CENTINELA (desde 2026-09-02): cuando el rechazo ocurre ANTES de que exista arbol validado -- R001 sobre una consulta que ni parsea -- no hay nada legitimo que hashear, y hashear la entrada seria justo lo que este campo prohibe. En ese caso el campo lleva 64 ceros: un valor legal, que casa el patron, distinguible de cualquier sha real, y el mismo vocabulario que este contrato ya usa para el genesis de `prev_hash`. OJO, y por eso se escribe aqui: `prev_hash` y `sql_digest` usan EL MISMO relleno de 64 ceros con DOS significados distintos -- «primero de la cadena» y «no hubo arbol»--. No colisiona, porque son campos distintos y se leen por nombre; pero un ayudante generico del tipo «¿esto es un centinela?» los confundiria. Se leen por campo, nunca por valor.",
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
@@ -171,7 +171,7 @@
       ]
     },
     "model": {
-      "description": "Qué modelo generó el SQL, por TAG y por DIGEST. El digest porque un tag de Ollama es móvil: `qwen3.5:9b-mlx` puede apuntar a otro peso dentro de tres meses (models.lock, Q-007).",
+      "description": "Qué modelo generó el SQL, por TAG y por DIGEST. El digest porque un tag de Ollama es móvil: `qwen3.5:9b-mlx` puede apuntar a otro peso dentro de tres meses (models.lock).",
       "type": [
         "object",
         "null"

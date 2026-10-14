@@ -106,7 +106,7 @@ def gen_ai_inventados(attributes: dict[str, Any]) -> tuple[str, ...]:
     """Los `gen_ai.*` que este proyecto se ha inventado. **Tiene que ser vacío.**
 
     Es la mitad del valor de `G-OTEL-ATTRS`: el contrato dice que inventar dentro de
-    `gen_ai.*` te saca del estándar que el proyecto 02 dice defender, y eso no se puede
+    `gen_ai.*` te saca del estándar que el contrato dice defender, y eso no se puede
     comprobar leyendo el código —se comprueba sobre lo que se emite—.
     """
     return tuple(

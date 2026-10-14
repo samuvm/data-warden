@@ -1,7 +1,7 @@
 """R014 · nada de esquemas de sistema.
 
 Parece una regla menor y es de las que más cierran. `docs/spec/policy.yaml` excluye
-`dim_merchant.traffic_weight` del catálogo publicado con el cambio C-3, y el
+`dim_merchant.traffic_weight` del catálogo publicado, y el
 catálogo del anillo 1 no la enseña. Pero el motor sí sabe que existe:
 
     SELECT column_name FROM information_schema.columns WHERE table_name = 'dim_merchant'

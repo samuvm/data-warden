@@ -11,8 +11,8 @@ Con la macro, el árbol dice `warden_hash(...)` y la pimienta **desaparece del
 registro de auditoría**. Sigue apareciendo en los logs del motor, dentro del
 `CREATE TEMP MACRO`, pero **una vez por conexión en vez de una vez por consulta**.
 
-Es una reducción grande y **no es una eliminación**, y Samuel pidió expresamente que
-se dijera con esas palabras al aprobar P-008: *un límite que se declara a medias es
+Es una reducción grande y **no es una eliminación**, y se exigió expresamente que
+se dijera con esas palabras al aprobar la macro: *un límite que se declara a medias es
 peor que uno que no se declara, porque parece cerrado.*
 
 **La solución de verdad no es esta, y también está decidida.** Estas dos columnas no

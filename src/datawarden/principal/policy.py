@@ -74,7 +74,7 @@ class ColumnPolicy:
 
 @dataclass(frozen=True, slots=True)
 class DerivationViolation:
-    """Una columna `allow` que deriva de otra que no lo es. Cambio C-5 de la firma.
+    """Una columna `allow` que deriva de otra que no lo es. Regla de composición de la política.
 
     `segment_code` contiene `age_band` literalmente: si algún día se restringe
     `age_band`, `segment_code` es un puente que lo rodea. Hoy no hay contradicción;
@@ -145,7 +145,7 @@ class AccessPolicy:
         return self._restricted.get(role, frozenset())
 
     def derivation_violations(self) -> tuple[DerivationViolation, ...]:
-        """C-5: toda columna `allow` cuya fuente no lo es para el mismo rol.
+        """Regla de composición: toda columna `allow` cuya fuente no lo es para el mismo rol.
 
         Una columna que no está en la matriz es `allow` por defecto, así que derivar
         de ella no es una violación: no hay nada que rodear.
@@ -163,7 +163,7 @@ class AccessPolicy:
         return tuple(violations)
 
     def undeclared_admin_denials(self) -> tuple[str, ...]:
-        """C-2: columnas que admin no ve y que NO lo declaran con `excepcion_admin`.
+        """Excepción de admin: columnas que admin no ve y no lo declaran con `excepcion_admin`.
 
         El invariante del contrato es «admin lo ve todo» y tiene exactamente una
         excepción firmada. Si la excepción viviera solo en la prosa, esta

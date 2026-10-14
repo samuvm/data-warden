@@ -10,9 +10,10 @@ alguien daría el día que la violación fuese de verdad. `G-ROLE-SPOOF` no se n
 por comodidad, así que la lectura del rol se muda a donde el invariante no la
 prohíbe — que es también donde de verdad pertenece.
 
-**2 · P-002.** PyYAML no está en `[project.dependencies]`: entra transitivamente por
-`langgraph` y `detect-secrets`, y un módulo de `src/` que lo importara sería la clase
-de dependencia invisible que rompe un despliegue seis meses después.
+**2 · YAML fuera de `src/`.** PyYAML no está en `[project.dependencies]`: entra
+transitivamente por `langgraph` y `detect-secrets`, y un módulo de `src/` que lo
+importara sería la clase de dependencia invisible que rompe un despliegue seis meses
+después.
 
 Lo que sí se queda en `src/datawarden/evalsupport/recovery.py` es la EXPANSIÓN, que
 no tiene rol ninguno y decide qué cadena de SQL acaba delante del guard.

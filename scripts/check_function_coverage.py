@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """`G-COV-FUNC`: toda función pública de un paquete testable la ejerce algún test.
 
-Es el punto 4 de la Definition of Done, y la constitución §2.6 lo hace ejecutable
-en vez de dejarlo en «un test por función»: se mide con `--cov-context=test` y con
-el AST, **no por convención de nombres**, porque una convención de nombres se
-falsea trivialmente escribiendo `test_foo` sin llamar a `foo`.
+Es el punto 4 de la Definition of Done, y aquí se hace ejecutable en vez de dejarlo
+en «un test por función»: se mide con `--cov-context=test` y con el AST, **no por
+convención de nombres**, porque una convención de nombres se falsea trivialmente
+escribiendo `test_foo` sin llamar a `foo`.
 
 Cómo funciona: `coverage` registra QUÉ test cubrió cada línea. El script recorre el
 AST de los ocho paquetes de `[tool.gate].testable`, localiza la primera línea

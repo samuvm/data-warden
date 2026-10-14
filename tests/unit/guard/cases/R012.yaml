@@ -25,7 +25,7 @@ accept:
     por_que: >-
       `customer_id` es un PSEUDÓNIMO estable y la política firmada dice que sirve
       «para todo lo que un análisis necesita: agrupar, contar y unir». Aceptarlo es
-      respetar lo que Samuel firmó, no un descuido.
+      respetar lo que se firmó, no un descuido.
   # ---------------------------------------------------------------------------
   # EL BORDE DE K_MIN, que vale 5. Anadidos el 2026-09-02: la mutacion dejaba vivos
   # 29 mutantes en esta regla y la mayoria eran comparaciones de borde. Un `>=` por

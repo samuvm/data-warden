@@ -88,7 +88,7 @@ def _unknown_relation(table: str) -> dict[str, Any]:
             "message": f"relation {table.lower()} is not in the generated catalog",
             # LA SUGERENCIA NOMBRA ALGO QUE EL CLIENTE PUEDE HACER. Decir «lee el
             # recurso del catálogo» es inútil en un cliente sin lectura de recursos,
-            # y así se quedó tirado un modelo real en Q-009.
+            # y así se quedó tirado un modelo real en la prueba manual con Claude Desktop.
             "suggestion": (
                 "call describe_table with no arguments to see the tables that exist, "
                 "then describe the one you need"
@@ -176,7 +176,7 @@ class WardenTools:
         predicados revela cómo está particionado el almacén, que es información. Si
         se decide auditarlo, hace falta un estado nuevo en
         `docs/spec/audit-record.schema.json` y `G-AUDIT-COV` pasa de cuatro estados a
-        cinco: es una decisión de contrato, no un añadido, y va al buzón antes que al
+        cinco: es una decisión de contrato, no un añadido, y se decide antes que el
         código.
         """
         from datawarden.cost.screen import screen
@@ -252,7 +252,7 @@ class WardenTools:
         """La ficha de una tabla — o, SIN ARGUMENTO, la lista de las que hay.
 
         **Sin el caso «sin argumento» este servidor era indescubrible**, y se vio en
-        Q-009 con un cliente real: el catálogo se servía solo como recurso MCP, el
+        la prueba manual con Claude Desktop: el catálogo se servía solo como recurso MCP, el
         cliente no tenía herramienta para leer recursos, y el modelo acabó adivinando
         nombres a ciegas —`customers`, `clientes`, `payments`, `pagos`— hasta rendirse.
 

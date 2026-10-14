@@ -94,8 +94,8 @@ test-int:
 		--hypothesis-profile=gate
 
 # `--cov-context=test` NO es opcional: es lo que hace medible "un test por
-# función" (CONSTITUCION §2.6). Sin él, G-COV-FUNC no se puede calcular y el check
-# sale rojo por falta de medida, que es lo correcto.
+# función" (punto 4 de la Definition of Done). Sin él, G-COV-FUNC no se puede
+# calcular y el check sale rojo por falta de medida, que es lo correcto.
 # `tests/integration` ENTRA aquí y no en el gate rápido. El motivo es honestidad:
 # tres funciones del catálogo solo se pueden ejercitar contra DuckDB (I-13 prohíbe
 # el motor en tests/unit), así que medir la cobertura sin ellas daría un número que
@@ -117,7 +117,7 @@ secrets:
 
 # --- contratos, catálogo y metas ---------------------------------------------
 # Compila los YAML firmados de docs/spec/ a los JSON que consume src/. El dominio
-# no parsea YAML: ver el encabezado de scripts/compile_contracts.py y P-002.
+# no parsea YAML: ver el encabezado de scripts/compile_contracts.py.
 contracts:
 	$(UV) python scripts/compile_contracts.py
 	$(UV) python scripts/check_contracts.py
@@ -131,7 +131,7 @@ catalog:
 # contar 66,6 M de filas tarda 0,5 s porque se lee el metadato. Perfil `full`, que es
 # el dataset publicado y el que calibra los presupuestos.
 # Las vistas derivadas NO tienen manifiesto, así que sus cifras salen del linaje
-# publicado (P-012). Sin ese paso el estimador les cobraba el castigo de 1 GB y las
+# publicado. Sin ese paso el estimador les cobraba el castigo de 1 GB y las
 # ocho quedaban por encima del presupuesto duro de `analyst`, incluidas las dos que el
 # glosario firmado señala como camino obligatorio.
 statistics:
@@ -169,7 +169,7 @@ eval-recovery:
 	$(UV) python scripts/eval_recovery.py
 	$(UV) python scripts/check_recovery_coverage.py
 
-# Lo único que llama al modelo. Exige Ollama EN EL HOST con el modelo de Q-007
+# Lo único que llama al modelo. Exige Ollama EN EL HOST con el modelo
 # fijado por digest en models.lock; tarda minutos y regraba las casetes.
 eval-refresh:
 	$(UV) python scripts/eval_recovery.py --refresh --model-role $(MODEL_ROLE) $(REFRESH_FLAGS)
@@ -199,8 +199,8 @@ freeze:
 	$(UV) python scripts/freeze_questions.py
 
 # --- rendimiento -------------------------------------------------------------
-# AVISO: D-03 dice UN proyecto encendido cada vez. Un p95 medido con otro
-# proyecto compitiendo por la memoria NO vale y hay que repetirlo.
+# AVISO: UN solo proyecto encendido cada vez en la máquina. Un p95 medido con
+# otro proyecto compitiendo por la memoria NO vale y hay que repetirlo.
 bench bench-guard:
 	$(UV) python scripts/bench_guard.py
 
@@ -227,7 +227,7 @@ attack-dev:
 attack-mut:
 	$(UV) python scripts/attack_mut.py
 
-# La RESERVA. El agente NO la lee: la ejecuta y mira el veredicto.
+# La RESERVA. No se lee durante el desarrollo: se ejecuta y se mira el veredicto.
 attack-holdout:
 	$(UV) python scripts/attack_holdout.py
 
@@ -257,9 +257,10 @@ test-parity:
 	@echo "FASE 9: no hay segundo motor todavía."
 	@exit 1
 
-# Las nueve trampas del glosario, MEDIDAS. Nace de la corrección G-5 de la firma
-# de Q-004: «una trampa cuyo número no se ha vuelto a medir desde que se escribió
-# es folclore». Hoy salen 7 de 9; las dos que discrepan están en la propuesta P-003.
+# Las nueve trampas del glosario, MEDIDAS. Nace de una corrección al revisar el
+# glosario: «una trampa cuyo número no se ha vuelto a medir desde que se escribió
+# es folclore». Salían 7 de 9; las dos que discrepaban se corrigieron en el glosario
+# el 2026-09-02.
 dataset-traps:
 	$(UV) python scripts/measure_traps.py --profile $(PROFILE)
 
@@ -274,7 +275,7 @@ dataset-full:
 # gate-fast: lo que tiene que pasar en cada turno. Segundos, no minutos.
 #
 # `imports` ENTRA aquí desde el 2026-09-06, y entra por un fallo real: al escribir
-# el servidor MCP se rompió el contrato I-06 y no salió hasta que Samuel corrió
+# el servidor MCP se rompió el contrato I-06 y no salió hasta que corrí
 # `make done` dos días después, porque el contrato de capas solo se comprobaba en
 # `gate-full` y en `done`. Cuesta **0,08 s**. Un contrato de arquitectura que solo
 # corre al cerrar una fase se rompe al principio y se descubre al final, que es
@@ -291,9 +292,9 @@ gate-full: lint typecheck imports arch-checks test coverage secrets attack-dev a
 	@echo ""
 	@echo "gate-full VERDE"
 
-# La ÚNICA definición de "hecho" (CONSTITUCION §5). Doce condiciones, parando en
-# la primera que falla, y el resultado en .claude/state/gate-status.json, que lo
-# escribe el GATE y no el agente.
+# La ÚNICA definición de "hecho". Doce condiciones, parando en la primera que
+# falla, y el resultado en .claude/state/gate-status.json, que lo escribe el GATE
+# y no una persona.
 done:
 	@test -n "$(MILESTONE)" || { echo "falta MILESTONE=N"; exit 2; }
 	$(UV) python scripts/done.py --milestone $(MILESTONE)

@@ -32,7 +32,7 @@
 # =============================================================================
 
 version: 2
-estado: BORRADOR          # BORRADOR | FIRMADO — solo Samuel escribe FIRMADO
+estado: BORRADOR          # BORRADOR | FIRMADO — FIRMADO solo tras revisión humana
 generado_por: agente
 generado_el: 2026-09-03
 

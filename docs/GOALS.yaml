@@ -1,15 +1,13 @@
 # ==============================================================================
 # Data Warden · metas ejecutables
 # ==============================================================================
-# SOLO LECTURA PARA EL AGENTE. Está en `permissions.deny`.
-# Cambiar un umbral, un comando o una fase de bloqueo se PROPONE en
-# `docs/PARA-SAMUEL.md` (formato de CONSTITUCION.md §3) y se ESPERA. Que Samuel
-# sugiera un cambio tampoco lo aprueba: el agente escribe la propuesta igual.
-# Solo Samuel edita este fichero y solo él regenera `thresholds.lock`, que
-# contiene el sha256 de ESTE fichero y que `make done` compara sin excepción.
+# Fichero SELLADO. `thresholds.lock` contiene el sha256 de ESTE fichero y
+# `make done` lo compara sin excepción: cambiar un umbral, un comando o una fase
+# de bloqueo rompe el gate hasta que el cambio se justifica por escrito y se
+# vuelve a sellar a propósito.
 #
-# FORMA CANÓNICA: `docs/CONTRACTS/goals.schema.json` (copia literal de
-# `_comun/CONTRACTS/goals.schema.json`). Validación:
+# FORMA CANÓNICA: `docs/CONTRACTS/goals.schema.json` (copia literal del
+# directorio de contratos compartidos). Validación:
 #   uv run --with pyyaml --with jsonschema python -c "import yaml,json,jsonschema; \
 #     jsonschema.validate(yaml.safe_load(open('docs/GOALS.yaml')), \
 #     json.load(open('docs/CONTRACTS/goals.schema.json')))"
@@ -24,11 +22,10 @@
 #   artefacto             : dónde queda el número, para poder auditarlo.
 #   bloqueante_desde_fase : entero; a partir de esa fase `make done` lo exige.
 #                           null = no bloquea nunca.
-#   tipo                  : nucleo | ampliacion  (CONSTITUCION §7.8)
+#   tipo                  : nucleo | ampliacion
 #   requiere              : recursos externos sin los cuales no se puede medir.
-#                           Todo valor distinto de `ninguno` tiene su pregunta
-#                           en docs/PARA-SAMUEL.md o su decisión en
-#                           _comun/PARA-SAMUEL-GLOBAL.md (D-01..D-09).
+#                           Todo valor distinto de `ninguno` es un recurso que
+#                           hay que conseguir antes de poder medir la meta.
 #   propuesta_admisible   : false = AXIOMA. Cero es cero, no hay umbral
 #                           estadístico que negociar. Una propuesta
 #                           `bajar-umbral` sobre un axioma es por sí misma un
@@ -43,13 +40,12 @@
 #
 # NUMERACIÓN DE FASES — CORRECCIÓN EXPLÍCITA: la hoja de investigación usaba
 # F0, F0.5, F1..F9. `make done MILESTONE=N` toma un entero, y una fase 0,5 no es
-# un entero. Se renumera 0..10 sin cambiar el contenido de ninguna fase. El mapa
-# viejo→nuevo está en docs/PLAN.md §1.
+# un entero. Se renumera 0..10 sin cambiar el contenido de ninguna fase.
 # ==============================================================================
 
 version: 1
 proyecto: data-warden-03
-hardware_referencia: "MacBook Pro M4 Max, 36 GB unificada, macOS 26.5"  # ver D-03
+hardware_referencia: "MacBook Pro M4 Max, 36 GB unificada, macOS 26.5"
 
 comparacion:
   metodo: bootstrap
@@ -110,7 +106,7 @@ metas:
     nota: >-
       Meta nueva. Los números 90 y 95 vivían SOLO en docs/RULES.md §3 y en
       [tool.gate] de pyproject.toml, que NO está cubierto por thresholds.lock:
-      el agente podía bajarlos editando pyproject.toml sin romper el lock. Al
+      se podían bajar editando pyproject.toml sin romper el lock. Al
       declararlos aquí quedan bajo el sha256 de este fichero, y la coherencia
       entre ambos sitios la verifica I-16 (scripts/check_gate_config.py).
 
@@ -151,7 +147,7 @@ metas:
       Meta nueva. PROJECT.md §2 exige "catálogo autogenerado desde el esquema
       real, no escrito a mano" y no daba forma de comprobarlo. Cero divergencias
       entre el sha de catalog/generated/schema.json y el recomputado desde el
-      esquema vivo. Depende del dataset (Q-001).
+      esquema vivo. Depende del dataset.
 
   # ---------------------------------------------------------------- fase 1 ---
   - id: G-CONTRACTS-FROZEN
@@ -178,15 +174,16 @@ metas:
     propuesta_admisible: true
     nota: >-
       CORREGIDA. Antes decía "5 contratos" mezclando ficheros de docs/CONTRACTS/
-      con domain/types.py, y la cuenta no cuadraba. Se separan las dos cosas que
-      la constitución §1.1 distingue: los CUATRO contratos PROPIOS viven en
+      con domain/types.py, y la cuenta no cuadraba. Se separan dos cosas
+      distintas: los CUATRO contratos PROPIOS viven en
       docs/spec/ y este proyecto los escribe (policy.yaml, resultset-equality.md,
       audit-record.schema.json, rejection.schema.json); docs/CONTRACTS/ contiene
-      solo copias literales de _comun/ (goals.schema.json, otel-genai.md,
+      solo copias literales del directorio de contratos compartidos
+      (goals.schema.json, otel-genai.md,
       eval-report.schema.json y su README) y un diff contra el original es el
       test. `domain/types.py` congelado NO es un contrato: es código, y lo
-      verifican mypy --strict y el snapshot de la fase 1. policy.yaml lo escribe
-      Samuel (Q-003) y el glosario también (Q-004).
+      verifican mypy --strict y el snapshot de la fase 1. policy.yaml y el
+      glosario son decisiones de negocio, firmadas por una persona.
 
   - id: G-RESULTSET-EQ
     nombre: "La comparación de resultsets está especificada y probada antes de usarse"
@@ -209,7 +206,7 @@ metas:
       (orden de filas, orden y nombres de columna, tolerancia en flotantes,
       Decimal vs float, NULL vs '', vacío, duplicados como multiset, temporales
       en UTC, timeout y rechazo en el denominador), "exactitud de ejecución
-      >= 0,80" es un número inventado y dos agentes producen dos cifras
+      >= 0,80" es un número inventado y dos evaluadores producen dos cifras
       distintas con el mismo nombre.
 
   # ---------------------------------------------------------------- fase 2 ---
@@ -236,8 +233,8 @@ metas:
       REDEFINIDA. PROJECT.md pedía "100 % sobre una suite de 40 intentos", pero
       su propio hito 1 dice que las reglas se escriben PARA parar esos 40 casos:
       pasar el 100 % es medir sobre el conjunto de entrenamiento. Se parte en
-      dev (informativo, G-WRITE-BLOCK-DEV), holdout de 15 casos escritos por el
-      subagente qa-adversario sin leer src/datawarden/guard/ (Q-005), y mutación
+      dev (informativo, G-WRITE-BLOCK-DEV), holdout de 15 casos escritos por un
+      agente aislado sin acceso a src/datawarden/guard/, y mutación
       de AST. El número publicable en el README es este, no el de dev. Una
       evasión se convierte en rule_id nuevo y caso permanente; xfail prohibido.
       Segundo artefacto: evals/reports/attack-mut.json.
@@ -316,7 +313,7 @@ metas:
       qualify() con esquema no es gratis: se mide, no se supone. Protocolo:
       corpus de 300 consultas, 50 calentamientos, 500 medidas, se descarta la
       primera. El máximo absoluto NO baja. El número solo significa algo con el
-      hardware de referencia declarado arriba (D-03).
+      hardware de referencia declarado arriba.
 
   - id: G-MUT-GUARD
     nombre: "Los tests de guard/rules verifican, no solo cubren"
@@ -350,7 +347,7 @@ metas:
     propuesta_admisible: true
     nota: >-
       Meta nueva. Es el punto 6 de la Definition of Done y el mecanismo 5 de
-      anti-gaming (§2.5): lo único que distingue cobertura de verificación. El
+      anti-gaming: lo único que distingue cobertura de verificación. El
       número vivía solo en [tool.gate].mutantes_muertos_min de pyproject.toml,
       fuera de thresholds.lock. Debe coincidir con él (I-16).
 
@@ -376,7 +373,7 @@ metas:
       literalmente en blanco. Se convierte en invariante estructural más
       contador: Engine.execute() incrementa un contador de proceso y la
       propiedad exige delta == 0 cuando el coste estimado supera el presupuesto.
-      El test de integración lo confirma por reloj sobre el dataset (Q-001).
+      El test de integración lo confirma por reloj sobre el dataset.
 
   - id: G-COST-CALIB
     nombre: "El estimador de coste no subestima sistemáticamente"
@@ -423,8 +420,8 @@ metas:
       exfiltración bit a bit; PROJECT.md no lo contempla y es el ataque que hace
       serio al proyecto. (3) Agregación de grupo único: `GROUP BY national_id`
       expone la columna por cardinalidad; se exige k mínimo de grupo. Requiere
-      que existan columnas sensibles (Q-001) y la matriz de docs/spec/policy.yaml
-      (Q-003). Cubre dev y holdout.
+      que existan columnas sensibles en el dataset y la matriz de
+      docs/spec/policy.yaml. Cubre dev y holdout.
 
   # ---------------------------------------------------------------- fase 5 ---
   - id: G-AUDIT-COV
@@ -500,7 +497,7 @@ metas:
       evaluación de nivel 4. Corpus fijo de 42 rechazos sembrados (3 fraseos x
       14 familias de regla) y caché grabada por RecordedProvider, que hace
       `make eval-recovery` determinista y gratis; `make eval-refresh` recalcula
-      y exige el modelo local de Q-007. Se publica el intervalo, no el punto.
+      y exige el modelo local. Se publica el intervalo, no el punto.
 
   - id: G-RECOVERY-COV
     nombre: "Toda regla que puede rechazar tiene un caso de recuperación"
@@ -577,7 +574,8 @@ metas:
     nota: >-
       PRECISADA: PROJECT.md pedía la prueba pero no fijaba modelo, umbral ni
       dónde vive. Modelo fijado, temperatura 0, respuestas cacheadas, corre
-      fuera del gate rápido. Los 20 escenarios los escribe Samuel (Q-008).
+      fuera del gate rápido. Los 20 escenarios los escribe una persona, no el
+      sistema que se evalúa.
       Negociable HACIA ARRIBA solo: si baja, se reescribe la descripción de la
       tool, que es el defecto real, no el umbral.
 
@@ -604,7 +602,7 @@ metas:
     nota: >-
       REDEFINIDA en tres puntos. (1) 100 preguntas -> 60 estratificadas: a 10-20
       min por pregunta, 100 son 17-33 h humanas no delegables sobre un
-      presupuesto total de 154-214 h; con 60 son 10-20 h (Q-010) y el intervalo
+      presupuesto total de 154-214 h; con 60 son 10-20 h y el intervalo
       apenas empeora. (2) Se publica el intervalo de Wilson, no el punto: con
       48/60, IC95 ~ [0,68-0,88]; publicar "0,80" a secas con n=60 es publicar un
       número sin significado. (3) La comparación es de resultsets normalizados
@@ -628,7 +626,8 @@ metas:
     propuesta_admisible: true
     nota: >-
       Meta nueva. Cero métricas con id fuera de este fichero.
-      docs/CONTRACTS/eval-report.schema.json es un contrato con el proyecto 02:
+      docs/CONTRACTS/eval-report.schema.json es un contrato compartido entre
+      proyectos:
       cada `metrics[].id` debe coincidir exactamente con un id de GOALS.yaml, y
       `environment.deterministic` debe distinguir `make eval` de
       `make eval-refresh`. Comparar un informe determinista con uno que no lo es
@@ -677,8 +676,8 @@ metas:
     propuesta_admisible: true
     nota: >-
       NO BLOQUEA NUNCA el núcleo: la fase 9 es la única de ampliación del plan y
-      depende de una cuenta AWS que puede no existir (decisión transversal D-04).
-      Su exigencia vive en el criterio de salida de la fase 9 en docs/PLAN.md,
-      condicionado a AWS_ENABLED=1. Si no hay cuenta, el criterio de aceptación
+      depende de una cuenta AWS que puede no existir. Su exigencia vive en el
+      criterio de salida de la fase 9, condicionado a AWS_ENABLED=1. Si no hay
+      cuenta, el criterio de aceptación
       nº 5 de PROJECT.md se publica en el README como NO VERIFICADO, con esas
       palabras. Fingir que se cumplió es peor que no cumplirlo.

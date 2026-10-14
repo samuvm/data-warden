@@ -10,7 +10,7 @@ la misma respuesta, y una que se parece a la de referencia y devuelve otra cosa 
 **Los 10 de rechazo se puntúan por su `rule_id`.** Su respuesta correcta no es un
 resultset: es que el sistema NO conteste, y que diga por qué con la regla exacta.
 Acertar el rechazo por otra regla no es acertar — el mensaje que lee quien pregunta
-sería otro—, y por eso se exige la declarada. Son 10 de los 60 y `PLAN.md` los pide
+sería otro—, y por eso se exige la declarada. Son 10 de los 60 y el banco los exige
 precisamente porque casi ningún banco los tiene: **medir solo lo que el sistema
 contesta mide la mitad del sistema.**
 
@@ -18,8 +18,8 @@ contesta mide la mitad del sistema.**
 único que llama al modelo.
 
 **LA PROCEDENCIA MANDA.** Mientras `questions.yaml` no diga `revisado_humano`, el
-informe lo publica y el número sale etiquetado. Un banco que el agente se escribió y
-se corrigió es el agente puntuándose a sí mismo, por muy bien transcrito que esté.
+informe lo publica y el número sale etiquetado. Un banco escrito y corregido por el
+mismo sistema que se mide es una autoevaluación, por muy bien transcrito que esté.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ QUESTIONS = ROOT / "evals" / "golden" / "questions.yaml"
 FROZEN = ROOT / "evals" / "golden" / "resultsets"
 #: La versión del CONTRATO, no la del proyecto — y es un entero por `const: 1`.
 #: Decía "1.0.0", que parecía más informativo y era sencillamente inválido:
-#: `check_eval_reports.py` lo cazó la primera vez que se ejecutó. El 02 lee este campo
+#: `check_eval_reports.py` lo cazó la primera vez que se ejecutó. El consumidor lee este campo
 #: para saber qué forma esperar, así que aquí no cabe una versión propia.
 CONTRACT_VERSION = 1
 GATE_PEPPER = "pimienta-del-gate-solo-para-medir-g-pii-leak"
@@ -188,7 +188,7 @@ def main() -> int:
         rechazo = salida.rejection
         # Las reglas que saltaron en CUALQUIER intento del ciclo, el último incluido.
         reglas = [a.rejection.rule_id for a in salida.attempts if a.rejection is not None]
-        # **P-014, aprobada por Samuel el 2026-09-11.** Un caso de rechazo acierta si la
+        # **Decisión del 2026-09-11.** Un caso de rechazo acierta si la
         # regla DECLARADA saltó en algún punto del ciclo, no solo si el ciclo termina en
         # rechazo.
         #
@@ -199,7 +199,7 @@ def main() -> int:
         # fallo. Un modelo que mejoraba en `G-RECOVERY` empeoraba en `G-EXEC-ACC`. Medido
         # con el 26B: en 5 de los 8 casos de rechazo fallados la regla declarada SÍ
         # había saltado (Q-R-01, 02 y 03 con R008; Q-R-04 y 05 con R012). Es lo que
-        # Samuel vio a mano en Claude Desktop con Q-R-01 y lo que el sistema está hecho
+        # se vio a mano en Claude Desktop con Q-R-01 y lo que el sistema está hecho
         # para hacer.
         #
         # **Tiene que ser la regla declarada, no una cualquiera.** Q-R-09 declara R006 y
@@ -207,7 +207,7 @@ def main() -> int:
         # ninguna regla —el modelo nunca llegó a pedir lo prohibido— también.
         #
         # Se decidió DESPUÉS de ver el número (sube de 0,4386 a 0,5263) y por eso fue
-        # una propuesta con el número escrito por delante, no un cambio del agente.
+        # una propuesta con el número escrito por delante, no un cambio silencioso.
         acierto = caso["regla"] in reglas
         resultados.append(
             {
@@ -219,7 +219,7 @@ def main() -> int:
                 # La EVIDENCIA de `acierto`, publicada. Nació como diagnóstico para
                 # distinguir «el guard nunca vio nada prohibido» de «el guard lo paró y
                 # el modelo corrigió», que son cosas opuestas y antes salían igual
-                # (`obtenido: null`). Desde P-014 es la base del acierto, y se publica
+                # (`obtenido: null`). Desde el 2026-09-11 es la base del acierto, y se publica
                 # para que cualquiera pueda ver POR QUÉ acertó cada caso: una condición
                 # relajada sin su evidencia al lado sería un número que hay que creerse.
                 "reglas_en_el_ciclo": reglas,
@@ -231,7 +231,7 @@ def main() -> int:
     for caso in raw.get("ejecucion") or []:
         congelado = FROZEN / f"{caso['id']}.json"
         if not congelado.exists():
-            continue  # arbitrio de Samuel: sin referencia no hay nada que comparar
+            continue  # caso de arbitrio: sin referencia no hay nada que comparar
         salida = resolver(caso)
         if salida is None:
             continue
@@ -275,7 +275,7 @@ def main() -> int:
 
     # **El contrato exige NÚMEROS en `per_stratum`, no objetos.** Aquí se publicaban
     # `{"n": 20, "aciertos": 5}` y el esquema pide `additionalProperties: number`: el
-    # panel del 02 esperaba una serie por estrato y recibía un diccionario. Se publica
+    # panel consumidor esperaba una serie por estrato y recibía un diccionario. Se publica
     # el ratio, que es lo comparable entre estratos de tamaño distinto, y los conteos
     # crudos siguen enteros en `raw_path` — que es exactamente para lo que existe.
     ratio_por_estrato = {
@@ -313,7 +313,7 @@ def main() -> int:
                 "version": int(prompt.version),
                 "sha256": f"sha256:{prompt.sha256}",
                 # En INGLÉS y del enumerado del contrato. Dentro del repo el rol se
-                # llama `generador`; el 02 no sabe español.
+                # llama `generador`; el consumidor del contrato no sabe español.
                 "role": rol_contrato("generador"),
             }
         ],
@@ -330,9 +330,9 @@ def main() -> int:
         ],
         "notes": (
             f"provenance del banco: {raw.get('provenance')}. "
-            "Mientras no diga `revisado_humano`, el banco lo escribió el agente "
-            "transcribiendo el glosario firmado y NADIE lo ha revisado: el número es "
-            "el agente puntuándose contra su propia respuesta correcta."
+            "Mientras no diga `revisado_humano`, el banco lo escribió un agente "
+            "transcribiendo el glosario firmado y no tiene revisión humana externa: "
+            "el número es autoevaluado contra su propia respuesta correcta."
         ),
     }
     (ROOT / "evals" / "reports" / "exec-accuracy-report.json").write_text(
@@ -383,8 +383,8 @@ def main() -> int:
     print(f"  procedencia del banco: {raw.get('provenance')}")
     if raw.get("provenance") != "revisado_humano":
         print(
-            "  AVISO · el banco NO lo ha revisado Samuel. Este número es el agente "
-            "puntuándose contra su propia respuesta correcta."
+            "  AVISO · el banco de referencia no tiene revisión humana externa: el "
+            "número es autoevaluado contra su propia respuesta correcta."
         )
     if problemas:
         for p in problemas[:5]:

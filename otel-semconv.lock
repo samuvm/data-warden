@@ -1,8 +1,8 @@
 # Convenciones semánticas OpenTelemetry GenAI · versión PINEADA.
 #
-# Lo exige `docs/CONTRACTS/otel-genai.md §3`, que es una copia literal de `_comun/` y
-# un contrato con los proyectos 01, 02 y 04. Subir esta versión es un cambio
-# consciente, con entrada en JOURNAL.md y revisión del traductor. Nunca es automático.
+# Lo exige `docs/CONTRACTS/otel-genai.md §3`, que es una copia literal del directorio
+# de contratos compartidos y un acuerdo con otros proyectos que leen la misma
+# telemetría. Subir esta versión es un cambio consciente, con entrada en JOURNAL.md y revisión del traductor. Nunca es automático.
 #
 # ---------------------------------------------------------------------------
 # DISCREPANCIA CON EL CONTRATO, verificada el 2026-09-10 contra la API de GitHub
@@ -18,8 +18,8 @@
 # ELIMINARON del repo principal en v1.43.0, así que v1.42.0 es la última versión de ese
 # repo que todavía las contiene. Se fija esa, y no se inventa un sha para la otra.
 #
-# Queda abierto como decisión del contrato compartido, porque afecta a los cuatro
-# proyectos: si el 01 y el 02 pinean otra cosa, la integración que el contrato existe
+# Queda abierto como decisión del contrato compartido, porque afecta a todos los
+# proyectos que lo usan: si otro pinea otra cosa, la integración que el contrato existe
 # para garantizar deja de estar garantizada, y eso no lo puede decidir un solo repo.
 
 repo:    open-telemetry/semantic-conventions

@@ -1,4 +1,4 @@
-# Proyecto 03 · `data-warden`
+# Data Warden · `data-warden`
 
 > Acceso conversacional a un lakehouse con las barreras que una empresa exige antes de dejar que un modelo se acerque a sus datos: SQL validado antes de ejecutar, límites de coste, enmascarado de datos personales y registro de auditoría inmutable. Se expone como servidor MCP.
 
@@ -78,7 +78,7 @@ Además hay una capa HTTP equivalente, para demostrar que el dominio no depende 
 | Protocolo | SDK de MCP en Python | |
 | Agente | LangGraph | Ciclo generar → validar → corregir |
 | Auditoría | Tabla append-only + hash encadenado | Detecta manipulación posterior |
-| Datos | **Dataset 100 % sintético de varios GB, un solo esquema** | CIERZO, pasarela de pagos ficticia. Se publica el generador y su semilla, nunca los datos. Reproducible byte a byte, sin descargas. **Cambiado por P-001, aprobada por Samuel el 2026-08-28** (antes: «dataset público, NYC taxi u OpenFoodFacts»). Nada de CSV de juguete sigue vigente: 294,7 M de filas |
+| Datos | **Dataset 100 % sintético de varios GB, un solo esquema** | CIERZO, pasarela de pagos ficticia. Se publica el generador y su semilla, nunca los datos. Reproducible byte a byte, sin descargas. **Cambiado el 2026-08-28** (antes: «dataset público, NYC taxi u OpenFoodFacts»). Nada de CSV de juguete sigue vigente: 294,7 M de filas |
 
 ---
 

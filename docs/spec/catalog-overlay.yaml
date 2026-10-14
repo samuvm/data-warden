@@ -14,7 +14,7 @@
 # escrito a mano, que es exactamente lo que I-07 existe para prohibir.
 #
 # LAS EXCLUSIONES NO ESTÁN AQUÍ. `dim_merchant.traffic_weight` sale del catálogo
-# publicado por el cambio C-3 de la firma de Q-003, y por tanto vive en
+# publicado por el cambio C-3 de la política firmada, y por tanto vive en
 # `docs/spec/policy.yaml`, que es donde vive lo que firma negocio. Dos ficheros
 # diciendo qué se publica serían dos sitios donde equivocarse.
 # =============================================================================

@@ -9,15 +9,14 @@
 # modelo mal escrita **de la misma manera**, y coinciden. El número saldría alto y
 # sería falso, que es peor que no tenerlo.
 #
-# **La pone `docs/spec/glossary.yaml`, que Samuel FIRMÓ el 2026-09-01** al responder
-# Q-004. Ahí están los tres granos, las cinco definiciones críticas —`pago_valido`,
+# **La pone `docs/spec/glossary.yaml`, FIRMADO el 2026-09-01.** Ahí están los tres granos, las cinco definiciones críticas —`pago_valido`,
 # `ingreso`, `cliente_activo`, `comercio_activo`, `periodo`— y las cinco métricas.
 # Cada caso de este banco declara en `glosario:` de qué entrada firmada sale su SQL,
 # y el trabajo del agente pasa de ser CRITERIO a ser TRANSCRIPCIÓN.
 #
 # La diferencia es lo que cuesta revisarlo:
 #   «¿es esta la definición correcta de cliente activo?»        -> 20 min por caso
-#   «¿este SQL dice lo que dice la definición que firmaste?»    -> segundos
+#   «¿este SQL dice lo que dice la definición firmada?»         -> segundos
 #
 # TRES CLASES DE CASO, y cada una tiene un dueño distinto:
 #
@@ -28,11 +27,11 @@
 #              —esa la escribe el modelo al medir—, es un CANARIO que demuestra que
 #              la pregunta provoca esa regla, y lo demuestra antes de gastar una sola
 #              llamada al modelo. Si el canario deja de rechazar, el caso está roto.
-#   glosario   El SQL de referencia TRANSCRIBE una entrada firmada. Samuel audita la
-#              transcripción, no la definición.
+#   glosario   El SQL de referencia TRANSCRIBE una entrada firmada. La revisión humana
+#              audita la transcripción, no la definición.
 #   arbitrio   El glosario no lo cubre o admite dos lecturas. **Estos son los únicos
-#              que necesitan de verdad el criterio de Samuel**, y por eso van
-#              marcados: para que sus horas se gasten donde no hay alternativa.
+#              que necesitan de verdad criterio humano**, y por eso van marcados:
+#              para que las horas de revisión se gasten donde no hay alternativa.
 #
 # PROCEDENCIA. Mientras `provenance` no diga `revisado_humano`, el informe lo publica
 # y el número sale etiquetado. Un banco que el agente se escribió y se corrigió es el
@@ -41,39 +40,39 @@
 
 version: 1
 provenance: agente_transcrito_del_glosario_firmado
-# P-010, APROBADA por Samuel el 2026-09-10. **Se reescribieron 26 preguntas DESPUÉS
+# Reescritura decidida el 2026-09-10. **Se reescribieron 26 preguntas DESPUÉS
 # de haber medido**, y eso queda escrito aquí y no en una nota al pie: la primera
 # medida sobre las preguntas originales dio `G-EXEC-ACC = 0,1228`, y el 52 % de los
 # fallos eran de forma —columnas y número de filas que la pregunta no fijaba y la
 # referencia sí—. El criterio de la reescritura es uno solo: **la pregunta determina
 # la FORMA de la respuesta y no dicta el SQL.** «Los diez motivos más frecuentes con
 # su número» fija dos columnas y diez filas; cómo se calculan sigue siendo del modelo.
-reescritura_p010:
+reescritura_de_preguntas:
   autorizada_por: "Samuel, 2026-09-10"
   medida_previa: "G-EXEC-ACC 0,1228 (7/57) sobre las preguntas originales"
   preguntas_reescritas: 26
-# Q-013, RESUELTA por Samuel el 2026-09-11. Los tres casos que el glosario firmado no
-# cubría —los `arbitrio`— tienen ya criterio, y ninguno lo ha puesto el agente:
+# Arbitrajes resueltos el 2026-09-11. Los tres casos que el glosario firmado no
+# cubría —los `arbitrio`— tienen ya criterio humano, y ninguno lo ha puesto el agente:
 #   Q-E-21 «cuál es nuestro comercio más importante» → el que más `ingreso_bruto` deja.
 #   Q-E-05 «qué comercios mueven más volumen»        → `volumen_procesado`, identidad vigente.
 #   Q-E-22 «cómo va el negocio este trimestre»        → FUERA del banco. No tiene métrica
 #          canónica, y forzar una referencia sería inventar la verdad y luego puntuarse
 #          contra ella. Es la clase de pregunta que un sistema honesto tiene que poder
 #          decir que no entiende. La sustituye Q-E-51, en su mismo estrato y rol.
-decisiones_q013:
+arbitrajes:
   decididas_por: "Samuel, 2026-09-11"
   resueltas: [Q-E-05, Q-E-21]
   retiradas: [Q-E-22]
   sustituta: Q-E-51
 revisado_por: null
 revisado_el: null
-glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q-004)"
+glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01"
 
 # EL PERFIL DEL DATASET, y no es un detalle: decide de qué son los resultsets
 # congelados. Un banco congelado contra `dev` y medido contra `full` falla entero.
 #
-# **`full`, decidido por Samuel el 2026-09-10, y el motivo es más fuerte de lo que
-# parecía.** Yo había elegido `dev` por velocidad. Al comprobarlo apareció que
+# **`full`, decidido el 2026-09-10, y el motivo es más fuerte de lo que
+# parecía.** La primera elección fue `dev`, por velocidad. Al comprobarlo apareció que
 # `src/datawarden/catalog/generated/statistics.json` declara `profile: full`: **el
 # anillo del presupuesto llevaba tarifando `full` —66,6 M de filas, 4,1 GB en
 # `fact_payment_attempt`— mientras el motor ejecutaba `dev`, con 683 K.** Un anillo
@@ -92,7 +91,7 @@ glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01 (Q
 perfil: full
 perfil_decidido_por: "Samuel, 2026-09-10"
 
-# `docs/GOALS.yaml` :: G-EXEC-ACC exige >= 60 casos, y `PLAN.md` los estratifica:
+# `docs/GOALS.yaml` :: G-EXEC-ACC exige >= 60 casos, y el banco los estratifica así:
 # 20 simples · 25 con join o agregación · 15 con ventana o subconsulta correlacionada,
 # **10 de ellos con «rechazo» como respuesta correcta**.
 estratificacion_objetivo:
@@ -276,8 +275,8 @@ ejecucion:
     arbitrio: false
     por_que: >-
       El glosario firmado lo define: al menos un pago válido en los 90 días naturales
-      anteriores a la FECHA DE REFERENCIA DEL DATASET, no a hoy. Esa distinción la
-      pidió Samuel al firmar y es la que hace el número reproducible.
+      anteriores a la FECHA DE REFERENCIA DEL DATASET, no a hoy. Esa distinción se
+      exigió al firmar el glosario y es la que hace el número reproducible.
     sql_referencia: >-
       SELECT count(DISTINCT p.customer_sk) AS clientes_activos FROM v_attempt_dedup p
       WHERE p.auth_status = 'approved' AND NOT p.is_test
@@ -289,9 +288,9 @@ ejecucion:
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.ingreso + granos.lote_de_liquidacion"
     arbitrio: false
-    decidido_por: "Samuel, 2026-09-11 (Q-013): importe procesado, identidad vigente"
+    decidido_por: "Samuel, 2026-09-11: importe procesado, identidad vigente"
     por_que: >-
-      **ERA ARBITRIO y lo ha resuelto Samuel.** «Volumen» es `volumen_procesado`, la
+      **ERA ARBITRIO y ya está resuelto.** «Volumen» es `volumen_procesado`, la
       métrica canónica que el glosario firmado pone dentro de `ingreso` —el dinero que
       pasó por la pasarela, `sum(gross_eur_minor)` sobre `fact_settlement_batch`— y no
       el número de pagos. «Comercios» es la identidad VIGENTE: la liquidación va por
@@ -305,7 +304,7 @@ ejecucion:
       volumen» y obliga a resolver la palabra con el glosario, que es lo que G-2 firmó.
       La pregunta decía «qué comercios mueven más volumen» sin fijar cuántos; se
       reescribió ANTES de medirla —como arbitrio nunca se había puntuado— con el
-      criterio de P-010: la pregunta fija la FORMA de la respuesta, no el SQL.
+      criterio de la reescritura de las 26: la pregunta fija la FORMA de la respuesta, no el SQL.
     sql_referencia: >-
       SELECT m.trade_name, sum(s.gross_eur_minor) / 100.0 AS volumen_procesado
       FROM fact_settlement_batch AS s
@@ -490,7 +489,7 @@ ejecucion:
     por_que: >-
       El grano firmado dice que el lote de liquidación es «el ÚNICO grano donde cuánto
       nos han pagado tiene una sola respuesta». Usa una función de ventana, que es el
-      estrato que `PLAN.md` exige en 15 de los 60.
+      estrato que la estratificación exige en 15 de los 60.
     sql_referencia: >-
       SELECT trade_name, volumen FROM (SELECT m.trade_name,
       sum(s.gross_eur_minor) / 100.0 AS volumen,
@@ -543,7 +542,7 @@ ejecucion:
       WHERE NOT EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk)
 
   # --------------------------------------------------------------------------
-  # LOS QUE NECESITAN TU CRITERIO. No los decide el agente.
+  # LOS QUE NECESITAN CRITERIO HUMANO. No los decide el agente.
   # --------------------------------------------------------------------------
   - id: Q-E-21
     pregunta: cuál es nuestro comercio más importante
@@ -551,16 +550,16 @@ ejecucion:
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.ingreso + granos.lote_de_liquidacion"
     arbitrio: false
-    decidido_por: "Samuel, 2026-09-11 (Q-013): el que más ingreso bruto nos deja"
+    decidido_por: "Samuel, 2026-09-11: el que más ingreso bruto nos deja"
     por_que: >-
-      **ERA ARBITRIO y lo ha resuelto Samuel: «importante para nosotros» es lo que nos
+      **ERA ARBITRIO y ya está resuelto: «importante para nosotros» es lo que nos
       deja, no lo que pasa por el tubo.** Se transcribe `ingreso_bruto` del glosario
       firmado —la comisión cobrada al comercio, `sum(fee_eur_minor)` sobre
       `fact_settlement_batch`— y no `volumen_procesado` ni `margen_neto`. Medido: gana
       Central Puerto con 5,03 M € y le saca un 34,9 % al segundo, así que la
       referencia no depende de un empate.
-      **Aviso que no se esconde:** que «importante» signifique `ingreso_bruto` lo ha
-      decidido Samuel, pero el glosario firmado todavía NO lo dice. Un modelo que solo
+      **Aviso que no se esconde:** que «importante» signifique `ingreso_bruto` es una
+      decisión tomada, pero el glosario firmado todavía NO lo dice. Un modelo que solo
       lee el glosario tiene que adivinar la lectura entre cuatro, y la pregunta queda
       a propósito como la haría un directivo. Si falla, el fallo es de contexto y no de
       SQL; se arregla llevando la decisión al glosario, no cambiando la pregunta.
@@ -611,7 +610,7 @@ ejecucion:
     glosario: null
     arbitrio: false
     por_que: >-
-      Columna descriptiva sin política. Simple a propósito: `PLAN.md` exige 20 de este estrato y un banco solo de preguntas difíciles mide otra cosa.
+      Columna descriptiva sin política. Simple a propósito: la estratificación exige 20 de este estrato y un banco solo de preguntas difíciles mide otra cosa.
     sql_referencia: >-
       SELECT device_class, count(*) AS n FROM dim_device GROUP BY device_class ORDER BY n DESC
 
@@ -787,7 +786,7 @@ ejecucion:
     glosario: "granos.lote_de_liquidacion"
     arbitrio: false
     por_que: >-
-      `rank() OVER (PARTITION BY ...)`. Es el estrato que `PLAN.md` exige en 15 de los 60, y es donde un modelo suele intentar un `LIMIT` por grupo que no existe en SQL.
+      `rank() OVER (PARTITION BY ...)`. Es el estrato que la estratificación exige en 15 de los 60, y es donde un modelo suele intentar un `LIMIT` por grupo que no existe en SQL.
     sql_referencia: >-
       SELECT pais, trade_name, volumen FROM (SELECT m.country_code AS pais, m.trade_name, sum(s.gross_eur_minor)/100.0 AS volumen, rank() OVER (PARTITION BY m.country_code ORDER BY sum(s.gross_eur_minor) DESC) AS puesto FROM fact_settlement_batch s JOIN dim_merchant m ON m.merchant_id = s.merchant_id AND m.is_current GROUP BY m.country_code, m.trade_name) WHERE puesto <= 3 ORDER BY pais, puesto
 
@@ -886,10 +885,10 @@ ejecucion:
     estrato: join_o_agregacion
     glosario: "metricas.tasa_de_reintento"
     arbitrio: false
-    sustituye_a: "Q-E-22, retirada por Samuel el 2026-09-11 (Q-013)"
+    sustituye_a: "Q-E-22, retirada por Samuel el 2026-09-11"
     por_que: >-
       **Sustituye a Q-E-22 en su MISMO estrato y con su mismo rol**, para que la
-      estratificación de PLAN.md —20 simples, 25 con join o agregación, 15 con ventana—
+      estratificación del banco —20 simples, 25 con join o agregación, 15 con ventana—
       siga exacta. Transcribe `metricas.tasa_de_reintento`, que era la entrada firmada
       menos cubierta del banco (un solo caso, Q-E-06, y sin desglose). La fórmula firmada
       es `count(*)::DOUBLE / count(DISTINCT payment_intent_id) FROM v_attempt_dedup`;

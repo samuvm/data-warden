@@ -7,7 +7,7 @@ la meta y no en el script es lo que impide que el número mejore cambiando cómo
 mide en vez de cambiando el código.
 
 **El número solo significa algo con el hardware declarado** (`hardware_referencia`
-de `GOALS.yaml`, y D-03: un solo proyecto encendido cada vez). Un p95 medido con
+de `GOALS.yaml`, con un solo proyecto encendido cada vez). Un p95 medido con
 otro proyecto compitiendo por la memoria no vale, y por eso el informe guarda la
 máquina y el aviso al lado del número.
 
@@ -127,7 +127,7 @@ def main() -> int:
             "python": platform.python_version(),
             "aviso": (
                 "El número solo significa algo con el hardware de referencia declarado "
-                "en GOALS.yaml y con UN SOLO proyecto encendido (D-03). Un p95 medido "
+                "en GOALS.yaml y con UN SOLO proyecto encendido. Un p95 medido "
                 "con otro proyecto compitiendo por la memoria no vale."
             ),
         },

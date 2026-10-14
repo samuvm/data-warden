@@ -1,7 +1,7 @@
 """El grafo y el bucle dan LO MISMO. Nivel 3, contrato.
 
 **Por qué esto es un contrato y no un test unitario.** `agent/` se MIDE, no se
-testea (`CLAUDE.md`): un test sobre el grafo probaría LangGraph, que ya está
+testea (`docs/RULES.md`): un test sobre el grafo probaría LangGraph, que ya está
 probado por quien lo escribió. Lo que sí hay que sostener es la afirmación del
 propio adaptador —*«si un día se borra este fichero, `G-RECOVERY` sigue midiendo el
 mismo número»*—, y eso no se comprueba mirando el código: se comprueba corriendo

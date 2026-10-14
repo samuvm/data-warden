@@ -2,9 +2,10 @@
 """`G-EVAL-REPORT` · todo informe de evaluación cumple el contrato transversal.
 
 **Por qué esto es una meta y no una convención.** `docs/CONTRACTS/eval-report.schema.json`
-es una copia literal de `_comun/` y un contrato con el proyecto 02: sus paneles leen
-estos ficheros. Un informe que se desvía no da un error aquí, da un panel vacío allí, y
-la desviación se descubre semanas después mirando una gráfica plana.
+es una copia literal del contrato compartido y un acuerdo con los paneles que leen
+estos ficheros desde otro proyecto. Un informe que se desvía no da un error aquí, da
+un panel vacío allí, y la desviación se descubre semanas después mirando una gráfica
+plana.
 
 Se comprueban cuatro cosas, y las cuatro nacen de una forma distinta de romperlo:
 
@@ -14,7 +15,7 @@ Se comprueban cuatro cosas, y las cuatro nacen de una forma distinta de romperlo
 
 2. **`metrics[].id` sale de `docs/GOALS.yaml`.** Es la frase literal de la meta: «cero
    métricas con id fuera de este fichero». Un informe que publica `G-EXEC-ACCURACY` en
-   vez de `G-EXEC-ACC` es peor que uno que no publica nada: el panel del 02 lo enseña
+   vez de `G-EXEC-ACC` es peor que uno que no publica nada: el panel consumidor lo enseña
    como una métrica nueva que nadie definió, y la que falta parece que dejó de medirse.
 
 3. **`environment.deterministic` distingue `make eval` de `make eval-refresh`.** Un
@@ -104,7 +105,7 @@ def main() -> int:
             if ident not in conocidas:
                 problemas.append(
                     f"{nombre}: publica la métrica `{ident}`, que NO está en "
-                    "docs/GOALS.yaml. El panel del 02 la enseñaría como una métrica "
+                    "docs/GOALS.yaml. El panel consumidor la enseñaría como una métrica "
                     "que nadie definió"
                 )
 
@@ -120,7 +121,7 @@ def main() -> int:
         if meta not in publicadas:
             problemas.append(
                 f"{meta} se mide llamando a un modelo y NO publica informe de "
-                "evaluación. Una evaluación sin informe no es consumible por el 02"
+                "evaluación. Una evaluación sin informe no es consumible desde fuera"
             )
 
     porcentaje = round(100.0 * validos / len(hallados), 2) if hallados else 0.0

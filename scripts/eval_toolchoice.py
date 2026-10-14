@@ -17,13 +17,13 @@ cada herramienta sacan **18 de 20**, o sea, exactamente el umbral. La meta se cu
 sin haber hecho ningún diseño. Las descripciones de verdad sacan 20/20 y las pobres
 fallan justo donde importa, así que la prueba SÍ discrimina — pero el número solo
 significa algo junto a su línea base, y por eso el informe publica los dos y el
-margen. Propuesta de subir el umbral: P-009 en `docs/PARA-SAMUEL.md`.
+margen.
 
-**La procedencia se publica y no se adorna.** Samuel aceptó el borrador al responder
-Q-008 y su trabajo es corregir la columna «correcta»; mientras no lo haya hecho, el
+**La procedencia se publica y no se adorna.** La columna «correcta» la propuso un
+agente y queda pendiente de revisión humana externa; mientras no la tenga, el
 informe dice `agente_propuesto`. Un número medido contra una respuesta correcta que
-nadie ha revisado es el agente puntuándose a sí mismo, y decirlo es la diferencia
-entre una evaluación y una demostración.
+nadie ha revisado es una autoevaluación, y decirlo es la diferencia entre una
+evaluación y una demostración.
 
 Determinista y gratis desde casetes, igual que `G-RECOVERY`: `--refresh` es lo único
 que llama al modelo, y el juez NUNCA es el modelo que genera.
@@ -201,7 +201,8 @@ def main() -> int:
     total = len(suite["escenarios"])
 
     # El informe transversal que exige `G-EVAL-REPORT`. `tool-choice.json` es la medida
-    # del gate de ESTE repo; esto es lo que puede leer el 02, que no conoce su formato.
+    # del gate de ESTE repo; esto es lo que puede leer un consumidor externo, que no
+    # conoce su formato.
     eval_report(
         suite="tool-choice",
         metric_id="G-TOOL-CHOICE",
@@ -261,8 +262,8 @@ def main() -> int:
     print(f"  procedencia: {suite['provenance']}")
     if suite["provenance"] != "agente_propuesto_revisado_humano":
         print(
-            "  AVISO · la columna «correcta» NO la ha revisado Samuel todavía (Q-008, "
-            "45 min). Hasta entonces esto es el agente puntuándose a sí mismo."
+            "  AVISO · la columna «correcta» no tiene revisión humana externa todavía. "
+            "Hasta entonces el número es autoevaluado."
         )
     for row in results:
         if not row["hit"]:

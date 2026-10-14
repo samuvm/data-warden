@@ -1,6 +1,6 @@
 """El catálogo, contra un esquema fixture EN MEMORIA. Nunca contra DuckDB (I-13).
 
-`docs/PLAN.md` lo exige literalmente en el criterio de salida de la fase 0: «unit de
+El criterio de salida de la fase 0 lo exige literalmente: «unit de
 `catalog/` contra esquema fixture en memoria (no contra DuckDB)». La razón es que un
 catálogo que solo se pudiera probar con 7,4 GB delante no se probaría nunca, y la
 lógica que importa —familias de tipo, orden determinista, exclusión, linaje— no
@@ -111,7 +111,7 @@ def test_una_columna_se_busca_sin_distinguir_mayusculas() -> None:
 
 
 def test_una_columna_excluida_sigue_en_el_esquema_pero_no_se_publica() -> None:
-    """C-3: el esquema describe lo que EXISTE; publicar es otra decisión.
+    """El esquema describe lo que EXISTE; publicar es otra decisión.
 
     Tenerla permite que `qualify()` sepa a qué tabla pertenece, en vez de verla
     como una columna desconocida y rechazar por el motivo equivocado.
@@ -212,7 +212,7 @@ def test_una_tabla_se_serializa_con_sus_columnas() -> None:
 # tenía 108 mutantes vivos de 212 (49,06 %) con la cobertura de línea al 99 %. Los
 # tests de arriba fijan el COMPORTAMIENTO feliz; lo que faltaba era el borde —la
 # normalización de las claves, el desempate del orden y, sobre todo, la
-# propagación por linaje que cerró la puerta trasera de C-3—.
+# propagación por linaje que cerró la puerta trasera de la exclusión—.
 # =============================================================================
 
 
@@ -310,9 +310,9 @@ def test_una_columna_sin_vista_deriva_de_si_misma() -> None:
 
 
 def test_una_vista_no_abre_una_puerta_trasera_a_una_columna_excluida() -> None:
-    """**REGRESIÓN · la encontró el subagente `qa-adversario` en la fase 2.**
+    """**REGRESIÓN · la encontró en la fase 2 el agente aislado que escribió la reserva.**
 
-    `dim_merchant.traffic_weight` salía con `published: false`, como C-3 manda, y
+    `dim_merchant.traffic_weight` salía con `published: false`, como manda la política, y
     `v_merchant_current.traffic_weight` —la MISMA columna a través de la vista—
     salía con `published: true`. La exclusión del anillo 1 tenía una puerta
     trasera con nombre de vista, y bastaba `CREATE VIEW` para cruzarla.

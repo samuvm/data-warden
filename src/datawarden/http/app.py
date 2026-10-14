@@ -2,7 +2,7 @@
 
 **Existe para demostrar que el dominio no depende del transporte.**
 
-`docs/PLAN.md` pone `http/` antes que `mcp/` en la fase 7 y el orden es el argumento:
+La fase 7 pone `http/` antes que `mcp/` y el orden es el argumento:
 si las mismas cuatro operaciones se sirven por dos transportes sin tocar una línea de
 `guard/`, `cost/`, `mask/` ni `audit/`, entonces la frase «el dominio no depende del
 transporte» deja de ser una promesa del README y pasa a ser algo que se puede comprobar

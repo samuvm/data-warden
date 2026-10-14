@@ -1,11 +1,11 @@
 # =============================================================================
 # Política de acceso a columnas · rol × columna × nivel
 #
-# FIRMADO por Samuel el 2026-09-01 al responder Q-003, CON SIETE CAMBIOS (C-1..C-7)
-# que el agente aplicó el 2026-09-02 y que están anotados uno a uno en la fila que
-# tocan, con la etiqueta `cambio_firmado:`. Nada más se ha tocado.
+# FIRMADO el 2026-09-01, CON SIETE CAMBIOS (C-1..C-7) sobre el borrador, aplicados
+# el 2026-09-02 y anotados uno a uno en la fila que tocan, con la etiqueta
+# `cambio_firmado:`. Nada más se ha tocado.
 #
-# Lo generó el agente el 2026-08-31 desde el catálogo REAL
+# El borrador se generó el 2026-08-31 desde el catálogo REAL
 # del dataset CIERZO (`datagen/out/full`), no de memoria: las 28 columnas de
 # `dim_customer`, las 13 de `dim_card` y las 36 de `fact_payment_attempt` están
 # inventariadas una a una.
@@ -24,17 +24,17 @@
 #   C-7  los presupuestos por rol salen de aquí a `docs/spec/budgets.yaml`: la matriz
 #        la firma negocio y no se toca; los presupuestos se recalibran en la fase 3.
 #
-# Q-003 de `docs/PARA-SAMUEL.md`. Bloquea la regla R008 de la fase 2, la fase 4
-# entera y la meta `G-PII-LEAK`.
+# Esta matriz bloquea la regla R008 de la fase 2, la fase 4 entera y la meta
+# `G-PII-LEAK`.
 # =============================================================================
 
 version: 1
-estado: FIRMADO           # BORRADOR | FIRMADO  — solo Samuel escribe FIRMADO
+estado: FIRMADO           # BORRADOR | FIRMADO  — FIRMADO solo lo escribe quien firma
 generado_por: agente
 generado_el: 2026-08-31
 catalogo_origen: datagen/out/full/MANIFEST.json
 firmado_por: Samuel
-firmado_el: 2026-09-01      # respuesta a Q-003 en docs/PARA-SAMUEL.md
+firmado_el: 2026-09-01
 cambios_aplicados_por: agente
 cambios_aplicados_el: 2026-09-02
 cambios_de_la_firma: [C-1, C-2, C-3, C-4, C-5, C-6, C-7]
@@ -705,7 +705,7 @@ columnas:
       «arregla» concediéndosela a admin. C-3 dice literalmente «denegado para los
       CUATRO roles», así que la excepción está firmada; lo que faltaba era el dato.
       LA ENCONTRÓ EL PROPIO TEST DE C-2, no una revisión, que es exactamente para lo
-      que Samuel pidió que la excepción fuera dato y no prosa.
+      que se exigió que la excepción fuera dato y no prosa.
     excepcion_justificada: >-
       No es un dato de negocio: es el peso con el que el GENERADOR sorteó el
       tráfico de cada comercio. Publicarlo sería publicar la respuesta del examen

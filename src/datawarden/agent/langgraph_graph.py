@@ -6,8 +6,8 @@ quiera trazas, checkpoints o un `interrupt` humano los tenga. Las funciones que
 hacen el trabajo son EXACTAMENTE las mismas que usa la evaluación; si un día se
 borra este fichero, `G-RECOVERY` sigue midiendo el mismo número.
 
-**Por qué el bucle no está dentro del framework.** `docs/PLAN.md` pide un bucle
-propio y el motivo es medible: este bucle es donde se demuestra la tesis del
+**Por qué el bucle no está dentro del framework.** El bucle es propio por diseño
+y el motivo es medible: este bucle es donde se demuestra la tesis del
 proyecto, y un framework que hiciera los reintentos por dentro dejaría el número de
 `G-RECOVERY` a merced de su política de reintentos, que es justo lo que se está
 midiendo. El grafo es el envoltorio; el bucle es la medida.
@@ -21,7 +21,7 @@ romper la regla de que ningún módulo de dominio importa el SDK de un proveedor
 motor solo se llega por `AuditedExecutor` (I-06), y el contrato de imports lo
 prohíbe desde aquí: no es disciplina, es `lint-imports`.
 
-**Este módulo se MIDE, no se testea** (`CLAUDE.md`): es un adaptador sobre
+**Este módulo se MIDE, no se testea** (`docs/RULES.md`): es un adaptador sobre
 funciones puras que ya están probadas, y un test unitario sobre el grafo probaría
 LangGraph. Lo que sí se comprueba es que el grafo y el bucle dan lo mismo, y eso es
 un test de CONTRATO.

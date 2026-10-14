@@ -155,7 +155,7 @@ _AGREGADOS: Final = frozenset(
     }
 )
 
-#: Ventanas. `docs/PLAN.md` exige 15 preguntas del banco con ventana o subconsulta
+#: Ventanas. El banco exige 15 preguntas con ventana o subconsulta
 #: correlacionada, así que esto no es opcional.
 _VENTANAS: Final = frozenset(
     {
@@ -304,7 +304,7 @@ ALLOWED_ANONYMOUS: Final = frozenset(
 )
 
 #: Esquemas de sistema. Consultarlos es leer el catálogo REAL por debajo del
-#: catálogo publicado, y por tanto ver las columnas que C-3 excluyó a propósito.
+#: catálogo publicado, y por tanto ver las columnas que la política excluyó a propósito.
 SYSTEM_SCHEMAS: Final = frozenset(
     {
         "information_schema",

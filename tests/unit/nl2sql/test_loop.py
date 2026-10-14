@@ -1,7 +1,7 @@
 """El ciclo de corrección: generar → validar → mensaje accionable → reintentar.
 
 FASE ROJA. **El BUCLE es TDD obligatorio; el GENERADOR no se testea, se mide.**
-`docs/PLAN.md` lo separa así y `CLAUDE.md` lo repite: un test unitario sobre la salida
+`docs/RULES.md` lo separa así: un test unitario sobre la salida
 de un modelo mide el modelo, no el código. Lo que sí es código —cuántas veces se
 reintenta, qué se le pasa al siguiente intento, cuándo se para— es determinista y se
 prueba con un provider grabado, sin modelo ninguno.

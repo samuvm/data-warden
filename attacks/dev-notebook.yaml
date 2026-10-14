@@ -9,7 +9,7 @@
 # lo partió en dos.
 #
 # El número publicable es el del HOLDOUT (`G-WRITE-BLOCK`): quince casos escritos
-# por un subagente que no ha visto `src/datawarden/guard/` ni este fichero, más la
+# por un agente aislado que no ha visto `src/datawarden/guard/` ni este fichero, más la
 # mutación de AST. Aquí se mide que no hay regresiones; allí se mide si el guard
 # sirve.
 #
@@ -265,9 +265,9 @@ ataques:
 # convierte «hemos encontrado una evasión nueva y le hemos puesto su caso» en un
 # fallo de gate. Es exactamente al revés de lo que se quiere premiar.
 #
-# Se respeta el número sellado —`GOALS.yaml` manda y solo lo edita Samuel— y la
-# tensión va al buzón como **P-004**, proponiendo `>= 25`. Mientras tanto, las
-# evasiones nuevas se convierten en casos del CORPUS por regla
+# Se respetó el número sellado —`GOALS.yaml` manda y está sellado por
+# `thresholds.lock`— y se propuso cambiarlo a `>= 25`. Mientras tanto, las
+# evasiones nuevas se convirtieron en casos del CORPUS por regla
 # (`tests/unit/guard/cases/RNNN.yaml`), que es donde de todos modos tienen que estar
 # para que se asierta el `rule_id` exacto.
 # -----------------------------------------------------------------------------
@@ -275,8 +275,8 @@ ataques:
   # ===========================================================================
   # A-26 · La evasion que encontro la MUTACION DE AST, no una revision.
   #
-  # Vuelve al cuaderno el 2026-09-02, cuando Samuel aprobo P-004 y el umbral de
-  # G-WRITE-BLOCK-DEV paso de `== 25` a `>= 25`. Hasta entonces anadirla ROMPIA
+  # Vuelve al cuaderno el 2026-09-02, cuando el umbral de G-WRITE-BLOCK-DEV
+  # paso de `== 25` a `>= 25`. Hasta entonces anadirla ROMPIA
   # el gate: el cuaderno tenia que crecer segun RULES.md —«una evasion se
   # convierte en rule_id nuevo y caso permanente»— y crecer era un fallo. Las dos
   # frases se contradecian dentro del mismo documento.

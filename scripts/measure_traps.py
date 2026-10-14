@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Mide las nueve trampas declaradas del glosario. `make dataset-traps`.
 
-Nace de la corrección **G-5** de la firma de Q-004, y de una frase de Samuel que
-vale por todo el script:
+Nace de una corrección hecha al revisar el glosario antes de firmarlo, y de una
+frase que vale por todo el script:
 
 > «cada porcentaje se puede verificar con una consulta contra `datagen/out/full`, y
 > eso es exactamente lo que hay que hacer antes de firmar. **Una trampa cuyo número
@@ -17,8 +17,8 @@ sobre el MISMO perfil el número es exactamente reproducible; pero los tres perf
 tienen tamaños distintos y una trampa que dependa de la cola de una distribución se
 mueve algunas décimas entre ellos.
 
-**Por qué la tolerancia es UNA SOLA y no una por trampa.** Condición que Samuel añadió
-al aprobar P-003 el 2026-09-02, y es la parte que de verdad importaba:
+**Por qué la tolerancia es UNA SOLA y no una por trampa.** Condición que se añadió
+al corregir las dos cifras el 2026-09-02, y es la parte que de verdad importaba:
 
 > «Las tolerancias del script están puestas a mano y no siguen ninguna regla: ±6 sobre
 > un 24 %, ±12 sobre un 60 %, ±5 sobre un 53 %, ±1 sobre un 4,3 %. **Una tolerancia por
@@ -27,11 +27,11 @@ al aprobar P-003 el 2026-09-02, y es la parte que de verdad importaba:
 
 Así que hay **una regla, declarada arriba como `TOLERANCE_REL`, aplicada a las nueve por
 igual: ±20 % RELATIVO sobre el valor declarado.** Nueve mandos sueltos se convierten en
-un número que hay que justificar una vez. Con los dos números corregidos por P-003, las
+un número que hay que justificar una vez. Con los dos números corregidos, las
 nueve trampas pasan y el margen más ajustado sobra por 0,07 puntos, así que **hoy no hay
 ni una excepción**. Si alguna vez hiciera falta una, va declarada en el propio
 `docs/spec/glossary.yaml` con su motivo escrito — y como ese fichero está FIRMADO, eso
-es una propuesta nueva en `docs/PARA-SAMUEL.md`, no una línea que se cambia aquí.
+es un cambio de contrato con su propia revisión, no una línea que se cambia aquí.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from gatelib import ROOT
 
 #: La regla única. ±20 % RELATIVO sobre el valor declarado, para las nueve por igual.
-#: No hay una tolerancia por trampa: ver el porqué en el docstring del módulo (P-003).
+#: No hay una tolerancia por trampa: ver el porqué en el docstring del módulo.
 TOLERANCE_REL: float = 0.20
 
 
@@ -95,7 +95,7 @@ TRAPS: tuple[Trap, ...] = (
             ) / (SELECT count(*) FROM fact_settlement_batch b
                    JOIN v_merchant_current m ON m.merchant_id = b.merchant_id)
         """,
-        # P-003, aprobada 2026-09-02. Era 53,0 y ninguna lectura del dataset llega ahí:
+        # Corregida el 2026-09-02. Era 53,0 y ninguna lectura del dataset llega ahí:
         # full +31,94 % · demo +30,32 % · dev +37,87 %, y versiones sobre entidades +31,31 %.
         # La trampa sigue siendo real y grave —un ranking de comercios sale un tercio
         # inflado si uno se equivoca de clave—; lo que estaba mal era la cifra.
@@ -144,7 +144,7 @@ TRAPS: tuple[Trap, ...] = (
                                   WHERE p.customer_sk = c.customer_sk)
             ) / (SELECT count(*) FROM dim_customer WHERE customer_sk >= 0)
         """,
-        # P-003, aprobada 2026-09-02. Era 4,3 y ese es el OBJETIVO del generador, no la
+        # Corregida el 2026-09-02. Era 4,3 y ese es el OBJETIVO del generador, no la
         # medida: aparta un 4,3 % que nunca paga, y el sorteo Zipf deja además a otro
         # ~1,9 % sin ningún pago por pura cola. Lo que un INNER JOIN pierde de verdad son
         # 570.895 de 9.200.000 = 6,205 %. `datagen/` ya separa target de measured.
@@ -258,8 +258,8 @@ def main() -> int:
                     "exceptions": [],
                     "why": (
                         "Una tolerancia por trampa elegida a ojo es el mando con el "
-                        "que se pone verde el script sin tocar el dato (P-003, "
-                        "condición de Samuel, 2026-09-02)."
+                        "que se pone verde el script sin tocar el dato (decisión "
+                        "del 2026-09-02)."
                     ),
                 },
                 "traps": rows,
@@ -286,8 +286,8 @@ def main() -> int:
             print(f"  · {p}")
         print(
             "\n  Una trampa cuyo número no se ha vuelto a medir desde que se escribió "
-            "es folclore.\n  Corregir el glosario es cambiar un contrato FIRMADO: se "
-            "propone en docs/PARA-SAMUEL.md y se espera."
+            "es folclore.\n  Corregir el glosario es cambiar un contrato FIRMADO: "
+            "requiere revisión explícita, no se corrige desde aquí."
         )
         return 1
     print(f"\nmeasure_traps: ok · las {len(TRAPS)} trampas se reproducen sobre {args.profile}")

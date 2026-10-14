@@ -2,16 +2,16 @@
 lo que decía cuando se firmó.
 
 **Este módulo puede negarse a arrancar, y es su razón de ser.**
-`docs/spec/policy.yaml` —firmado por Samuel el 2026-09-01— declara
+`docs/spec/policy.yaml` —firmado el 2026-09-01— declara
 `determinista: true` y `pimienta_desde: config`, con el comentario *«nunca sal por
-sesión ni por día»*. `docs/PLAN.md` dice lo contrario en la fila de la fase 4
-—«hash truncado con sal por sesión»— y esa contradicción está abierta en P-006.
+sesión ni por día»*. El plan original decía lo contrario en la fila de la fase 4
+—«hash truncado con sal por sesión»—.
 
 Manda el contrato firmado, y no por antigüedad: porque trae escrito su motivo y el
 motivo es verificable. Con sal por sesión, el resultset de toda consulta con una
 columna `mask` deja de ser comparable entre ejecuciones, y **las preguntas del banco
 de 60 que toquen una columna enmascarada no podrían tener respuesta de referencia**.
-Se descubriría en la fase 8, con el banco ya escrito y con 10-20 horas de Samuel
+Se descubriría en la fase 8, con el banco ya escrito y con 10-20 horas
 gastadas en escribirlo.
 
 Comprobar el contrato aquí, al cargar, es lo que impide que esa decisión vuelva por
@@ -87,8 +87,8 @@ def load_mask_config(policy: AccessPolicy, *, pepper: str | None = None) -> Mask
             "true` y `pimienta_desde: config`, con su motivo escrito: con sal por "
             "sesión, las preguntas del banco de 60 que tocan una columna enmascarada "
             "no pueden tener respuesta de referencia, y eso se descubre en la fase 8 "
-            "con el banco ya escrito. Cambiar esta decisión se firma —ver P-006 en "
-            "docs/PARA-SAMUEL.md—, no se hereda de un valor por defecto."
+            "con el banco ya escrito. Cambiar esta decisión exige una política "
+            "firmada de nuevo, no se hereda de un valor por defecto."
         )
         raise ValueError(message)
     if policy.pepper_from != "config":

@@ -12,8 +12,8 @@ una señal verde falsa, y eso es peor que no tener gate.
 
 **Una propuesta de bajar umbral sobre un axioma es por sí misma un fallo de gate.**
 `propuesta_admisible: false` marca las ocho metas que no se negocian; si aparece una
-propuesta `bajar-umbral` sobre cualquiera de ellas en `docs/PARA-SAMUEL.md`, esto
-sale rojo y lo registra, sin mirar siquiera el número.
+propuesta `bajar-umbral` sobre cualquiera de ellas en el registro de propuestas de
+cambio (`MAILBOX`), esto sale rojo y lo registra, sin mirar siquiera el número.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ MAILBOX = ROOT / "docs" / "PARA-SAMUEL.md"
 def axiom_violations(goals: dict[str, object]) -> list[str]:
     """Propuestas `bajar-umbral` sobre metas con `propuesta_admisible: false`.
 
-    Tres precauciones, y las tres las obligó un falso positivo real: el propio buzón
+    Tres precauciones, y las tres las obligó un falso positivo real: el propio registro
     lleva al final una PLANTILLA con la línea `Tipo: bajar-umbral | cambiar-meta |
     ...` y el párrafo que enumera los ocho axiomas. Sin filtrarlo, el gate declaraba
     ocho intentos de bajar un axioma que nadie había hecho — y un gate que grita sin
@@ -46,7 +46,7 @@ def axiom_violations(goals: dict[str, object]) -> list[str]:
     2. Solo cuenta un `Tipo:` cuyo valor sea EXACTAMENTE `bajar-umbral`, no la lista
        de opciones separadas por `|`.
     3. Y solo si el bloque nombra el axioma en su campo `Afecta a:`, que es donde la
-       constitución dice que va la meta afectada.
+       plantilla dice que va la meta afectada.
     """
     axioms = {
         m["id"]

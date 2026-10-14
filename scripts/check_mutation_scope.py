@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """Vigila lo que se saca de la medida de mutación. **Es un check anti-gaming.**
 
-P-005 saca de la mutación el TEXTO de los mensajes de rechazo. Es legítimo y está
-aprobado, pero abre una puerta que hay que cerrar el mismo día que se abre: **un
-fichero excluido no se mide, así que meter lógica ahí la saca del alcance sin que
-ninguna meta se entere.** Sería exactamente el mecanismo 2 de anti-gaming —cumplir la
-métrica empeorando lo medido— y encima sin dejar rastro.
+`[tool.mutmut] do_not_mutate` saca de la mutación el TEXTO de los mensajes de
+rechazo. Es legítimo y es una decisión explícita, pero abre una puerta que hay que
+cerrar el mismo día que se abre: **un fichero excluido no se mide, así que meter
+lógica ahí la saca del alcance sin que ninguna meta se entere.** Sería exactamente
+el mecanismo 2 de anti-gaming —cumplir la métrica empeorando lo medido— y encima sin
+dejar rastro.
 
 Se comprueban tres cosas, y cada una cierra una forma distinta de abusarlo:
 
@@ -16,7 +17,7 @@ Se comprueban tres cosas, y cada una cierra una forma distinta de abusarlo:
    `sqlglot`: si lo hiciera, estaría decidiendo y no redactando.
 3. **Lo excluido no decide el veredicto.** Ni `retryable`, ni niveles de política, ni
    comparaciones sobre el contexto del guard. La composición se queda dentro de la
-   medida, que es literalmente el recorte con el que Samuel aprobó P-005.
+   medida, que es literalmente el recorte con el que se tomó la decisión.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ import tomllib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from gatelib import ROOT, record
 
-#: Lo único que P-005 autoriza a sacar de la medida. Cualquier otra cosa en
+#: Lo único que está autorizado a salir de la medida. Cualquier otra cosa en
 #: `do_not_mutate` es una propuesta nueva, no una línea de configuración.
 ALLOWED_EXCLUSIONS = frozenset({"src/datawarden/guard/rules/messages.py"})
 
@@ -51,9 +52,9 @@ def main() -> int:
     unexpected = sorted(set(excluded) - ALLOWED_EXCLUSIONS)
     if unexpected:
         problems.append(
-            f"hay ficheros excluidos de la mutación que P-005 no autoriza: {unexpected}. "
+            f"hay ficheros excluidos de la mutación que no están autorizados: {unexpected}. "
             "Excluir un fichero lo saca del denominador sin medirlo: si de verdad hace "
-            "falta, es una propuesta nueva en docs/PARA-SAMUEL.md, no una línea de "
+            "falta, es una decisión explícita y revisada, no una línea de "
             "configuración."
         )
 
@@ -116,7 +117,7 @@ def _inspect(relative: str, path: pathlib.Path) -> list[str]:
         elif isinstance(node, ast.Name) and node.id in FORBIDDEN_NAMES:
             problems.append(
                 f"{relative} nombra {node.id!r}: eso es parte del VEREDICTO y tiene "
-                "que quedarse dentro de la medida (P-005, recortada)"
+                "que quedarse dentro de la medida (la exclusión cubre solo el texto)"
             )
         elif isinstance(node, ast.arg) and node.arg in FORBIDDEN_NAMES:
             problems.append(

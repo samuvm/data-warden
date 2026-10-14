@@ -6,28 +6,27 @@
 # glosario, sin ejemplos, sin el esquema— y se comprueba que elige bien. Si hace
 # falta más contexto para acertar, el defecto está en la descripción.
 #
-# LA REGLA DE REACCIÓN, escrita en `docs/GOALS.yaml` y repetida por Samuel al
-# responder Q-008: **si sale por debajo de 18, se reescribe la DESCRIPCIÓN de la
-# herramienta, no el umbral ni el escenario.** El defecto es de diseño del MCP, que
+# LA REGLA DE REACCIÓN, escrita en `docs/GOALS.yaml` :: G-TOOL-CHOICE: **si sale
+# por debajo de 18, se reescribe la DESCRIPCIÓN de la herramienta, no el umbral ni
+# el escenario.** El defecto es de diseño del MCP, que
 # es justo lo que esta prueba existe para medir.
 #
-# PROCEDENCIA, declarada y sin adornos. Samuel aceptó la alternativa del borrador
-# al responder Q-008: el agente escribe los 20 candidatos y **el trabajo de Samuel
-# es corregir la columna «correcta»** donde no esté de acuerdo, que es donde está
-# el criterio. Mientras no lo haya hecho, el campo `provenance` dice
+# PROCEDENCIA, declarada y sin adornos. El agente escribe los 20 candidatos y **la
+# revisión humana corrige la columna «correcta»** donde no esté de acuerdo, que es
+# donde está el criterio. Sin esa revisión, el campo `provenance` dice
 # `agente_propuesto` y NO `agente_propuesto_revisado_humano`, y el informe lo
 # publica así: un número medido contra una respuesta correcta que nadie ha
 # revisado no es una prueba de diseño, es el agente puntuándose a sí mismo.
 #
-# Los enunciados y sus «correctas» están copiados literalmente de la respuesta a
-# Q-008 en `docs/PARA-SAMUEL.md`. No se ha cambiado ninguno.
+# Los enunciados y sus «correctas» son literalmente los fijados el 2026-09-02. No
+# se ha cambiado ninguno.
 # =============================================================================
 
 version: 1
-provenance: agente_propuesto_revisado_humano        # -> agente_propuesto_revisado_humano cuando Samuel corrija
+provenance: agente_propuesto_revisado_humano        # revisión hecha: ver revisado_por y revisado_el
 revisado_por: Samuel Viciana Moreno
 revisado_el: 06/09/2026:20:54_55
-origen: "docs/PARA-SAMUEL.md · Q-008, respondida por Samuel el 2026-09-02"
+origen: "escenarios fijados por Samuel el 2026-09-02"
 
 herramientas: [run_query, describe_table, sample_table, explain_cost]
 
@@ -46,8 +45,8 @@ herramientas: [run_query, describe_table, sample_table, explain_cost]
 # los dos y el margen. Un 20/20 a secas se lee como un triunfo cuando la señal real
 # es «+2 sobre no hacer nada».
 #
-# La propuesta de subir el umbral está en `docs/PARA-SAMUEL.md` como P-009. Aquí no
-# se toca: `docs/GOALS.yaml` es de solo lectura para el agente.
+# Subir el umbral sería la consecuencia lógica, pero no se hace aquí: `docs/GOALS.yaml`
+# está sellado por `thresholds.lock` y cambiar un umbral rompe el gate.
 # -----------------------------------------------------------------------------
 linea_base:
   motivo: >-

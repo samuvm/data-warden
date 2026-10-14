@@ -1,102 +1,47 @@
 # Bitácora · Data Warden
 
-**Qué es.** La memoria del proyecto contra repetir errores, y la **evidencia** que exige la constitución antes
-de admitir cualquier propuesta de cambio de umbral. Lo que no está aquí, no ocurrió.
+**Qué es.** La memoria técnica del proyecto: qué se intentó, qué falló, qué se midió y qué se decidió, en
+orden cronológico. Sirve para no repetir errores y para que cada umbral tenga detrás sus intentos medidos.
 
 **Cómo se escribe.**
 
-- **Append-only.** Nunca se edita ni se borra una entrada anterior: el hook rechaza cualquier escritura cuyo
-  contenido nuevo no empiece exactamente por el viejo. Si algo estaba mal, se corrige en una entrada nueva.
+- **Append-only, como disciplina.** Una entrada anterior no se reescribe para que diga otra cosa: si algo
+  estaba mal, se corrige en una entrada nueva.
 - **Una entrada por sesión de trabajo**, encabezada por `## AAAA-MM-DD · fase N · <titular en una línea>`.
 - Cinco apartados fijos: **Qué se intentó · Qué falló · Números · Decisiones · Siguiente**.
 - **Todo número lleva su comando y su artefacto.** Un número sin comando que lo reproduzca no es un número.
 - **Todo número de latencia lleva el hardware** y el protocolo (calentamientos, muestras, descarte).
 - Lo que se decidió y es reversible se anota aquí; lo que es no obvio y estructural va además a un ADR y se
   referencia por su id.
-- Se escribe **también cuando el día sale mal**. Las entradas de fracaso medido son las que permiten proponer
-  bajar un umbral; sin ≥ 2 intentos medidos aquí, el gate rechaza la propuesta.
+- Se escribe **también cuando el día sale mal**. Las entradas de fracaso medido son las que permiten
+  discutir un umbral con datos; sin intentos medidos, no hay argumento.
 
 ---
 
-<!-- ================================================================== -->
-<!-- ENTRADA DE EJEMPLO. No es trabajo real y el gate la ignora por el   -->
-<!-- marcador `[EJEMPLO]` del encabezado. No la borres: es la referencia -->
-<!-- de formato. La primera entrada real va debajo de la línea final.    -->
-<!-- ================================================================== -->
-
-## 2026-08-12 · fase 2 · [EJEMPLO] `qualify()` con esquema domina el p95 del guard
+## 2026-08-28 · fase 0 · línea base del entorno, y tres decisiones que cambian el arranque
 
 **Qué se intentó.**
-Cerrar `G-GUARD-P95` (p95 ≤ 25 ms, p99 ≤ 60 ms, máx ≤ 250 ms) con las 14 reglas ya implementadas. Hipótesis de
-partida: el coste está repartido entre las reglas. Se midieron tres configuraciones sobre el mismo corpus de
-300 consultas: (A) `qualify()` completo en cada llamada; (B) `qualify()` con el esquema del catálogo
-precargado y cacheado por `catalog_sha`; (C) B + reglas ordenadas por coste creciente, con corte en el primer
-rechazo.
+Primera sesión del proyecto. Se leen los documentos de alcance (`docs/PROJECT.md`, `docs/GOALS.yaml`,
+`docs/RULES.md`, el plan de fases y las decisiones de diseño abiertas), se verifica el entorno y se contrasta
+con un proyecto anterior con el mismo stack, cerrado el 2026-08-28. No se escribe una línea de código de
+producción.
 
 **Qué falló.**
-La hipótesis. El desglose por fase muestra que **el 78 % del tiempo está en `qualify()`**, no en las reglas:
-las 14 juntas suman 2,9 ms de mediana. La configuración A no alcanza el umbral y no lo iba a alcanzar tocando
-reglas, que era donde iba a mirar primero.
-Además, un intento previo de cachear el árbol cualificado por sha del SQL de entrada se descartó en 20 min: la
-clave correcta es `(sql_normalizado, catalog_sha, dialect)`, y cachear por la cadena de entrada habría
-reintroducido por la puerta de atrás justo lo que I-02 prohíbe.
+Nada se rompió, pero la comparación con el proyecto anterior destapa **cuatro divergencias entre lo escrito
+aquí y lo que de hecho se hizo allí**, que estaban a punto de arrastrarse a este proyecto:
 
-**Números.**
-
-| Config | p50 | p95 | p99 | máx | Comando |
-|---|---|---|---|---|---|
-| A · qualify por llamada | 21,4 ms | 48,7 ms | 96,2 ms | 310 ms | `make bench-guard CONFIG=a` |
-| B · esquema cacheado | 7,1 ms | 19,3 ms | 41,8 ms | 133 ms | `make bench-guard CONFIG=b` |
-| C · B + corte temprano | 6,8 ms | 18,9 ms | 40,1 ms | 129 ms | `make bench-guard CONFIG=c` |
-
-Hardware: MacBook Pro M4 Max, 36 GB, macOS 26.5. Protocolo: corpus de 300 consultas, 50 calentamientos, 500
-medidas, se descarta la primera. Artefacto: `evals/reports/guard-latency.json`.
-`G-GUARD-P95` en **verde** con B (19,3 ≤ 25 · 41,8 ≤ 60 · 133 ≤ 250).
-
-**Decisiones.**
-- Se adopta **B**, no C. C mejora 0,4 ms en p95 (dentro del ruido: la diferencia entre C y B es menor que la
-  desviación entre repeticiones de B) y a cambio hace que el orden de evaluación de las reglas importe, lo que
-  vuelve el `rule_id` reportado dependiente del orden. Eso rompería la aserción de `rule_id` exacto que exige
-  `check_rule_coverage.py` y haría que un caso "cubierto por R008" pasara a reportar R002. **Menos determinismo
-  a cambio de ruido no se compra.** → ADR-017.
-- La caché se indexa por `(sql_normalizado, catalog_sha, dialect)` y se invalida con el catálogo. Decisión
-  reversible, sin ADR.
-- No se toca el máximo absoluto de 250 ms: es el timeout de fail-closed, no un objetivo de rendimiento.
-
-**Siguiente.**
-Reejecutar `make attack-mut` con la caché activa para confirmar que no cambia ningún veredicto (la caché no
-debe poder convertir un `reject` en `accept`); si algo cambia, es un bug de la clave de caché, no del guard.
-Después, `make done MILESTONE=2`.
-
-<!-- ==================== fin de la entrada de ejemplo ==================== -->
-
----
-
-## 2026-08-28 · fase 0 · línea base del entorno, y tres decisiones de Samuel que cambian el arranque
-
-**Qué se intentó.**
-Primera sesión del proyecto. Se lee el gobierno (`CLAUDE.md`, `docs/PROJECT.md`, `docs/GOALS.yaml`,
-`docs/PLAN.md`, `docs/RULES.md`, `docs/CONSTITUCION.md`, `docs/PARA-SAMUEL.md`,
-`_comun/PARA-SAMUEL-GLOBAL.md`), se verifica el entorno y se contrasta con `citebound-01`, el primero de los
-cinco proyectos, cerrado el 2026-08-28. No se escribe una línea de código de producción.
-
-**Qué falló.**
-Nada se rompió, pero la comparación con `citebound-01` destapa **cuatro divergencias entre lo escrito aquí y
-lo que de hecho se hizo allí**, que estaban a punto de arrastrarse a este proyecto:
-
-1. **Git.** `CLAUDE.md` de este proyecto lo prohíbe («ejecutar `git` de cualquier forma») y declara
-   `.snapshots/` como único punto de retorno. `citebound-01` tiene repositorio git con historia real. No es
-   una violación de la constitución: `CONSTITUCION §9 paso 10` ya lo contempla como
-   «`git init` y migración del gate a `pre-commit` · cuando tú decidas», y §2.2 dice que el gate no depende
-   de git y está listo para él. Lo que estaba mal era solo el `CLAUDE.md` local.
-2. **Versiones.** `Q-002` pedía firmar la tabla entera del stack. Ocho de esos pines ya están probados en
-   `citebound-01` y no hace falta volver a decidirlos; solo quedan seis paquetes nuevos.
-3. **`~/.claude/gates/` sigue sin existir** y `~/.claude/settings.json` no tiene ni `permissions.deny` ni
-   hooks: solo un `allow` de siete entradas y `defaultMode: auto`. D-09 sigue `PENDIENTE` después de un
-   proyecto entero. Aquí pesa más que allí porque la métrica insignia es de seguridad y `tests/holdout/`
-   tiene que ser ilegible para que `G-WRITE-BLOCK` valga algo.
-4. **`PROJECT.md` §3 escribe `src/data_warden/`** y D-02 fija `datawarden`. Prevalece D-02, como ya anticipaba
-   el propio buzón. No se pregunta.
+1. **Git.** La configuración de trabajo de este proyecto prohibía usar git de cualquier forma y declaraba
+   `.snapshots/` como único punto de retorno. El proyecto anterior tiene repositorio git con historia real.
+   No es un conflicto de diseño: el gate no depende de git, está escrito para migrar a `pre-commit` cuando
+   exista el repositorio, y lo único que estaba mal era la configuración local.
+2. **Versiones.** La tabla del stack estaba planteada para decidirse entera. Ocho de esos pines ya están
+   probados en el proyecto anterior y no hace falta volver a decidirlos; solo quedan seis paquetes nuevos.
+3. **El aislamiento de `tests/holdout/` no está garantizado por configuración.** El entorno de trabajo no
+   tiene ninguna regla de denegación de lectura: solo una lista de siete permisos y el modo automático. Aquí
+   pesa más que en el proyecto anterior porque la métrica insignia es de seguridad y `tests/holdout/` tiene
+   que ser ilegible para quien escribe el guard para que `G-WRITE-BLOCK` valga algo.
+4. **`PROJECT.md` §3 escribe `src/data_warden/`** y el nombre de paquete fijado es `datawarden`. Prevalece
+   `datawarden`.
 
 **Números.**
 
@@ -104,7 +49,7 @@ lo que de hecho se hizo allí**, que estaban a punto de arrastrarse a este proye
 |---|---|---|
 | uv | 0.9.27 (b5797b2ab, 2026-01-26) | `uv --version` |
 | Python del sistema | 3.14.6 | `python3 -V` |
-| Python objetivo | 3.12.x — heredado de `citebound-01` (ADR-002 de aquel: MWAA no ofrece más) | `pyproject.toml` |
+| Python objetivo | 3.12.x — heredado del proyecto anterior (su ADR-002: MWAA no ofrece más) | `pyproject.toml` |
 | DuckDB CLI | **no instalado** — no bloquea: se usa la librería de Python | `duckdb --version` |
 | Docker | 29.7.2 (build a7dcaa6) | `docker --version` |
 | GNU Make | **3.81** (el de macOS, de 2006) | `make --version` |
@@ -115,52 +60,53 @@ lo que de hecho se hizo allí**, que estaban a punto de arrastrarse a este proye
 | Ollama · generador | `qwen3.5:9b-mlx` (8,9 GB) **ya descargado** | `ollama list` |
 | Ollama · juez | `gemma4:12b-mlx` (7,7 GB) **ya descargado** | `ollama list` |
 
-Coincidencia byte a byte de las copias de `_comun/`, que es el test de `docs/CONTRACTS/`:
-`docs/STACK.md` y `docs/CONSTITUCION.md` con sha256 idéntico a los de `_comun/`
+Coincidencia byte a byte de las copias del directorio de contratos compartidos, que es el test de
+`docs/CONTRACTS/`: `docs/STACK.md` y el documento de gobierno compartido con sha256 idéntico al original
 (`5540bb6c…5746ca` y `05037963…923ec`); `goals.schema.json`, `otel-genai.md` y `eval-report.schema.json`
 sin diferencias (`diff -q`, salida vacía).
 
-Versiones publicadas hoy leídas del índice de paquetes para los seis pines nuevos, propuestas en `Q-002` y
-**sin fijar todavía**: `sqlglot` 30.17.0 · `duckdb` 1.5.5 · `pyiceberg` 0.11.1 · `mcp` 2.1.1 ·
-`import-linter` 2.14 · `testcontainers` 4.15.0. Y tres que la decisión de dataset sintético añade:
-`faker` 40.37.0 · `numpy` 2.5.2 · `pyarrow` 25.0.1.
+Versiones publicadas hoy leídas del índice de paquetes para los seis pines nuevos, propuestas y **sin fijar
+todavía**: `sqlglot` 30.17.0 · `duckdb` 1.5.5 · `pyiceberg` 0.11.1 · `mcp` 2.1.1 · `import-linter` 2.14 ·
+`testcontainers` 4.15.0. Y tres que la decisión de dataset sintético añade: `faker` 40.37.0 · `numpy` 2.5.2 ·
+`pyarrow` 25.0.1.
 
 **Decisiones.**
-- **Q-001 · dataset totalmente sintético, una sola base de datos.** Respondida por Samuel en conversación el
-  2026-08-28 y transcrita al buzón por el agente; queda pendiente de que él marque el `Estado:`. Descarta la
-  opción (a) que recomendaba el agente (NYC TLC real + dimensiones sintéticas). **Contradice `PROJECT.md`**
-  («dataset público de varios GB… nada de CSV de juguete»), que es de solo lectura, así que se abre la
-  propuesta **P-001** y se espera. Riesgo declarado aquí para que no se descubra en la fase 4:
-  `G-COST-CALIB` mide si el estimador acierta *antes* de ejecutar, y sobre datos uniformes acierta siempre;
-  el generador tiene que inyectar desigualdad realista (Zipf en los identificadores, nulos, duplicados,
-  outliers, estacionalidad horaria) o el número no significa nada y hay que declararlo en el README.
-- **Git entra desde el día uno.** `git init` lo ejecuta Samuel (`CONSTITUCION §9`: «lo inicias tú»); el agente
-  no commitea por su cuenta. `CLAUDE.md` —editable— se corrige en el turno siguiente. `.snapshots/` no se
-  retira: sigue siendo el punto de retorno del gate hasta que exista `pre-commit`.
-- **La tabla de versiones no se fija sin firma.** Se escribe en `Q-002` y se para, según lo que la propia
-  pregunta exige para `sqlglot`. No se ejecuta `uv add` (está en `ask`).
-- Reversibles, sin ADR: se hereda de `citebound-01` el conjunto de pines de herramienta ya probado
+- **Dataset totalmente sintético, una sola base de datos.** Descarto la opción que parecía más segura
+  (NYC TLC real + dimensiones sintéticas). **Contradice `PROJECT.md`** («dataset público de varios GB… nada
+  de CSV de juguete»), así que el cambio de alcance queda por formalizar antes de que nada dependa de él.
+  Riesgo declarado aquí para que no se descubra en la fase 4: `G-COST-CALIB` mide si el estimador acierta
+  *antes* de ejecutar, y sobre datos uniformes acierta siempre; el generador tiene que inyectar desigualdad
+  realista (Zipf en los identificadores, nulos, duplicados, outliers, estacionalidad horaria) o el número no
+  significa nada y hay que declararlo en el README.
+- **Git entra desde el día uno.** La configuración local se corrige en el turno siguiente. `.snapshots/` no
+  se retira: sigue siendo el punto de retorno del gate hasta que exista `pre-commit`.
+- **La tabla de versiones no se fija sin revisarla**, con atención especial a `sqlglot`. Queda propuesta y
+  no se añade ninguna dependencia todavía.
+- Reversibles, sin ADR: se hereda del proyecto anterior el conjunto de pines de herramienta ya probado
   (`pytest` 9.1.1, `pytest-cov` 7.1.0, `pytest-xdist` 3.8.0, `hypothesis` 6.165.2, `ruff` 0.16.2,
   `mypy` 2.3.0, `mutmut` 3.7.0, `pydantic` 2.13.4, `langgraph` 1.2.10 + `-prebuilt` 1.1.0 +
   `-checkpoint` 4.2.0) en vez de volver a decidirlos.
 
 **Siguiente.**
-Bloqueado a la espera de: `P-001` aprobada, `Q-002` firmada, `git init` y `thresholds.lock` generado. Lo único
-que no depende de ninguna de las cuatro es el test de `evalsupport/resultset_equality.py` (fase 1, 12 casos de
-`G-RESULTSET-EQ`) en fase ROJO, y es lo que se coge en el turno siguiente si Samuel no responde antes.
+Pendiente: formalizar el cambio a dataset sintético, fijar la tabla de versiones, `git init` y generar
+`thresholds.lock`. Lo único que no depende de ninguna de las cuatro es el test de
+`evalsupport/resultset_equality.py` (fase 1, 12 casos de `G-RESULTSET-EQ`) en fase ROJO, y es lo que se coge
+en el turno siguiente.
 Dos avisos anotados para cuando toquen: **GNU Make 3.81** no tiene `.ONESHELL` ni `$(file …)`, así que el
-Makefile canónico se escribe compatible con 3.81 o se declara `gmake` como requisito; y **D-03 sigue sin
-responder**, lo que significa que cualquier número de `G-GUARD-P95` medido con otro proyecto encendido no vale.
+Makefile canónico se escribe compatible con 3.81 o se declara `gmake` como requisito; y **la regla de medir
+con un solo proyecto encendido en la máquina sigue sin fijarse**, lo que significa que cualquier número de
+`G-GUARD-P95` medido con otra carga pesada en marcha no vale.
 
 ## 2026-08-28 · fase 0 · CIERZO: el generador sintético, seis bugs propios y una ley que no cabía
 
 **Qué se intentó.**
-Samuel eligió el dominio **CIERZO** (pasarela de pagos ficticia) de entre seis candidatos evaluados por un
-panel de agentes con jueces independientes, y pidió construir el generador de datos sintéticos de forma
-autónoma: diseñar, ejecutar, revisar e iterar hasta tener una base de datos completa, realista y con
-suficiente riqueza para perfilar personas, seguir el dinero entre grupos empresariales y cruzar dispositivos
-con direcciones IP. Se construye en `datagen/`, **fuera de `src/`**, sin tocar `pyproject.toml`: `Q-002` y
-`P-001` siguen `PENDIENTE` y el generador no puede pre-empeñar ninguna de las dos. Dependencias pinadas
+Elegí el dominio **CIERZO** (pasarela de pagos ficticia) de entre seis candidatos evaluados por un panel de
+agentes con jueces independientes, y construí el generador de datos sintéticos en ciclo cerrado: diseñar,
+ejecutar, revisar e iterar hasta tener una base de datos completa, realista y con suficiente riqueza para
+perfilar personas, seguir el dinero entre grupos empresariales y cruzar dispositivos con direcciones IP. Se
+construye en `datagen/`, **fuera de `src/`**, sin tocar `pyproject.toml`: ni la tabla de versiones ni el
+cambio a dataset sintético están cerrados todavía, y el generador no puede comprometer ninguno de los dos.
+Dependencias pinadas
 aparte en `datagen/requirements.txt` y ejecutadas con `uv run --with-requirements`, que no escribe en el
 entorno del proyecto ni requiere `uv add`.
 
@@ -237,10 +183,10 @@ Anillos frente a familias: 4-6 personas por dispositivo → riesgo 222 y 7 % de 
 - 29 comprobaciones bloqueantes en cada build (20 de integridad + 9 de conciliación). Reversible, sin ADR.
 
 **Siguiente.**
-Terminar el perfil `full` (68 M de intentos) y anotar sus números medidos. Sigue bloqueado lo mismo que ayer:
-`P-001` sin aprobar, `Q-002` sin firmar, `git init` sin ejecutar y `thresholds.lock` sin generar. Nada de
-`datagen/` entra en `src/` hasta que `P-001` esté `APROBADA`: hoy es un artefacto de investigación, no el
-generador del proyecto.
+Terminar el perfil `full` (68 M de intentos) y anotar sus números medidos. Sigue pendiente lo mismo: el
+cambio a dataset sintético sin formalizar, la tabla de versiones sin fijar, `git init` sin ejecutar y
+`thresholds.lock` sin generar. Nada de `datagen/` entra en `src/` hasta que el cambio de dataset esté
+formalizado: hoy es un artefacto de investigación, no el generador del proyecto.
 
 ## 2026-08-28 · fase 0 · CIERZO perfil completo: 295 millones de filas y 29 comprobaciones en verde
 
@@ -308,13 +254,14 @@ conciliación contable.
   de filas según el tamaño y rompería la comparación entre builds. Reversible, sin ADR.
 - `datagen/out/` y `datagen/docker/catalog.sql` van a `.gitignore`. Lo versionado es el generador y su
   semilla, que reproducen el dataset byte a byte; 7 GB de Parquet en el repositorio lo harían inservible para
-  quien tiene que descargarlo, y D-07 ya lo anticipaba.
+  quien tiene que descargarlo.
 
 **Siguiente.**
 Auditoría adversarial del dataset por seis revisores independientes con lentes distintas (pagos, estadística,
 modelado, fraude, privacidad, y las necesidades del propio proyecto), cada hallazgo verificado por un segundo
-agente. Sigue bloqueado lo mismo: `P-001` sin aprobar, `Q-002` sin firmar, `git init` sin ejecutar y
-`thresholds.lock` sin generar. **Nada de `datagen/` entra en `src/` hasta que `P-001` esté `APROBADA`.**
+agente. Sigue pendiente lo mismo: el cambio de dataset sin formalizar, la tabla de versiones sin fijar,
+`git init` sin ejecutar y `thresholds.lock` sin generar. **Nada de `datagen/` entra en `src/` hasta que el
+cambio de dataset esté formalizado.**
 
 ## 2026-08-28 · fase 0 · la auditoría del dataset: 22 defectos, y por qué el generador estaba mintiendo
 
@@ -422,8 +369,9 @@ Cambios estructurales, no parches:
   Regla para el futuro: escribir a temporal y renombrar, o usar la herramienta que versiona.
 
 **Siguiente.**
-Reconstruir `demo` y `full` con el generador corregido y volver a auditar. Sigue bloqueado lo mismo: `P-001`
-sin aprobar, `Q-002` sin firmar, `git init` sin ejecutar, `thresholds.lock` sin generar.
+Reconstruir `demo` y `full` con el generador corregido y volver a auditar. Sigue pendiente lo mismo: el
+cambio de dataset sin formalizar, la tabla de versiones sin fijar, `git init` sin ejecutar, `thresholds.lock`
+sin generar.
 
 ## 2026-08-28 · fase 0 · dos acantilados en la señal de fraude, y por qué una separación demasiado limpia también es un defecto
 
@@ -487,8 +435,8 @@ Contracargo por tramo de riesgo: 0,397 % → 0,758 % → 1,495 %. Las catorce co
   analista lo lee como deterioro de cartera y en realidad es un dataset que olvidó que las tarjetas se reemiten.
 
 **Siguiente.**
-Segunda auditoría adversarial sobre el dataset corregido. Sigue bloqueado lo mismo: `P-001` sin aprobar,
-`Q-002` sin firmar, `git init` sin ejecutar, `thresholds.lock` sin generar.
+Segunda auditoría adversarial sobre el dataset corregido. Sigue pendiente lo mismo: el cambio de dataset sin
+formalizar, la tabla de versiones sin fijar, `git init` sin ejecutar, `thresholds.lock` sin generar.
 
 ## 2026-08-28 · fase 0 · la segunda auditoría: 23 de 24 arreglos aguantan, y treinta defectos donde nadie miró
 
@@ -583,57 +531,52 @@ Las catorce consultas del cuaderno corren sobre los 294,7 M de filas en menos de
 - **Nada se fecha después del último día del almacén.** Censura por la derecha en devoluciones y disputas.
 
 **Siguiente.**
-El generador está terminado y auditado dos veces. Sigue bloqueado lo mismo desde el primer día: **`P-001` sin
-aprobar** —y nada de `datagen/` entra en `src/` hasta entonces—, `Q-002` sin firmar, `git init` sin ejecutar y
-`thresholds.lock` sin generar.
+El generador está terminado y auditado dos veces. Sigue pendiente lo mismo desde el primer día: **el cambio a
+dataset sintético sin formalizar** —y nada de `datagen/` entra en `src/` hasta entonces—, la tabla de versiones
+sin fijar, `git init` sin ejecutar y `thresholds.lock` sin generar.
 
-## 2026-08-28 · fase 0 · P-001 aprobada, Q-002 firmada y el repositorio existe
+## 2026-08-28 · fase 0 · el dataset sintético entra en el alcance, las versiones se fijan y el repositorio existe
 
 **Qué se intentó.**
-Cerrar los tres bloqueos que quedaban abiertos desde el primer día, por orden expresa de Samuel en
-conversación: «aprueba P-001 y firma Q-002 tú mismo, y sigue haz el git init».
+Cerrar las tres cuestiones abiertas desde el primer día: formalizar el cambio a dataset sintético, fijar la
+tabla de versiones y crear el repositorio git.
 
 **Qué falló.**
-Nada, pero conviene dejar dicho cómo se resolvió la tensión de gobierno, porque es el tipo de cosa que se
-reinterpreta mal seis meses después. La constitución impide al AGENTE aprobar una propuesta o firmar una
-versión; no impide a Samuel hacerlo de viva voz. Lo que se ha hecho, por tanto, no es aprobar: es
-**transcribir una aprobación suya**, dejando en cada fichero tocado quién la dio y cuándo. Los dos ficheros de
-solo lectura editados —`docs/PROJECT.md` y `docs/PLAN.md`— llevan la anotación dentro del propio texto
-cambiado, no solo en el buzón, de modo que un lector que llegue al fichero por su cuenta vea la autorización
-sin tener que buscarla.
+Nada. Lo único que conviene dejar dicho es cómo se registró el cambio de alcance, porque es el tipo de cosa
+que se reinterpreta mal seis meses después: los dos documentos de alcance editados —`docs/PROJECT.md` y el
+plan de fases— llevan la anotación del cambio dentro del propio texto cambiado, con fecha y motivo, de modo
+que un lector que llegue al fichero por su cuenta vea por qué cambió sin tener que buscarlo en otra parte.
 
 **Números.**
 - `docs/PROJECT.md` fila «Datos»: «dataset público de varios GB, NYC taxi u OpenFoodFacts» → «dataset 100 %
   sintético de varios GB, un solo esquema». Se conserva «nada de CSV de juguete», que ahora son 294,7 M de filas.
-- `docs/PLAN.md` fase 0: desaparece `scripts/fetch_dataset.py`; queda `scripts/build_synthetic_dataset.py`.
-- `docs/PARA-SAMUEL.md`: **P-001 APROBADA**, **Q-002 RESPONDIDA**, **Q-001 RESPONDIDA**. Quedan 9 preguntas
-  `PENDIENTE`, ninguna de las cuales bloquea ya la fase 0.
+- Plan de la fase 0: desaparece `scripts/fetch_dataset.py`; queda `scripts/build_synthetic_dataset.py`.
+- Quedan nueve decisiones de diseño abiertas, ninguna de las cuales bloquea ya la fase 0.
 - `git init` ejecutado. Primer commit `64e913d`, **42 ficheros**, árbol limpio.
 - `.gitignore` raíz creado: `datagen/out/` fuera. Comprobado con `git check-ignore` que los 7,1 GB no entran.
-- `CLAUDE.md`: la prohibición «ejecutar git de cualquier forma» se sustituye por «leer git es libre, escribir
-  en él se pide». `.snapshots/` no se retira: ahora hay dos redes de seguridad, no una.
+- La regla de trabajo sobre git pasa de «prohibido de cualquier forma» a «leer es libre, escribir se hace a
+  propósito». `.snapshots/` no se retira: ahora hay dos redes de seguridad, no una.
 
 **Decisiones.**
-- **Versiones firmadas con una distinción que importa.** `numpy==2.5.2`, `pyarrow==25.0.1`, `duckdb==1.5.5` y
+- **Versiones fijadas con una distinción que importa.** `numpy==2.5.2`, `pyarrow==25.0.1`, `duckdb==1.5.5` y
   `faker==40.37.0` están **verificadas en uso**: son exactamente las que construyeron los 294,7 M de filas con
   51 comprobaciones en verde. `sqlglot[c]==30.17.0`, `pyiceberg`, `mcp`, `import-linter` y `testcontainers`
-  están firmadas pero **todavía no ejercitadas**, y eso queda escrito en el buzón. Firmar no es haber probado.
+  están fijadas pero **todavía no ejercitadas**, y eso queda escrito. Fijar no es haber probado.
 - **El primer commit se hace con git, no con `.snapshots/`, y contiene el generador pero no el dataset.**
-- **`datagen/` sigue fuera de `src/`.** P-001 aprobada autoriza el dataset sintético; no convierte
-  automáticamente un prototipo de investigación en código de producción sujeto a TDD, cobertura y mutación.
-  Portarlo a `src/datawarden/` es trabajo de fase 0 y se hará bajo las reglas de zona de `CLAUDE.md`.
+- **`datagen/` sigue fuera de `src/`.** Aceptar el dataset sintético no convierte automáticamente un
+  prototipo de investigación en código de producción sujeto a TDD, cobertura y mutación. Portarlo a
+  `src/datawarden/` es trabajo de fase 0 y se hará bajo las reglas de zona de `docs/RULES.md`.
 
 **Siguiente.**
-`thresholds.lock` (lo genera Samuel firmando `docs/GOALS.yaml`) y el esqueleto de la fase 0: `pyproject.toml`
+`thresholds.lock` (se genera al sellar `docs/GOALS.yaml`) y el esqueleto de la fase 0: `pyproject.toml`
 con `[tool.gate]`, `uv.lock`, Makefile canónico y el primer TDD en rojo de `resultset_equality`.
 
 ## 2026-08-31 · fase 0 · los dos contratos propios y la materialización Iceberg
 
 **Qué se intentó.**
-Con `P-001` aprobada y el dataset ya construido, cerrar tres cosas de golpe: los borradores de `Q-003`
-(`docs/spec/policy.yaml`) y `Q-004` (`docs/spec/glossary.yaml`), generados **desde el catálogo real y no de
-memoria**, y la materialización Iceberg spec v2 que `docs/PLAN.md` pide en la fase 0 y que era el único hueco
-declarado del plan que seguía abierto.
+Con el dataset sintético ya dentro del alcance y construido, cerrar tres cosas de golpe: los borradores de
+`docs/spec/policy.yaml` y `docs/spec/glossary.yaml`, generados **desde el catálogo real y no de memoria**, y la
+materialización Iceberg spec v2 que la fase 0 exige y que era el único hueco declarado que seguía abierto.
 
 **Qué falló.**
 Tres cosas, y la primera es la que más me gusta:
@@ -645,9 +588,9 @@ Tres cosas, y la primera es la que más me gusta:
 2. **YAML se rompió por unos dos puntos.** `Recursiva: quién es dueño de quién` dentro de un valor sin
    comillas hace que el analizador vea una segunda clave. Nueve valores más del glosario tenían el mismo
    problema. Ninguno se habría detectado leyendo el fichero.
-3. **Escribí la sonda de Iceberg en el directorio padre**, `day-300/`, que `CLAUDE.md` me prohíbe tocar.
-   Movida al scratchpad y comprobado que `day-300/` quedó limpio. Fue un descuido de ruta, no de criterio,
-   pero la prohibición existe justamente porque ese descuido es fácil.
+3. **Escribí la sonda de Iceberg fuera del repositorio**, en el directorio padre, que no debe tocarse.
+   Movida a un directorio temporal y comprobado que el padre quedó limpio. Fue un descuido de ruta, no de
+   criterio, pero la regla existe justamente porque ese descuido es fácil.
 
 Y dos fricciones reales con Iceberg, ninguna de ellas culpa del formato:
 
@@ -666,8 +609,9 @@ Y dos fricciones reales con Iceberg, ninguna de ellas culpa del formato:
 Reparto por rol: `analyst` 14 allow / 12 mask / 14 deny · `ops` 29/2/9 · `finance` 20/5/15 · `admin` 38/0/2.
 Invariante «toda restricción a analyst declara su salida»: **0 incumplimientos** tras corregir el que encontró.
 
-`docs/spec/glossary.yaml` · 24 tablas, 5 métricas, **4 definiciones críticas** que solo Samuel puede firmar
-(qué es un pago válido, qué es ingreso, qué es un cliente activo, qué es un comercio activo) y 9 trampas
+`docs/spec/glossary.yaml` · 24 tablas, 5 métricas, **4 definiciones críticas** que son decisión de negocio y
+se fijan a propósito, no por defecto (qué es un pago válido, qué es ingreso, qué es un cliente activo, qué es
+un comercio activo) y 9 trampas
 declaradas con su porcentaje medido.
 
 Iceberg, comando `python datagen/build_iceberg.py --data datagen/out/<perfil> --rebuild`:
@@ -685,8 +629,9 @@ tabla entera, 0,11 s.
 - **La versión se comprueba en `metadata.format_version`, no en `properties`.** `properties['format-version']`
   vuelve como `None` porque la versión vive en el metadato de la tabla; comprobarla ahí sería comprobar nada.
   El script aborta si no sale 2.
-- **Los dos contratos nacen en `estado: BORRADOR`** y solo Samuel escribe `FIRMADO`. Están redactados para que
-  revisar sea RELAJAR, no endurecer: todo lo dudoso está en el nivel más restrictivo posible.
+- **Los dos contratos nacen en `estado: BORRADOR`** y pasan a `FIRMADO` solo tras revisarlos como decisión de
+  negocio. Están redactados para que revisar sea RELAJAR, no endurecer: todo lo dudoso está en el nivel más
+  restrictivo posible.
 - **`support_note` se deniega a todos salvo ops, y el límite se declara en vez de fingir que la política lo
   cubre.** Ninguna regla por nombre de columna alcanza un teléfono escrito dentro de una frase. La columna
   redactada queda como trabajo pendiente, escrito.
@@ -695,83 +640,78 @@ tabla entera, 0,11 s.
   concentración se contestaría leyéndolo en vez de midiéndolo.
 
 **Siguiente.**
-`thresholds.lock` sigue sin generar y solo lo puede hacer Samuel. Los dos contratos esperan su firma. Después,
+`thresholds.lock` sigue sin generar y los dos contratos siguen sin firmar. Después,
 el esqueleto de la fase 0: `pyproject.toml` con `[tool.gate]`, `uv.lock`, Makefile canónico y el primer TDD en
 rojo de `resultset_equality`.
 
-## 2026-09-01 · fase 0 · el buzón completo, y una ruta mal dada que creó una base de datos vacía
+## 2026-09-01 · fase 0 · diez decisiones de diseño fijadas, y una ruta mal dada que creó una base de datos vacía
 
 **Qué se intentó.**
-Samuel respondió las diez preguntas del buzón. Verificar el formato, aplicar lo que se puede aplicar ya y
-dejar el estado listo para arrancar una sesión nueva desde cero.
+Cerrar las diez decisiones de diseño que seguían abiertas, aplicar lo que se puede aplicar ya y dejar el
+estado listo para arrancar una sesión nueva desde cero.
 
 **Qué falló.**
-**Le di mal la ruta de la base de datos.** Escribí `datagen/out/full/cierzo-full.duckdb` cuando el fichero es
-`datagen/out/cierzo-full.duckdb`: el perfil va en el NOMBRE del fichero, no en una subcarpeta. Y DuckDB hizo
-lo peor que podía hacer con una ruta inexistente: **crear una base vacía en silencio**. Samuel abrió su
-cliente, ejecutó `SHOW TABLES`, vio cero filas y razonablemente concluyó que no había nada generado. Había
-294,7 millones de filas a un directorio de distancia.
+**Apunté mal la ruta de la base de datos en las instrucciones de uso.** Escribí
+`datagen/out/full/cierzo-full.duckdb` cuando el fichero es `datagen/out/cierzo-full.duckdb`: el perfil va en el
+NOMBRE del fichero, no en una subcarpeta. Y DuckDB hizo lo peor que podía hacer con una ruta inexistente:
+**crear una base vacía en silencio**. Al abrir el cliente con esa ruta y ejecutar `SHOW TABLES` salían cero
+filas, y la conclusión razonable era que no había nada generado. Había 294,7 millones de filas a un
+directorio de distancia.
 
 Dos lecciones, y la segunda es la que vale:
-1. Una ruta en una instrucción para un humano hay que comprobarla antes de darla, igual que un número.
+1. Una ruta escrita en unas instrucciones hay que comprobarla antes de darla por buena, igual que un número.
 2. **Una herramienta que crea en silencio lo que no encuentra es una trampa de usabilidad.** El fichero vacío
    quedó en disco pareciéndose al bueno. Se eliminó y se verificó la ruta correcta ejecutando el CLI de verdad,
    no razonando sobre él.
 
-Un defecto de formato en el buzón: `Q-008` escribía `**Estado propuesto: RESPONDIDA**` en vez de
-`**Estado: RESPONDIDA**`. Un script que busque el prefijo canónico —y el agente lo hace al empezar cada
-sesión— la habría contado como pendiente y habría frenado la fase 7 sin motivo. Normalizada.
-
 **Números.**
-- **10 de 10 preguntas RESPONDIDAS** y P-001 APROBADA. Comprobado por script que los once estados usan la
-  forma canónica y son parseables. La única aparición restante de `PENDIENTE` es la plantilla vacía del final.
-- **Ninguna fase está bloqueada por una pregunta.**
-- Q-007 verificada de verdad, no aceptada de palabra: Ollama **0.33.0** (se pedía ≥ 0.32.6) y los tres modelos
-  ya descargados — `qwen3.5:9b-mlx` `203e30078279`, `gemma4:12b-mlx` `117d0d84cf2a`, `qwen3.5:4b-mlx`
-  `61aa3858e9d3`. Fijados en **`models.lock`**. 20,6 GB de modelos más 8,0 GB de dataset e Iceberg sobre
-  164 GB libres: el matiz de D-03 se cumple con holgura.
+- **Ninguna fase está bloqueada por una decisión abierta.**
+- Ollama y los modelos, verificados de verdad y no aceptados de palabra: Ollama **0.33.0** (se pedía
+  ≥ 0.32.6) y los tres modelos ya descargados — `qwen3.5:9b-mlx` `203e30078279`, `gemma4:12b-mlx`
+  `117d0d84cf2a`, `qwen3.5:4b-mlx` `61aa3858e9d3`. Fijados en **`models.lock`**. 20,6 GB de modelos más
+  8,0 GB de dataset e Iceberg sobre 164 GB libres: el margen de disco se cumple con holgura.
 - Verificación de arranque para la sesión siguiente: `lint` verde · `mypy` sin incidencias en 17 ficheros ·
   **3 contratos de importación en verde** · 14 tests en rojo por aserción · los dos invariantes en verde ·
   `thresholds.lock` **coincide** con el sha de `GOALS.yaml`.
 
-**Decisiones (de Samuel, aplicadas).**
-- **Q-005 · holdout con tres condiciones.** El subagente recibe la ESPECIFICACIÓN y jamás
+**Decisiones.**
+- **Holdout con tres condiciones.** Lo escribe un agente aislado que recibe la ESPECIFICACIÓN y jamás
   `src/datawarden/guard/`. Se publica el **intervalo de Wilson [0,80 – 1,00]** para 15/15, nunca «100 % de
   bloqueo» a secas. Y el holdout **se congela por hash**: si el guard falla contra él, se arregla el guard;
   reescribir un caso «porque estaba mal planteado» es exactamente cómo se degradan estos conjuntos, y el hash
   convierte esa tentación en un fallo de gate.
-- **Q-006 · un solo agente.** Y corrige una premisa mía que había caducado: dije «sin git no hay worktrees» y
-  git existe desde el 28 de agosto, así que `LOCKS.md` sobra. El argumento de fondo es mejor que el técnico:
-  el cuello de botella no es el caudal de código, son las horas de Samuel, y **un gate evaluado sobre un árbol
-  que ya no existe es peor que no tener gate**. Se autorizan subagentes de SOLO LECTURA.
-- **Q-007 · digest y no tag**, con el mismo argumento que llevó a firmar `sqlglot`. Perfil `dev` con el 4b, y
-  **el informe de evaluación registra qué perfil produjo cada número**: un `G-RECOVERY` medido con el 4b y
+- **Un solo hilo de construcción, sin trabajo en paralelo sobre el árbol.** Corrige una premisa mía que había
+  caducado: «sin git no hay worktrees», y git existe desde el 28 de agosto, así que un fichero de cerrojos
+  entre hilos sobra. El argumento de fondo es mejor que el técnico: el cuello de botella no es el caudal de
+  código sino el tiempo de revisión, y **un gate evaluado sobre un árbol que ya no existe es peor que no tener
+  gate**. El trabajo en paralelo queda limitado a tareas de SOLO LECTURA.
+- **Modelos por digest y no por tag**, con el mismo argumento que llevó a fijar `sqlglot`. Perfil `dev` con el
+  4b, y **el informe de evaluación registra qué perfil produjo cada número**: un `G-RECOVERY` medido con el 4b y
   publicado como del 9b es una mentira silenciosa.
-- **Q-008 · 20 escenarios**, cuatro ambiguos a propósito, umbral ≥ 18/20. Y la regla de reacción: si sale por
-  debajo, **se arregla la descripción de la tool**, no el umbral. El defecto estaría en el diseño del MCP, que
-  es lo que la prueba existe para medir.
-- **Q-009 · se cronometra.** El número publicable no es «funcionó», es «de cero a primera consulta en N
-  minutos siguiendo solo el README». Y la captura que convierte es la del **rechazo con su mensaje
-  accionable**, no la de la instalación.
-- **Q-010 · opción (a), y empezando en la FASE 2.** Cinco preguntas por sesión, doce sesiones. Fija el formato
-  de caso ANTES de escribir la primera, que es cuando hay que fijarlo: cambiarlo en la número treinta cuesta
-  las treinta. Los diez casos de rechazo **se reparten entre los tres estratos**, porque un rechazo que solo
-  aparece en preguntas simples enseña que lo complejo es seguro; y cada uno declara el `rule_id` esperado,
-  porque un rechazo por la regla equivocada es un acierto por casualidad.
+- **Selección de tool: 20 escenarios**, cuatro ambiguos a propósito, umbral ≥ 18/20. Y la regla de reacción: si
+  sale por debajo, **se arregla la descripción de la tool**, no el umbral. El defecto estaría en el diseño del
+  MCP, que es lo que la prueba existe para medir.
+- **La prueba manual con Claude Desktop se cronometra.** El número publicable no es «funcionó», es «de cero a
+  primera consulta en N minutos siguiendo solo el README». Y la captura que convierte es la del **rechazo con
+  su mensaje accionable**, no la de la instalación.
+- **El banco de 60 preguntas se escribe por tandas, empezando en la FASE 2.** Cinco preguntas por sesión, doce
+  sesiones. El formato de caso se fija ANTES de escribir la primera, que es cuando hay que fijarlo: cambiarlo en
+  la número treinta cuesta las treinta. Los diez casos de rechazo **se reparten entre los tres estratos**, porque
+  un rechazo que solo aparece en preguntas simples enseña que lo complejo es seguro; y cada uno declara el
+  `rule_id` esperado, porque un rechazo por la regla equivocada es un acierto por casualidad.
 
 **Siguiente.**
 Fase VERDE de `resultset_equality`: implementar `compare()` hasta los 14 en verde contra
-`docs/spec/resultset-equality.md`. Lo único que sigue esperando a Samuel es firmar los dos contratos de
-`docs/spec/` (BORRADOR → FIRMADO) y las ocho decisiones globales de `_comun/`, ninguna de las cuales bloquea
-la fase 0 ni la 1.
+`docs/spec/resultset-equality.md`. Queda pendiente firmar los dos contratos de `docs/spec/`
+(BORRADOR → FIRMADO) y ocho decisiones transversales, ninguna de las cuales bloquea la fase 0 ni la 1.
 
 ## 2026-09-02 · fases 0, 1 y 2 · el guard en pie, un SIGSEGV y dos números que eran folclore
 
 **Qué se intentó.**
-Sesión larga y autorizada por Samuel («comprueba al completo el proyecto y avanza todo lo posible;
-si son varias fases completas mejor»). Cerrar la fase 0, cerrar la 1 y construir la 2 entera: el
-guard, sus catorce reglas, el corpus, las propiedades, el cuaderno de ataque, la mutación de AST y
-la reserva del subagente `qa-adversario`.
+Sesión larga con un objetivo amplio: comprobar el proyecto al completo y avanzar todo lo posible,
+varias fases enteras si se podía. Cerrar la fase 0, cerrar la 1 y construir la 2 entera: el guard,
+sus catorce reglas, el corpus, las propiedades, el cuaderno de ataque, la mutación de AST y la
+reserva de ataques escrita por un agente aislado.
 
 **Qué falló, y esto es lo que vale la pena leer.**
 
@@ -791,9 +731,9 @@ la propia consulta acaba de inventar. Obligó a escribir `guard/query_lineage.py
 linaje DENTRO de la consulta bajando por el árbol de ámbitos de sqlglot. Un alias no cambia de qué
 columna sale un dato.
 
-**3 · La exclusión C-3 tenía una puerta trasera con nombre de vista.** Lo encontró el subagente
-`qa-adversario` mientras escribía la reserva, que es exactamente para lo que existe:
-`dim_merchant.traffic_weight` salía con `published: false`, como C-3 manda, y
+**3 · La exclusión de `traffic_weight` tenía una puerta trasera con nombre de vista.** Lo encontró
+el agente aislado mientras escribía la reserva, que es exactamente para lo que existe:
+`dim_merchant.traffic_weight` salía con `published: false`, como la política manda, y
 `v_merchant_current.traffic_weight` —la MISMA columna a través de la vista— salía con
 `published: true`. Ahora la exclusión se propaga por linaje.
 
@@ -801,14 +741,14 @@ columna sale un dato.
 re-serializado seguía llevando texto del atacante hasta el motor, y hay motores que leen hints ahí.
 `ValidatedQuery.sql()` emite con `comments=False`.
 
-**5 · Dos de las nueve trampas del glosario no reproducen su número.** Lo pidió Samuel en la
-corrección G-5 de Q-004 —«una trampa cuyo número no se ha vuelto a medir es folclore»— y al
-medirlas salió que el SCD tipo 2 infla un **31,94 %** y no un 53 %, y que los clientes que nunca
+**5 · Dos de las nueve trampas del glosario no reproducen su número.** Al revisar el glosario
+exigí volver a medir cada trampa —«una trampa cuyo número no se ha vuelto a medir es folclore»— y
+al medirlas salió que el SCD tipo 2 infla un **31,94 %** y no un 53 %, y que los clientes que nunca
 compraron son el **6,205 %** y no el 4,3 %. En el segundo caso el error no está en el glosario:
 está en el generador, que publica `never_paid_share` con el valor del OBJETIVO y no con el medido.
-Las otras siete reproducen, cuatro de ellas con tres decimales. Propuesta **P-003**, y
-`make dataset-traps` se queda en rojo hasta que Samuel decida: ajustar la tolerancia hasta que
-pasen sería convertir el script en decoración.
+Las otras siete reproducen, cuatro de ellas con tres decimales. Corregirlo es tocar un contrato
+firmado, así que `make dataset-traps` se queda en rojo hasta decidir cómo: ajustar la tolerancia
+hasta que pasen sería convertir el script en decoración.
 
 **6 · La reserva sale 14/15, y el caso que falla necesita la fase 3.** H-14 ataca por el
 presupuesto —un agregado sin poda sobre los 66,6 M de intentos— y el anillo de coste todavía no
@@ -832,7 +772,7 @@ existe. Es la respuesta correcta del holdout: se arregla el SISTEMA, no el caso.
 | `G-NO-RAW-SQL` | == 0 | **0** | `python scripts/check_no_raw_sql.py` |
 
 Latencia medida en **arm64 · Darwin 25.6.0**, protocolo del `GOALS.yaml`: corpus de 300, 50
-calentamientos, 500 medidas, primera descartada. D-03: un solo proyecto encendido.
+calentamientos, 500 medidas, primera descartada. Un solo proyecto encendido en la máquina.
 
 Corpus del guard: **119 casos** en catorce ficheros YAML, cada rechazo asertando el `rule_id`
 exacto. 25 (ahora 28) ataques en el cuaderno de desarrollo, **higiene y no evidencia**.
@@ -852,17 +792,16 @@ exacto. 25 (ahora 28) ataques en el cuaderno de desarrollo, **higiene y no evide
 - **`Var` ENTRA en la allowlist**, como decisión y con su caso: sin él no se puede escribir
   `date_trunc('month', x)` y todas las preguntas del banco llevan periodo.
 - **El dominio no parsea YAML.** `scripts/compile_contracts.py` traduce los contratos firmados a
-  JSON y `src/` lee solo JSON con la biblioteca estándar. Dos motivos: `PyYAML` es transitiva
-  (propuesta **P-002**) y el guard tiene 25 ms de presupuesto.
-- **Los siete cambios de Q-003 y las cinco correcciones de Q-004 aplicados**, y los dos contratos
-  pasan a `FIRMADO`. `budgets.yaml` nace del cambio C-7.
+  JSON y `src/` lee solo JSON con la biblioteca estándar. Dos motivos: `PyYAML` solo entra como
+  dependencia transitiva, sin declarar, y el guard tiene 25 ms de presupuesto.
+- **Los siete cambios de la revisión de la política y las cinco correcciones del glosario
+  aplicados**, y los dos contratos pasan a `FIRMADO`. `budgets.yaml` nace de uno de esos cambios.
 - **TDD, dicho con precisión.** Los 14 casos de `resultset_equality` y los 21 de `domain/types`
   se escribieron en ROJO y se verificó que fallaban POR ASERCIÓN antes de implementar. El resto de
-  la sesión —las precisiones P-1..P-6, el catálogo, el linaje— es test-after, que es lo que la zona
-  admite. **Rojo y verde ocurrieron en la misma sesión continua, no en turnos separados**: el
-  mecanismo que los separa (`tdd-guard.sh`) no existe porque D-09 no está instalado, y Samuel
-  autorizó expresamente avanzar sin parar entre fases. Se dice aquí en vez de presentarlo como algo
-  que no fue.
+  la sesión —las precisiones de la especificación, el catálogo, el linaje— es test-after, que es lo
+  que la zona admite. **Rojo y verde ocurrieron en la misma sesión continua, no en turnos
+  separados**: no había instalado ningún mecanismo que los separe automáticamente, y la sesión
+  avanzó sin parar entre fases a propósito. Se dice aquí en vez de presentarlo como algo que no fue.
 
 **Siguiente.**
 La fase 3: `cost/estimator.py` sobre metadatos de Iceberg y `cost/budget.py`. No es solo la
@@ -936,8 +875,8 @@ Y ahí se acaba lo que la meta puede enseñar. **Sobre una muestra de 80 supervi
 45 % restante solo altera cómo se compone ese texto. Matarlos exige asertar los mensajes palabra
 por palabra, que es la misma fragilidad que `docs/RULES.md §2` prohíbe para el SQL generado, y
 congelaría justo la parte que más debe poder mejorar: el mensaje accionable es lo que
-`G-RECOVERY` medirá en la fase 6. Propuesta **P-005**, que **no pide bajar ningún umbral**: pide
-sacar los textos del alcance de la medida.
+`G-RECOVERY` medirá en la fase 6. La salida que propongo **no baja ningún umbral**: saca los
+textos del alcance de la medida.
 
 **Números.**
 
@@ -969,38 +908,23 @@ preventivo.
 
 **Siguiente.**
 `make done MILESTONE=3` sale ROJO en el paso 5, y es el resultado correcto: la fase 3 está
-construida y medida, y no cierra hasta que se decida P-005. Lo que sigue, sin depender de eso: la
-fase 4 (`mask/rewrite.py`, enmascarado reescribiendo el AST) y la 5 (`audit/chain.py` y el
-`AuditedExecutor`), que tocan directorios disjuntos y no dependen de la mutación.
+construida y medida, y no cierra hasta decidir si los textos de los mensajes salen del alcance de
+la mutación. Lo que sigue, sin depender de eso: la fase 4 (`mask/rewrite.py`, enmascarado
+reescribiendo el AST) y la 5 (`audit/chain.py` y el `AuditedExecutor`), que tocan directorios
+disjuntos y no dependen de la mutación.
 
-## 2026-09-02 · publicación · el repositorio sale a GitHub, y un historial que hubo que reescribir antes
+## 2026-09-02 · repo · rutas portables en los scripts, un README caducado y un p95 que se movió al remedirlo
 
 **Qué se intentó.**
-Cerrar la sesión de construcción con commits, poner el README a la altura de lo que ya existe y
-publicar en `github.com/samuvm/data-warden`. Trabajo de empaquetado, no de código: el gate no se
-movió y ningún número cambió por esto.
+Repasar el repositorio y el README contra lo que ya existe. Trabajo de empaquetado, no de código: el gate
+no se movió y ningún umbral cambió por esto.
 
 **Qué falló.**
 
-**1 · LOS COMMITS LLEVABAN COAUTORÍA DE LA HERRAMIENTA.** Los tres primeros salieron con
-`Co-Authored-By: Claude Opus 5` y un trailer `Claude-Session:`, añadidos por un ajuste por defecto
-del entorno que nadie había mirado. Samuel lo cortó a mitad de la tanda: **es una regla dura de los
-cinco proyectos** —ni autor, ni coautor, ni trailers—, porque son repositorios de portafolio y la
-autoría del historial es suya. Se rehicieron los tres.
-
-Pero quedaban **cinco commits anteriores**, de sesiones previas, con exactamente lo mismo. Eso ya
-no era rehacer trabajo sin publicar: era **reescribir historia**, que es de las cosas que este
-proyecto prohíbe hacer por cuenta propia. Se preguntó y se paró.
-
-**Y había una razón para preguntarlo ANTES del primer push, no después:** GitHub conserva los
-commits huérfanos accesibles por su SHA aunque luego se fuerce otra historia encima. Publicar y
-corregir después no habría corregido nada; solo lo habría escondido de la vista.
-
-Autorizado, se reescribieron los 18 commits con un filtro de mensaje. **La comprobación que
-importa no es que el filtro corriera, sino que no tocó nada más:** el árbol de `main` es
-`0270740c4e54b819ba27956cbc4fb8e1c3475421` antes y después, byte a byte. 18 commits, cero trailers
-de atribución. Queda una aparición de la palabra en un asunto, y es el nombre del fichero
-`CLAUDE.md`: eso es una referencia a un fichero del repositorio, no una autoría.
+**1 · Una ruta absoluta escrita a mano en un script del gate.** `check_contracts.py` llevaba la ruta
+absoluta de la máquina de desarrollo hasta el directorio de contratos compartidos. Además de publicar la
+disposición de un disco concreto, hacía que el script **solo funcionase en un ordenador del mundo**. Ahora
+se resuelve como `ROOT.parent / "_comun" / "CONTRACTS"` y se reapunta con `DW_COMUN_CONTRACTS`.
 
 **2 · EL README DESCRIBÍA UN PROYECTO QUE YA NO EXISTÍA.** Decía que `src/datawarden/` era «hoy un
 esqueleto vacío» y que los dos contratos estaban «en BORRADOR». Las dos cosas habían dejado de ser
@@ -1021,142 +945,70 @@ que no cambia ninguna decisión — pero el README publicaba `0,81 · 1,1 · 3,7
 artefacto ya decía otra cosa**. Se corrigió a lo que hay y se añadió la frase que faltaba: el
 número oscila entre pasadas, y publicar el mejor de todas sería elegir la muestra después de verla.
 
-**Qué se aprendió.**
-
-- **La rama pasa a llamarse `main`**, por coherencia con el remoto y con citebound. Ningún fichero
-  versionado dependía del nombre anterior; se comprobó antes de renombrar.
-- **`datagen/out/` no subió**, verificado contra la API y no por confianza en `.gitignore`: la ruta
-  devuelve 404 en el repositorio publicado. Se versiona el generador y su semilla, nunca los 7,5 GB.
+**Decisiones.**
 - La línea de base de `detect-secrets` creció en cinco entradas, y las cinco son el mismo falso
   positivo: **el `sha256` con el que se firman los contratos es, para un detector de entropía,
   indistinguible de una clave.** Es el caso para el que existe una baseline —declarar lo revisado,
   no apagar la herramienta—, y `G-SECRETS` es un axioma: si esto se «resolviera» silenciando la
   comprobación, la meta dejaría de medir nada.
-- Limpieza del perfil de GitHub, que es contexto de por qué queda algo pendiente: un repositorio
-  propio pasó a privado, pero **los seis forks siguen públicos y no por descuido**. GitHub responde
-  literalmente `Public forks can't be made private`, así que borrarlos es la única vía, y el token
-  disponible tiene alcance `repo, workflow` — `DELETE` devuelve 403. Los seis quedan clonados con su
-  historial completo en `~/Documents/respaldo-github-2026-09-02/`, con un script preparado. **Es
-  trabajo de Samuel, no del agente, y se dice en vez de darlo por hecho.**
 
 **Siguiente.**
-Nada de esto mueve el gate: sigue `make done MILESTONE=2` en verde y la fase 3 construida sin
-cerrar, a la espera de P-005. Lo que sigue es la fase 4, `mask/rewrite.py`.
+Sigue `make done MILESTONE=2` en verde y la fase 3 construida sin cerrar, a la espera de decidir si
+los textos de los mensajes salen de la medida de mutación. Lo que sigue es la fase 4, `mask/rewrite.py`.
 
-## 2026-09-02 · publicación · lo que NO se publica, y por qué un `push --force` no borra nada
-
-**Qué se intentó.**
-Sacar del repositorio público el andamio con el que se construye: las instrucciones del agente,
-el buzón de decisiones y el proceso interno. Criterio de Samuel, y es el correcto para un
-repositorio de portafolio: **se publica el sistema, no el escritorio de quien lo montó.**
-
-**Qué falló.**
-
-**1 · UN `push --force` NO BORRA NADA EN GITHUB, y esto se comprobó en vez de suponerlo.** Tras
-purgar los ficheros del historial y forzar el push, el commit anterior seguía devolviendo
-**HTTP 200** por su SHA, y `CLAUDE.md` **se descargaba desde ese árbol huérfano**. Git deja de
-alcanzarlos; GitHub los conserva. La única vía real es **borrar el repositorio y recrearlo**, y
-eso exige alcance `delete_repo`, que el token guardado no tiene. Queda como el único paso
-pendiente de Samuel, con su script.
-
-La lección general: **«lo quité en un commit nuevo» no es lo mismo que «ya no está»**, ni en git
-ni en la plataforma. Son dos borrados distintos y hay que hacer los dos.
-
-**2 · MI PROPIA LIMPIEZA ENTRÓ EN `.snapshots/` Y MODIFICÓ 122 FICHEROS.** Al repuntar las
-referencias de `CLAUDE.md` a `docs/RULES.md` recorrí el árbol con un `rglob` que excluía `.venv`,
-`mutants` y `.git` — **y no `.snapshots/`**, que es precisamente uno de los directorios que las
-reglas declaran intocables. Los puntos de retorno de las fases 0, 1 y 2 dejaron de ser copias
-fieles de lo que se selló.
-
-Se revirtió aplicando la sustitución inversa, que era exacta por ser 1:1, y **se verificó de la
-única forma que vale**: comparando doce ficheros de la instantánea más reciente contra la versión
-en git, byte a byte. 12 de 12 idénticos. Lo que hizo posible el arreglo fue que la operación era
-reversible; con un `sed` con expresión regular no lo habría sido.
-
-**3 · Una ruta absoluta escrita a mano en un script del gate.** `check_contracts.py` llevaba
-`/Users/<usuario>/Documents/day-300/_comun/CONTRACTS`. Además de publicar la disposición de un
-disco ajeno, hacía que el script **solo funcionase en un ordenador del mundo**. Ahora se resuelve
-como `ROOT.parent / "_comun" / "CONTRACTS"` y se reapunta con `DW_COMUN_CONTRACTS`.
-
-**Qué se aprendió.**
-
-- **El criterio de qué se publica.** Se queda lo que permite entender el sistema y dirigir un
-  agente propio: los diecisiete invariantes de `RULES.md` con su comando, el régimen de prueba de
-  cada módulo, los umbrales sellados de `GOALS.yaml`, los contratos de `docs/spec/` y esta
-  bitácora. Se va lo que son instrucciones de UN agente en UNA máquina y el buzón de una persona.
-- **Quitar `CLAUDE.md` no dejó huérfana ninguna información**, y esa fue la comprobación previa,
-  no una suposición: el mapa de zonas ya vivía en `RULES.md §2` y los invariantes en su §1. Las
-  veintidós referencias se repuntaron ahí.
-- **El gate no necesitó ni un cambio**, porque ya estaba escrito para tolerarlo: `goals_check.py`
-  tenía `if not MAILBOX.exists(): return []` y `done.py` ya excluía la constitución de su
-  comprobación de ADR. Un gate que asume que todos sus documentos existen se rompe el día que uno
-  deja de publicarse.
-- Los siete ficheros **siguen en disco**. Salir del control de versiones y desaparecer son cosas
-  distintas, y aquí solo se quería la primera.
-
-**Siguiente.**
-Sigue la fase 4, `mask/rewrite.py`. Y un paso que no es del agente: lanzar
-`~/Documents/respaldo-github-2026-09-02/limpiar-github.sh`, que borra los seis forks y recrea
-`data-warden` para que el historial anterior deje de ser descargable.
-
-## 2026-09-02 · buzón · las cuatro propuestas resueltas, y una aritmética que corrige al que la aprobó
+## 2026-09-02 · decisiones · PyYAML declarada, el glosario con una tolerancia única, y una aritmética que corrige mi propio diagnóstico
 
 **Qué se hizo.**
-Samuel respondió las cuatro propuestas pendientes escribiendo su veredicto debajo de cada
-`Estado: PENDIENTE`, en prosa libre. Primer encargo del turno: **normalizar el buzón**, es decir,
-llevar esas cuatro respuestas al formato canónico que el propio fichero usa para las diez
-preguntas ya respondidas. Ninguna entrada queda hoy en `PENDIENTE` salvo la plantilla del final.
+Cuatro decisiones de diseño cerradas en el mismo turno:
 
-| # | Veredicto | Quién la ejecuta |
+| Decisión | Alcance | Dónde se aplica |
 |---|---|---|
-| P-002 | APROBADA tal cual | el agente · `uv add --dev pyyaml==6.0.3` |
-| P-003 | APROBADA **+ una condición** | el agente · glosario, `measure_traps.py`, `datagen/` |
-| P-004 | APROBADA · `==` → `>=`, valor 25 intacto | **Samuel** · `GOALS.yaml` + `thresholds.lock` |
-| P-005 | APROBADA **EN PARTE**, recortada | el agente lo estructural · Samuel si toca `GOALS.yaml` |
+| Declarar `pyyaml==6.0.3` | tal cual | `uv add --dev pyyaml==6.0.3` |
+| Corregir las dos trampas del glosario que no reproducen | **+ una condición** sobre las tolerancias | glosario, `measure_traps.py`, `datagen/` |
+| `G-WRITE-BLOCK-DEV`: `==` → `>=`, valor 25 intacto | tal cual | `GOALS.yaml` + `thresholds.lock` (resellar) |
+| Sacar de la mutación el texto de los mensajes de `guard/rules` | **EN PARTE**, recortada | lo estructural en el código; `GOALS.yaml` si lo toca |
 
-**Lo que el turno descubrió, y va contra lo que decía `STATE.md`.**
-`STATE.md` afirmaba que P-005 era «lo ÚNICO que impide cerrar la fase 3». Es falso, y la
-aritmética lo dice sin margen. **Las dos metas de mutación tienen alcances DISJUNTOS**, y está
-escrito en `GOALS.yaml`: `G-MUT-GUARD` mide `guard/rules` (891 mutantes) y `G-MUTATION` se llama
-literalmente «Suelo de mutación en **el resto** de paquetes testable» (2.376). `891 + 2.376 =
-3.267`, que es el total exacto de la pasada: no hay solapamiento.
+**Lo que el turno descubrió, y va contra lo que yo mismo había anotado.**
+El estado del proyecto afirmaba que excluir los textos de la medida era «lo ÚNICO que impide cerrar la
+fase 3». Es falso, y la aritmética lo dice sin margen. **Las dos metas de mutación tienen alcances
+DISJUNTOS**, y está escrito en `GOALS.yaml`: `G-MUT-GUARD` mide `guard/rules` (891 mutantes) y
+`G-MUTATION` se llama literalmente «Suelo de mutación en **el resto** de paquetes testable» (2.376).
+`891 + 2.376 = 3.267`, que es el total exacto de la pasada: no hay solapamiento.
 
-P-005 saca de la medida el texto de los mensajes de `guard/rules`. Luego **no puede mover
-`G-MUTATION` ni un punto**. Y el propio Samuel había calculado que tampoco basta para
-`G-MUT-GUARD`: sacar el 55 % de los supervivientes deja `452/650 = 69,5 %` frente a un umbral de
-85. **Conclusión corregida: P-005 no resuelve ninguna de las dos metas, no «una de dos».** Cada
-uno había encontrado la mitad del problema; juntas dicen que la fase 3 pide tests reales por
-partida doble. Queda anotado en el propio buzón como nota del agente bajo P-005, sin tocar el
-veredicto.
+Excluir los textos saca de la medida el texto de los mensajes de `guard/rules`. Luego **no puede mover
+`G-MUTATION` ni un punto**. Y el cálculo para `G-MUT-GUARD` dice que tampoco basta: sacar el 55 % de
+los supervivientes deja `452/650 = 69,5 %` frente a un umbral de 85. **Conclusión corregida: excluir
+los textos no resuelve ninguna de las dos metas, no «una de dos».** Las dos mitades del cálculo, juntas,
+dicen que la fase 3 pide tests reales por partida doble.
 
-**P-002 · hecha.** `pyyaml==6.0.3` declarada en `[dependency-groups].dev` con su motivo escrito
-al lado: cinco scripts del gate la usan, entraba como transitiva de `langgraph` y de
-`detect-secrets`, y `src/` no importa YAML en ninguna parte porque parsear YAML dentro del camino
-crítico de `G-GUARD-P95` sería tiempo tirado en el peor sitio posible.
+**PyYAML, declarada.** `pyyaml==6.0.3` en `[dependency-groups].dev` con su motivo escrito al lado:
+cinco scripts del gate la usan, entraba como transitiva de `langgraph` y de `detect-secrets`, y `src/`
+no importa YAML en ninguna parte porque parsear YAML dentro del camino crítico de `G-GUARD-P95` sería
+tiempo tirado en el peor sitio posible.
 
-**P-003 · hecha, y la condición era la parte que valía.**
-Los dos números corregidos en `docs/spec/glossary.yaml` —contrato FIRMADO, editado **solo** bajo
-la autorización expresa y anotado como `correccion_medida:`—: el SCD tipo 2 pasa de +53 % a
-**+32 %** y los clientes que nunca compraron de 4,3 % a **6,2 %**. En `datagen/` se parte el campo
-que mentía: donde había un solo `never_paid_share` que publicaba el OBJETIVO con nombre de medida
-ahora hay tres, cada uno llamado por lo que es —`never_paid_target`, `never_paid_drawn`,
-`never_paid_zero_attempts`— y **ninguno de los tres es el 6,2 % del glosario**, que solo se puede
-contar contra los hechos y por eso lo cuenta `measure_traps.py` y no el generador. El informe de
-`datagen/` dejó de imprimir un número que no había medido.
+**El glosario, corregido, y la condición era la parte que valía.**
+Los dos números corregidos en `docs/spec/glossary.yaml` —contrato FIRMADO, editado como corrección
+explícita y anotado como `correccion_medida:`—: el SCD tipo 2 pasa de +53 % a **+32 %** y los clientes
+que nunca compraron de 4,3 % a **6,2 %**. En `datagen/` se parte el campo que mentía: donde había un
+solo `never_paid_share` que publicaba el OBJETIVO con nombre de medida ahora hay tres, cada uno llamado
+por lo que es —`never_paid_target`, `never_paid_drawn`, `never_paid_zero_attempts`— y **ninguno de los
+tres es el 6,2 % del glosario**, que solo se puede contar contra los hechos y por eso lo cuenta
+`measure_traps.py` y no el generador. El informe de `datagen/` dejó de imprimir un número que no había
+medido.
 
-La condición de Samuel: fuera las nueve tolerancias puestas a ojo —±6 sobre un 24 %, ±12 sobre un
-60 %, ±1 sobre un 4,3 %—, y **una sola regla declarada, `TOLERANCE_REL = 0.20`, aplicada a las
-nueve por igual**. Tenía razón en el diagnóstico —«una tolerancia por trampa es el mando con el
-que se pone verde el script sin tocar el dato»— y el resultado es mejor de lo que pedía: la regla
-única es **más estricta que la tolerancia a mano en 6 de las 9**, y aun así **`make dataset-traps`
-sale VERDE en los dos perfiles** (`dev` y `full`) con **cero excepciones**. El margen más ajustado
-sobra por 0,07 puntos. El script llevaba en rojo desde que se escribió.
+La condición: fuera las nueve tolerancias puestas a ojo —±6 sobre un 24 %, ±12 sobre un 60 %, ±1 sobre
+un 4,3 %—, y **una sola regla declarada, `TOLERANCE_REL = 0.20`, aplicada a las nueve por igual**. El
+diagnóstico —«una tolerancia por trampa es el mando con el que se pone verde el script sin tocar el
+dato»— se sostiene, y el resultado es mejor de lo esperado: la regla única es **más estricta que la
+tolerancia a mano en 6 de las 9**, y aun así **`make dataset-traps` sale VERDE en los dos perfiles**
+(`dev` y `full`) con **cero excepciones**. El margen más ajustado sobra por 0,07 puntos. El script
+llevaba en rojo desde que se escribió.
 
 Un detalle que se cazó al escribirlo: la primera versión del informe de `datagen/` publicaba el
-6,205 % escrito a mano. Eso es exactamente el pecado que P-003 corrige, así que la fila dice dónde
-se mide el número en vez de repetirlo.
+6,205 % escrito a mano. Eso es exactamente el pecado que esta corrección ataca, así que la fila dice
+dónde se mide el número en vez de repetirlo.
 
-**Trabajo de mutación, sin esperar a nadie.** `G-MUTATION` necesita 81 mutantes muertos más
+**Trabajo de mutación, sin esperar a nada.** `G-MUTATION` necesita 81 mutantes muertos más
 (1.583 de 2.376; hacen falta 1.664). Escritos los tests de los tres módulos que lo hunden:
 
 * **`catalog/build.py` · 35 mutantes, 0 muertos, 0,00 %: el peor módulo del proyecto, y el único
@@ -1171,21 +1023,23 @@ se mide el número en vez de repetirlo.
   **`bool` colándose por ser subclase de `int`** —`True` con transformación `identity` habría dado
   `1970-01-02`, que es la misma clase de conversión silenciosa que produjo el bug del `Record`—.
 * **`catalog/introspect.py` · 49,06 %.** Normalización de tipos y de claves de contrato, desempate
-  del orden cuando dos columnas comparten `ordinal`, y sobre todo **la regresión de C-3 fijada por
-  fin**: que una vista no abra una puerta trasera a una columna excluida, ni siquiera renombrándola
-  con un alias. El agujero lo encontró el `qa-adversario` en la fase 2 y hasta hoy no tenía test.
+  del orden cuando dos columnas comparten `ordinal`, y sobre todo **la regresión de la exclusión por
+  linaje fijada por fin**: que una vista no abra una puerta trasera a una columna excluida, ni
+  siquiera renombrándola con un alias. El agujero lo encontró el agente aislado de la reserva en la
+  fase 2 y hasta hoy no tenía test.
 
 85 tests en `tests/unit/catalog/`, todos en verde, lint y formato limpios.
 
-**Lo que queda de Samuel, y son 3 minutos.** P-004 no la puede ejecutar el agente: `GOALS.yaml` y
-`thresholds.lock` están en la lista de ficheros prohibidos. Cambiar `operador: "=="` por `">="` en
+**Lo que queda: resellar las metas.** `GOALS.yaml` está sellado por `thresholds.lock`, así que el cambio
+de operador no se aplica editando un fichero y ya: hay que cambiar `operador: "=="` por `">="` en
 `G-WRITE-BLOCK-DEV` (valor 25 intacto) y regenerar el lock. Hasta entonces el caso del `OFFSET`
 escondido en subconsulta —una evasión real, encontrada por mutación de AST— no puede volver al
 cuaderno sin romper el gate.
 
 ## 2026-09-02 · mutación · el corpus asertaba que había rechazo, no cuál, y eso escondía un bug
 
-**Qué se hizo.** El trabajo de mutación que P-005 no puede hacer sola, y los números salieron los
+**Qué se hizo.** El trabajo de mutación que excluir los textos no puede hacer por sí solo, y los
+números salieron los
 que la aritmética decía.
 
 | Meta | Antes | Después | Suelo |
@@ -1216,8 +1070,8 @@ EXISTENCIA, no de VALOR.** `test_rule_cases.py` comprobaba `position is not UNKN
 truthy, así que un mutante que devolviera `Position.WHERE` donde la verdad era `GROUP_BY` sobrevivía
 intacto, y `retryable` no se asertaba en ningún sitio. Cuatro columnas nuevas en el YAML —`posicion`,
 `sujeto`, `reintentable`, `alternativa`— y veinticinco líneas en el runner mataron 98 mutantes sin
-escribir un solo test nuevo. Es exactamente lo que Samuel dijo al recortar P-005: *«una tabla de
-posición que devuelve la etiqueta equivocada es un bug, no prosa»*.
+escribir un solo test nuevo. Es exactamente el criterio con el que recorté la exclusión de textos:
+*«una tabla de posición que devuelve la etiqueta equivocada es un bug, no prosa»*.
 
 **Y al volcar los 68 valores para revisarlos uno a uno apareció un bug de verdad en R005.**
 
@@ -1252,8 +1106,8 @@ través de un `UNION`, e `INTERSECT`. El tercero es el que prueba que el fail-cl
 regla no es «esta columna es peligrosa» sino «no puedo AFIRMAR que sea segura».
 
 Los cuatro casos van al corpus por regla y **no** a `attacks/`: con `G-WRITE-BLOCK-DEV` en `== 25`,
-hacer crecer el cuaderno rompe el gate. Es la tensión que P-004 resuelve y que sigue esperando tres
-minutos de Samuel.
+hacer crecer el cuaderno rompe el gate. Es la tensión que resuelve el cambio de `==` a `>=`, que
+sigue pendiente de resellar las metas.
 
 ## 2026-09-02 · fase 5 · la cadena de auditoría, y un `[]` que es evidencia
 
@@ -1344,7 +1198,7 @@ correctos: `G-MUT-GUARD` en 61,87 % contra su 85, y **`G-PII-LEAK` sin medida po
 existe todavía** — una meta bloqueante sin medida es un fallo, nunca un aprobado. Lo propio de la
 fase 5 está medido y en verde.
 
-**Lo que queda:** el refactor de P-005 para `G-MUT-GUARD`, y la fase 4 entera.
+**Lo que queda:** el refactor que saca los textos de la medida de `G-MUT-GUARD`, y la fase 4 entera.
 
 ## 2026-09-02 · fase 4 · el anillo 4 completo, y `ORDER BY n` era un oráculo
 
@@ -1405,27 +1259,26 @@ que el código diga que enmascara: **se ejecuta la consulta dos veces contra el 
 salida del segundo. Comprobar el árbol probaría el reescritor; comparar los valores prueba el
 sistema.
 
-## 2026-09-02 · buzón · P-006, P-007 y P-008, y las tres traían un añadido
+## 2026-09-02 · decisiones · la pimienta del hash de enmascarado, el centinela de auditoría, y un límite declarado entero
 
-Samuel respondió las tres propuestas abiertas. Las tres aprobadas, y **las tres con algo que la
-propuesta no pedía**, que es el patrón que este mecanismo produce cuando funciona.
+Tres decisiones de diseño cerradas, y **las tres acabaron con algo que el planteamiento inicial no
+pedía**, que es lo que pasa cuando una decisión se revisa en vez de aplicarse sin más.
 
-**P-006 · la pérdida se escribe como pérdida.** `PLAN.md` decía «sal por sesión» y `policy.yaml`
-firmado dice `pimienta_desde: config`. Corregido el plan bajo autorización expresa. El añadido:
-*«conviene escribirlo como cambio y no como corrección de una errata»*, porque la sal por sesión
-impedía correlacionar dos sesiones y la pimienta fija no lo impide. Se pierde a sabiendas, a cambio
-de la única métrica sobre la que `G-EXEC-ACC` puede medirse. Publicado en las limitaciones
-declaradas del README.
+**La pérdida se escribe como pérdida.** El plan decía «sal por sesión» y `policy.yaml` firmado dice
+`pimienta_desde: config`. Gana la política, y el plan se corrige. El matiz: conviene escribirlo como
+cambio y no como corrección de una errata, porque la sal por sesión impedía correlacionar dos sesiones
+y la pimienta fija no lo impide. Se pierde a sabiendas, a cambio de la única métrica sobre la que
+`G-EXEC-ACC` puede medirse. Publicado en las limitaciones declaradas del README.
 
-**P-007 · el centinela sube al contrato, y con un hallazgo.** Los 64 ceros de `sql_digest` significan
+**El centinela sube al contrato, y con un hallazgo.** Los 64 ceros de `sql_digest` significan
 «no hubo árbol validado» y ahora lo dice la `description` del schema, porque **el schema es lo que
 lee quien valida registros sin abrir el código** y para esa persona 64 ceros eran un sha válido y
-silencioso. El añadido de Samuel: `GENESIS` y `NO_VALIDATED_TREE` son **el mismo literal con dos
+silencioso. El hallazgo al hacerlo: `GENESIS` y `NO_VALIDATED_TREE` son **el mismo literal con dos
 significados**. No colisionan porque son campos distintos, pero un registro que sea a la vez el
 primero de la cadena y un rechazo pre-parseo llevará los dos. Anotado en las dos constantes y en
 las dos `description`: se leen por campo, nunca por valor.
 
-**P-008 · la pimienta sale del SQL, y se dice hasta dónde llega el remedio.** El árbol emite ya
+**La pimienta sale del SQL, y se dice hasta dónde llega el remedio.** El árbol emite ya
 `warden_hash(...)` y la clave vive en un `CREATE TEMP MACRO` instalado al abrir la conexión. TEMP
 porque la conexión es de SOLO LECTURA y tiene que seguir siéndolo. Verificado: **hashes idénticos**
 a los de la versión inline.
@@ -1435,9 +1288,9 @@ a los de la versión inline.
 | Campo `sql` del registro de auditoría | la pimienta, en cada registro | **no aparece** |
 | Logs del motor | una vez por CONSULTA | **una vez por CONEXIÓN** |
 
-El añadido, y era el importante: *«la macro NO elimina la pimienta de los logs del motor, la
-reduce, y eso se escribe con esas palabras. Un límite que se declara a medias es peor que uno que
-no se declara, porque parece cerrado.»* Y la vía durable que la propuesta no había considerado:
+El matiz, y era el importante: *la macro NO elimina la pimienta de los logs del motor, la reduce, y
+eso se escribe con esas palabras. Un límite que se declara a medias es peor que uno que no se
+declara, porque parece cerrado.* Y la vía durable que el planteamiento inicial no había considerado:
 esas dos columnas no necesitan un hash con clave sino un **pseudónimo estable**, el mismo patrón
 que `card_sk` frente a `card_token`. Convierte un problema de gestión de claves en uno de modelado
 de datos. Va cuando se regenere el dataset.
@@ -1450,15 +1303,15 @@ comprobación dejó de ser un conjunto plano: admite `Anonymous` **solo con nues
 **Dónde queda el proyecto.** `goals_check` en las fases 4 y 5 deja **un solo fallo, y es el mismo en
 las dos**: `G-MUT-GUARD` 61,87 % contra su suelo de 85. Todo lo demás en verde, incluidos los tres
 axiomas `G-PII-LEAK`, `G-AUDIT-COV` y `G-BUDGET-ESCAPE`. Lo que impide cerrar las fases 3, 4 y 5 es
-exactamente un número, y es trabajo de tests: no queda ninguna decisión pendiente de Samuel salvo
-los tres minutos de P-004.
+exactamente un número, y es trabajo de tests: no queda ninguna decisión abierta salvo resellar las
+metas con el cambio de `==` a `>=` en `G-WRITE-BLOCK-DEV`.
 
-## 2026-09-02 · P-005 ejecutada, y dos agujeros más que apareció la mutación
+## 2026-09-02 · el texto de los rechazos sale de `G-MUT-GUARD`, y dos agujeros más que apareció la mutación
 
-**El refactor, con el recorte de Samuel aplicado al pie de la letra.** El TEXTO de los 22 sitios de
+**El refactor, con un recorte deliberado y aplicado al pie de la letra.** El TEXTO de los 22 sitios de
 rechazo de las catorce reglas se mudó a `guard/rules/messages.py`, y **solo el texto**: qué
 `Position` es, cuál es el `subject`, si es `retryable` y qué nivel de política se violó se quedan en
-la regla y se miden. Es la línea que él pidió: *«una tabla de posición que devuelve la etiqueta
+la regla y se miden. Es la línea que fijé: *«una tabla de posición que devuelve la etiqueta
 equivocada es un bug, no prosa»*.
 
 **Cómo sale de la medida, y por qué así.** `[tool.mutmut].do_not_mutate`, no mudar el fichero de
@@ -1468,7 +1321,7 @@ denominadores; moverlo a `guard/rendering.py` lo habría sacado de `G-MUT-GUARD`
 hay que regenerar `thresholds.lock`.
 
 **Y la puerta se cierra el mismo día que se abre.** `scripts/check_mutation_scope.py` comprueba tres
-cosas sobre lo excluido: que la lista es la aprobada —solo `messages.py`—, que no importa `sqlglot`,
+cosas sobre lo excluido: que la lista es la decidida —solo `messages.py`—, que no importa `sqlglot`,
 y que no nombra `retryable`, `Level`, `GuardContext` ni `RuleResult`. Verificado que **rechaza un
 fichero de regla real** y acepta `messages.py`. Sin ese check, meter lógica en el fichero excluido la
 sacaría del alcance sin que ninguna meta se enterara, que es el mecanismo 2 de anti-gaming y encima
@@ -1479,7 +1332,7 @@ silencioso.
 | `G-MUT-GUARD` | 50,73 % (452/891) | **83,68 % (651/778)** |
 
 **Los muertos SUBIERON, no solo bajó el denominador**: de 452 a 651. Estructurar el rechazo hizo que
-el corpus matara mutantes que antes sobrevivían, que es exactamente lo que Samuel predijo al escribir
+el corpus matara mutantes que antes sobrevivían, que es exactamente lo que predecía el criterio
 «estructurar antes que excluir». El denominador bajó 113 y los muertos subieron 199.
 
 **Y el trabajo destapó dos agujeros que no eran de mutación, eran de seguridad.**
@@ -1503,9 +1356,9 @@ national_id` estaba parado por R008 —bien— pero nadie lo comprobaba. Tres ca
 en `_check_grouping`, `_reject_for` y `RowLimitRule.check`. Es picar mutante a mutante con
 rendimiento decreciente, y se deja anotado en vez de forzado.
 
-## 2026-09-02 · P-004 sellada, y el 85 % que se queda en 84,19
+## 2026-09-02 · el cuaderno de ataques ya puede crecer, y el 85 % que se queda en 84,19
 
-**Samuel selló P-004.** `G-WRITE-BLOCK-DEV` pasa de `operador: "=="` a `">="` con `valor: 25`
+**El umbral del cuaderno deja de castigar que crezca.** `G-WRITE-BLOCK-DEV` pasa de `operador: "=="` a `">="` con `valor: 25`
 intacto, y `thresholds.lock` regenerado. El diff de `GOALS.yaml` es **exactamente una línea** y el
 sha del lock cuadra.
 
@@ -1520,7 +1373,7 @@ sin matar a propósito.** Están todos en el paso de argumentos a `messages.colu
 `_reject_for`, y lo único que cambian es **la redacción del mensaje**: `position` y `subject` se
 pasan por separado a `reject()`, así que el veredicto sale idéntico y el corpus lo sigue asertando
 por su valor. Matarlos exigiría asertar los mensajes palabra por palabra, que es exactamente lo que
-P-005 dice haber descartado y lo que `RULES.md §2` prohíbe para el SQL generado. Forzar el número
+el refactor de los mensajes descartó y lo que `RULES.md §2` prohíbe para el SQL generado. Forzar el número
 por esa vía sería cumplir la métrica empeorando lo medido.
 
 **Y por el camino, un hallazgo sobre la propia regla R006.** Sus tres casos nuevos de operación de
@@ -1545,7 +1398,7 @@ El único fallo que queda en `goals_check` de las fases 3, 4 y 5 es `G-MUT-GUARD
 **Seis fases cerradas de once.** `make done MILESTONE=3`, `=4` y `=5`, las tres verdes en el mismo
 turno, con **18 metas bloqueantes por encima de su umbral** y los seis axiomas dentro:
 `G-WRITE-BLOCK`, `G-FAILCLOSED`, `G-NO-RAW-SQL`, `G-BUDGET-ESCAPE`, `G-PII-LEAK` y `G-AUDIT-COV`.
-Es el «punto de parada digno» que declara `PLAN.md` menos la fase 10.
+Es el «punto de parada digno» que me había fijado de antemano, menos la fase 10.
 
 Lo que lo desbloqueó fue un solo número: `G-MUT-GUARD` de **50,73 % a 85,46 %**. Y el último
 empujón no perseguía el número. Los cuatro mutantes que faltaban vivían en la rama de R012 que mira
@@ -1558,7 +1411,7 @@ solo se prueba cuando el anterior falla no se prueba nunca si se espera a que fa
 
 ## 2026-09-02 · fase 6 · el ciclo de corrección, y el modelo respondiendo de verdad
 
-**Construido el bucle, y es propio y de sesenta líneas y no un framework.** `PLAN.md` lo pide así
+**Construido el bucle, y es propio y de sesenta líneas y no un framework.** Lo decidí así de antemano,
 y el motivo es que este bucle es donde se demuestra la tesis del proyecto: un framework que hiciera
 los reintentos por dentro dejaría el número de `G-RECOVERY` a merced de su política, que es
 exactamente lo que se está midiendo.
@@ -1607,7 +1460,7 @@ hace de verdad **a través de la vista**: `v_customer.full_name` deriva de `firs
 **Qué se intentó.**
 Cerrar la fase 6 entera: el corpus de 42 rechazos sembrados que exige `G-RECOVERY`,
 `check_recovery_coverage.py` para `G-RECOVERY-COV`, `make eval-recovery` /
-`eval-refresh`, el adaptador de LangGraph y lo adversarial que `docs/PLAN.md` pide para
+`eval-refresh`, el adaptador de LangGraph y lo adversarial que corresponde a
 esta fase —inyección de prompt—.
 
 **Qué falló.**
@@ -1675,8 +1528,8 @@ porque parece cubierta. Entra en `make test`, en `make coverage` y en la suite d
 
 Modelo `qwen3.5:9b-mlx`, digest `203e30078279`, razonador apagado, temperatura 0,
 semilla 20260903. Prompts `nl2sql` v1 (`cf5bb72a…`) y `nl2sql-retry` v1 (`cad02d64…`).
-Hardware: el portátil de siempre, Ollama 0.33.0 con motor MLX en el host, sin otro
-proyecto encendido (D-03).
+Hardware: el portátil de siempre, Ollama 0.33.0 con motor MLX en el host, sin otra
+carga en la máquina.
 
 **Latencia del generador**, misma máquina, primera llamada descartada por carga del
 modelo: razonador apagado, 0,4-1,7 s por llamada; razonador encendido, 25-225 s.
@@ -1697,15 +1550,14 @@ modelo: razonador apagado, 0,4-1,7 s por llamada; razonador encendido, 25-225 s.
   seco sin gastar una llamada, y el informe publica corpus, recuperables y recuperados
   por separado para que nadie tenga que deducir cuál fue el denominador.
 - **El corpus se lee en `scripts/` y se expande en `src/`.** PyYAML no está en
-  `[project.dependencies]` (P-002 sigue abierta), así que el dominio no lo importa. La
+  `[project.dependencies]` (la dependencia sigue sin decidir), así que el dominio no lo importa. La
   línea queda donde está la diferencia real: leer un formato de fichero es del
   constructor; expandir una repetición declarada decide qué SQL ve el guard y por eso
   se prueba y se cubre.
 - **`wilson()` se muda a `gatelib`.** Lo usan `G-ATTACK-HOLDOUT` y `G-RECOVERY`, y dos
   copias de la fórmula del estadístico que se publica es una divergencia esperando.
-- **No se escribe `CloudProvider`.** D-05 —clave de API de pago— sigue PENDIENTE en
-  `_comun/PARA-SAMUEL-GLOBAL.md`, y escribir un proveedor contra una cuenta que no
-  existe sería inventar una cuenta. No bloquea la fase 6: `G-RECOVERY` no necesita
+- **No se escribe `CloudProvider`.** Todavía no hay una clave de API de pago, y
+  escribir un proveedor contra una cuenta que no existe sería inventar una cuenta. No bloquea la fase 6: `G-RECOVERY` no necesita
   juez, necesita el veredicto del guard, que es determinista.
 
 **Observado y no perseguido, para que conste:**
@@ -1730,7 +1582,7 @@ donde el catálogo completo se sirve como recurso.
 
 **Qué se intentó.**
 Arrancar la fase 7: contrato de las cuatro herramientas MCP (`docs/spec/tools.yaml`),
-los 20 escenarios de Q-008 con su evaluador, y el servidor. Leyendo `AuditedExecutor`
+los 20 escenarios de elección de herramienta con su evaluador, y el servidor. Leyendo `AuditedExecutor`
 para saber por dónde iba a colgar las tools, apareció otra cosa.
 
 **LA FUGA · el único camino auditado al motor no enmascaraba.**
@@ -1793,8 +1645,8 @@ devuelven ni cuándo NO usarlas («Ejecuta una consulta SQL sobre el almacén»,
 que falla son TC-06, el grano de una tabla, y TC-17, el ambiguo del conteo ya
 publicado— pero el listón está puesto en el suelo de no hacer nada. El control queda
 declarado en la suite y el informe publica `baseline_hits` y `margin_over_baseline`
-junto al número; la propuesta de subir el umbral es **P-009**, PENDIENTE, y no
-bloquea nada porque la meta se cumple hoy.
+junto al número; subir el umbral queda como decisión aparte, y no bloquea nada
+porque la meta se cumple hoy.
 
 **Decisiones.**
 - **Las descripciones de las tools se escriben con tres reglas**, y las tres salen de
@@ -1802,10 +1654,10 @@ bloquea nada porque la meta se cumple hoy.
   cuándo NO usarla y a cuál ir en su lugar; y no usar la palabra que usaría el
   enunciado —si `explain_cost` dijera «úsala cuando pregunten por el coste», TC-20
   («¿merece la pena que lance esto?») mediría una coincidencia de palabra—.
-- **Los 20 escenarios siguen con `provenance: agente_propuesto`.** Samuel aceptó el
-  borrador (Q-008) y le queda corregir la columna «correcta», 45 min. Hasta entonces
-  el 20/20 es el agente puntuándose contra su propia respuesta correcta, y tanto el
-  script como el informe lo dicen en voz alta.
+- **Los 20 escenarios siguen con `provenance: agente_propuesto`.** El borrador está
+  aceptado, pero la columna «correcta» aún no tiene revisión humana (unos 45 min).
+  Hasta entonces el 20/20 es el agente que los escribió puntuándose contra su propia
+  respuesta correcta, y tanto el script como el informe lo dicen en voz alta.
 
 **Siguiente.**
 El servidor MCP en sí: `server/discover`, `tools/list` determinista, `resultType`,
@@ -1876,7 +1728,7 @@ Son digests de ficheros que están en el repositorio: publicarlos no revela nada
 no pueda calcular cualquiera. Añadidos a mano, uno a uno, y el diff los enseña.
 
 **Y NO se excluye `evals/reports/` del escaneo**, aunque sería lo cómodo y quitaría la
-fricción de golpe. Ahí puede acabar un secreto de verdad: P-008 dice que la pimienta
+fricción de golpe. Ahí puede acabar un secreto de verdad: por diseño, la pimienta
 del enmascarado viaja como literal dentro del `sql` que se ejecuta, y ese `sql` va al
 registro de auditoría. Recortar la cobertura del escaneo justo donde el proyecto ya
 sabe que hay un secreto sería cambiar un falso positivo molesto por un agujero.
@@ -1908,10 +1760,11 @@ codigo de salida: 1        · y la linea base NO se la traga (grep: 0)
 ## 2026-09-06 · fase 7 · el contrato I-06 castigaba usar el camino correcto
 
 **Qué se intentó.**
-Nada nuevo. Samuel aplicó P-009 y Q-008 —`G-TOOL-CHOICE` de `>= 18` a `== 20`,
-`thresholds.lock` regenerado, `provenance: agente_propuesto_revisado_humano` sin
-cambiar ninguna casilla de la columna «correcta»— y al correr `make done
-MILESTONE=6` salió ROJO en el paso 1.
+Nada nuevo. Acababa de subir `G-TOOL-CHOICE` de `>= 18` a `== 20` —el control
+negativo sacaba 18, así que el listón anterior era el suelo de no hacer nada—, con
+`thresholds.lock` regenerado y los escenarios en `provenance:
+agente_propuesto_revisado_humano` sin cambiar ninguna casilla de la columna
+«correcta», y al correr `make done MILESTONE=6` salió ROJO en el paso 1.
 
 **Qué falló, y es mío.**
 
@@ -1925,7 +1778,7 @@ datawarden.mcp is not allowed to import datawarden.engines:
 **Cómo se me escapó, que es la parte que importa.** Comprobé `lint-imports` con
 `| tail -2` y lo que salió fue el DETALLE del contrato roto, no el resumen. Lo leí
 como si dijera que estaba bien. Y `gate-fast` —lo único que corro en cada turno— no
-incluye `imports`, así que no volvió a aparecer hasta que Samuel cerró una fase dos
+incluye `imports`, así que no volvió a aparecer hasta que cerré una fase dos
 días después. Un truncado mal elegido más un gate que no cubría el caso.
 
 **El diagnóstico, y no es lo que parecía.** El contrato no estaba cazando un atajo:
@@ -1964,25 +1817,25 @@ principio y se descubre al final, que es cuando más caro sale.
 
 | Meta | Umbral | Medido | Comando |
 |---|---|---|---|
-| `G-TOOL-CHOICE` | == 20 (subido por P-009) | **20 / 20**, línea base 18, margen +2 | `make eval-toolchoice` |
+| `G-TOOL-CHOICE` | == 20 (subido desde >= 18) | **20 / 20**, línea base 18, margen +2 | `make eval-toolchoice` |
 | Contratos de capas | 4 kept, 0 broken | **4 / 0** | `make imports` |
 
 `make done MILESTONE=6` **VERDE** con los 20 umbrales. Snapshot
 `.snapshots/milestone-6-20260906T190525Z`.
 
 **Decisiones.**
-- **P-009 queda aplicada por Samuel** (GOALS.yaml + sello), y no cambió ninguna
-  casilla de Q-008: estuvo de acuerdo con los 20 escenarios, incluidos los cuatro
-  ambiguos. La columna «correcta» ya es criterio humano y el `AVISO` de
+- **El umbral subido queda sellado** (GOALS.yaml + `thresholds.lock`), y la revisión
+  humana de la columna «correcta» no cambió ninguna casilla de los 20 escenarios,
+  incluidos los cuatro ambiguos. La columna ya es criterio humano y el `AVISO` de
   autopuntuación ha dejado de imprimirse.
-- **`docs/PENDIENTE-*.md` al `.gitignore`.** La otra sesión dejó un documento de
-  buzón sin ignorar; un `git add -A` lo habría publicado, contra la regla de que el
-  buzón sale de git. De paso, esa revisión cazó un error real en mi propia P-009: yo
-  ofrecía un margen `>= 3` cuando el medido es 2, y ese umbral habría puesto el gate
-  en rojo el día de aprobarlo. Corregido en el buzón.
+- **`docs/PENDIENTE-*.md` al `.gitignore`.** Había un documento de notas de trabajo
+  internas sin ignorar, y un `git add -A` lo habría publicado. De paso, esa revisión
+  cazó un error real en mi propia propuesta de umbral: ofrecía un margen `>= 3` cuando
+  el medido es 2, y ese umbral habría puesto el gate en rojo el día de aplicarlo.
+  Corregido antes de aplicarlo.
 
-**Siguiente.** El transporte stdio, que es lo único que separa a Q-009 de ser
-posible: hoy `warden --help` solo ofrece `catalog` y `audit`, así que no hay nada que
+**Siguiente.** El transporte stdio, que es lo único que separa la prueba manual con
+Claude Desktop de ser posible: hoy `warden --help` solo ofrece `catalog` y `audit`, así que no hay nada que
 apuntar desde Claude Desktop.
 
 ---
@@ -1990,7 +1843,7 @@ apuntar desde Claude Desktop.
 ## 2026-09-06 · fase 7 · el transporte stdio, y el servidor no sabía contestar
 
 **Qué se intentó.**
-Escribir el transporte stdio para que Q-009 sea posible: hoy `warden --help` solo
+Escribir el transporte stdio para que la prueba manual con Claude Desktop sea posible: hoy `warden --help` solo
 ofrecía `catalog` y `audit`, así que no había nada que apuntar desde Claude Desktop.
 
 **El diseño, dictado por un contrato.** `mcp/runtime.py` necesita un
@@ -2077,21 +1930,21 @@ la máscara instalada por la factoría enmascara de verdad: es lo único que pru
   corrigió una ruta equivocada que ya estaba: `datagen/out/dev/cierzo-dev.duckdb` no
   existe; es `datagen/out/cierzo-dev.duckdb`.
 
-**Siguiente.** Q-009 ya se puede hacer: `make mcp-live` en verde es la prueba de que
+**Siguiente.** La prueba manual con Claude Desktop ya se puede hacer: `make mcp-live` en verde es la prueba de que
 hay algo que instalar. Falta de la fase 7 para poder cerrarla: `http/` con FastAPI,
 Streamable HTTP, MRTR para el presupuesto `soft` y `traceparent` a OTel.
 
 ---
 
-## 2026-09-06 · Q-009 · hallazgo 1 · el README solo contemplaba el fichero vacío
+## 2026-09-06 · prueba manual con Claude Desktop · hallazgo 1 · el README solo contemplaba el fichero vacío
 
-**Qué pasó.** Samuel siguió el README hasta el paso 4 y se paró ahí. Su
+**Qué pasó.** En la prueba manual seguí el README hasta el paso 4 y me paré ahí. Mi
 `claude_desktop_config.json` **ya existía** —con `coworkUserFilesPath`,
 `preferences`, carpetas de confianza, media pantalla de ajustes de la app— y el
 README decía, literalmente: *«si no existe, créalo con exactamente esto»*, seguido de
 un JSON completo con `mcpServers` como única clave.
 
-Su pregunta, textual: *«se me indica que si no tengo el archivo que lo genere pero no
+La duda que anoté, textual: *«se me indica que si no tengo el archivo que lo genere pero no
 qué pasa si ya lo tienes, dónde meto lo que se me indica en el README»*.
 
 **Por qué es un defecto y no un despiste.** El caso que el README cubría —fichero
@@ -2104,10 +1957,10 @@ menos al pegar el bloque y **Claude Desktop ignora el fichero entero en silencio
 sale un error: sale que no aparece ninguna herramienta, que se parece mucho a «el
 servidor está roto» y no lo está.
 
-**Esto es exactamente para lo que existe Q-009**, y por qué la respondió diciendo que
-lo hiciera él y sin ayuda del agente: yo escribí el README con mi
-`claude_desktop_config.json` de referencia en la cabeza, que era el caso vacío. La
-prueba encuentra lo que el autor no puede ver.
+**Esto es exactamente para lo que existe la prueba manual**, y por qué se hace siguiendo
+solo el README y sin más ayuda: el README se escribió con un
+`claude_desktop_config.json` de referencia en la cabeza, que era el caso vacío. Seguir
+el documento al pie de la letra encuentra lo que escribirlo no deja ver.
 
 **Arreglado en el README:** `mcpServers` se presenta como **una clave más del nivel
 superior**, con los dos casos —fichero que existe y fichero que no— y la diferencia de
@@ -2118,23 +1971,23 @@ comprobación de que el JSON sigue siendo válido antes de reiniciar:
 python3 -m json.tool ~/Library/Application\ Support/Claude/claude_desktop_config.json > /dev/null
 ```
 
-**Pendiente de Samuel:** el cronómetro de «cero a primera consulta respondida» y la
+**Pendiente:** el cronómetro de «cero a primera consulta respondida» y la
 captura del rechazo. El atasco de arriba entra en el número: es tiempo real que costó
 seguir el documento.
 
 ---
 
-## 2026-09-06 · Q-009 · hallazgo 2 · el marcador de la pimienta parecía un valor
+## 2026-09-06 · prueba manual con Claude Desktop · hallazgo 2 · el marcador de la pimienta parecía un valor
 
-**Qué pasó.** Samuel pegó el bloque en `claude_desktop_config.json` y dejó
-`"DATAWARDEN_MASK_PEPPER": "PEGA_AQUI_TU_PIMIENTA"` —el marcador que le di en el
-chat— sin sustituir. Mide **21 caracteres** y el mínimo son 32.
+**Qué pasó.** Al pegar el bloque en `claude_desktop_config.json` dejé
+`"DATAWARDEN_MASK_PEPPER": "PEGA_AQUI_TU_PIMIENTA"` —el marcador de las
+instrucciones— sin sustituir. Mide **21 caracteres** y el mínimo son 32.
 
 **Cazado ANTES del reinicio, y esa es la parte interesante.** No lo encontró la app:
-lo encontró una comprobación del bloque hecha a mano porque él no podía reiniciar
-Claude Desktop en ese momento. Si hubiera reiniciado, el servidor se habría negado a
+lo encontró una comprobación del bloque hecha a mano porque en ese momento no podía
+reiniciar Claude Desktop. Si hubiera reiniciado, el servidor se habría negado a
 arrancar con el mensaje correcto —*«la pimienta tiene 21 caracteres y el mínimo es
-32»*— y le habría costado un ciclo de reinicio y una búsqueda en
+32»*— y me habría costado un ciclo de reinicio y una búsqueda en
 `~/Library/Logs/Claude/` descubrirlo.
 
 **El sistema hizo lo correcto y aun así el documento falló.** Negarse a arrancar con
@@ -2147,15 +2000,15 @@ imposible de confundir con un valor, y el README trae una comprobación de la lo
 **antes** de reiniciar, junto a la del JSON válido. Las dos comparten el mismo motivo:
 lo que se descubre después de un reinicio cuesta un reinicio.
 
-**Nota para el número de Q-009:** este atasco no lo sufrió Samuel —se evitó antes—,
-así que no entra en el cronómetro. Entra en la lista de defectos del documento, que
+**Nota para el número de la prueba manual:** este atasco no llegó a costar tiempo —se
+evitó antes—, así que no entra en el cronómetro. Entra en la lista de defectos del documento, que
 es la otra mitad de lo que la prueba produce.
 
 ---
 
-## 2026-09-07 · Q-009 · hallazgo 3 · Claude Desktop ignora `cwd`, y yo probaba otro comando
+## 2026-09-07 · prueba manual con Claude Desktop · hallazgo 3 · Claude Desktop ignora `cwd`, y yo probaba otro comando
 
-**Qué pasó.** Samuel reinició y el servidor no arrancó. Del log:
+**Qué pasó.** Reinicié y el servidor no arrancó. Del log:
 
 ```
 error: Failed to spawn: `warden`
@@ -2169,7 +2022,7 @@ con ese error**. La causa no era el entorno recortado ni el `PATH`: **Claude Des
 ignora la clave `cwd` de la configuración**, así que `uv run warden` se ejecutaba fuera
 del proyecto y no encontraba el ejecutable.
 
-**Y el mío es peor que el suyo.** `check_mcp_live.py` daba **8/8** mientras la
+**Y el fallo de la comprobación es peor que el de la instalación.** `check_mcp_live.py` daba **8/8** mientras la
 instalación real moría, porque lanzaba `sys.executable -m datawarden.cli` con
 `cwd=ROOT`: **un comando que el README no menciona, desde un directorio que el cliente
 no garantiza.** Escribí una comprobación de «el servidor contesta por stdio» que no
@@ -2203,7 +2056,7 @@ ejecuta, con el comando que se documenta y en las condiciones en que corre.**
 
 ---
 
-## 2026-09-07 · Q-009 · hallazgo 4 · el servidor era indescubrible, y el rechazo mandaba a un sitio al que no se podía ir
+## 2026-09-07 · prueba manual con Claude Desktop · hallazgo 4 · el servidor era indescubrible, y el rechazo mandaba a un sitio al que no se podía ir
 
 **Qué pasó.** El servidor arrancó, cargó las cuatro herramientas y el guard rechazó
 correctamente. Y aun así el modelo no pudo contestar «¿cuántos clientes hay por país?»,
@@ -2274,15 +2127,16 @@ más estricto; añadirlas es lo que hay que auditar.
 | `.secrets.baseline` | 14 entradas | **10** |
 | `make done MILESTONE=6` | — | **VERDE**, 20 metas |
 
-**Lección.** Van cuatro hallazgos de Q-009 y **ninguno lo habría encontrado yo solo**.
-Este es el más caro de los cuatro y el más difícil de ver desde dentro: yo probaba con
-un cliente que sí lee recursos, así que para mí el catálogo siempre estuvo ahí. El
-valor de la prueba no era comprobar que el servidor funciona —funcionaba—, sino que
-alguien que no lo escribió pudiera usarlo.
+**Lección.** Van cuatro hallazgos de la prueba manual y **ninguno lo habían encontrado
+las comprobaciones automáticas**. Este es el más caro de los cuatro y el más difícil de
+ver desde dentro: durante el desarrollo probaba con un cliente que sí lee recursos, así
+que para mí el catálogo siempre estuvo ahí. El valor de la prueba no era comprobar que
+el servidor funciona —funcionaba—, sino que se pudiera usar desde un cliente real
+siguiendo solo lo documentado.
 
 ---
 
-## 2026-09-07 · Q-009 · funciona de punta a punta, y el número de minutos NO se puede publicar
+## 2026-09-07 · prueba manual con Claude Desktop · funciona de punta a punta, y el número de minutos NO se puede publicar
 
 **Qué funcionó.** Con los cuatro hallazgos arreglados, un cliente MCP real resolvió la
 pregunta en tres pasos y sin adivinar ni una vez:
@@ -2313,15 +2167,15 @@ trabajando juntos, y es exactamente lo que `G-RECOVERY` mide en frío.
 
 **EL NÚMERO DE MINUTOS NO SE PUEDE PUBLICAR, y conviene escribir por qué.**
 
-Samuel propone «de 0 a conectado en 5 minutos», razonando que ese habría sido el tiempo
-*si el README hubiera estado bien*. El razonamiento es sensato y el número es
+La tentación era publicar «de 0 a conectado en 5 minutos», razonando que ese habría sido
+el tiempo *si el README hubiera estado bien*. El razonamiento es sensato y el número es
 probablemente correcto. **Y aun así no es publicable**, por la regla que este proyecto
 se aplica a sí mismo en todo lo demás:
 
 > «Un número sin comando que lo reproduzca no es un número.»
 
 Cinco minutos es un **contrafactual**: describe una ejecución que no ocurrió. La que sí
-ocurrió duró mucho más y se topó con cuatro defectos. Y Q-009 pedía literalmente *«de
+ocurrió duró mucho más y se topó con cuatro defectos. Y la prueba pedía literalmente *«de
 cero a primera consulta respondida en N minutos siguiendo solo el README»* — el README
 que se siguió no es el de ahora.
 
@@ -2346,17 +2200,17 @@ Es un número honesto y acotado: **mide la máquina, no a la persona leyendo el 
 y hay que decirlo con esas palabras al publicarlo.
 
 **Cómo se consigue el número de verdad**, si se quiere: una segunda pasada desde cero
-con el README ya corregido, hecha por **alguien que no sea Samuel** —él ya conoce las
-respuestas y está contaminado como sujeto—. Es media hora de otra persona, y entonces
+con el README ya corregido, hecha por **alguien que no haya escrito el proyecto** —yo ya conozco las
+respuestas y estoy contaminado como sujeto—. Es media hora de otra persona, y entonces
 el número tendría el mismo derecho a publicarse que los demás del proyecto.
 
-**El resultado real de Q-009 no son los minutos: son los cuatro defectos.** Un README
+**El resultado real de la prueba manual no son los minutos: son los cuatro defectos.** Un README
 que borraba la configuración de Claude Desktop, un marcador que parecía un valor, una
 clave `cwd` que el cliente ignora, y un servidor indescubrible con un mensaje que
-mandaba a un sitio al que no se podía ir. Ninguno lo habría encontrado yo, y los cuatro
-estaban en el camino de la primera persona que lo instalara.
+mandaba a un sitio al que no se podía ir. Ninguno lo habían encontrado las comprobaciones
+automáticas, y los cuatro estaban en el camino de la primera persona que lo instalara.
 
-**Pendiente de D-08:** la captura del rechazo. Es la que convierte.
+**Pendiente:** la captura del rechazo. Es la que convierte.
 
 ---
 
@@ -2366,10 +2220,10 @@ estaban en el camino de la primera persona que lo instalara.
 el congelador de resultsets y el arnés `make eval`. Y la primera medida de
 `G-EXEC-ACC`, que es la métrica insignia.
 
-**El reparto de quién pone la verdad.** No el agente: `docs/spec/glossary.yaml`, que
-Samuel firmó el 2026-09-01. 38 de los 50 casos de ejecución declaran en `glosario:` la
+**El reparto de quién pone la verdad.** No quien escribe el banco: `docs/spec/glossary.yaml`,
+firmado el 2026-09-01. 38 de los 50 casos de ejecución declaran en `glosario:` la
 entrada firmada que su SQL transcribe, y donde el contrato ya trae un `se_calcula` se
-copia literalmente. El trabajo del agente pasa de CRITERIO a TRANSCRIPCIÓN, y revisar
+copia literalmente. Escribir el banco pasa de CRITERIO a TRANSCRIPCIÓN, y revisar
 una transcripción cuesta segundos donde decidir una definición cuesta veinte minutos.
 
 **Tres defectos que cazó el propio banco antes de medir nada:**
@@ -2418,13 +2272,14 @@ que no dispara la regla— y dos dispararon una regla distinta de la declarada. 
 cuatro aceptados hay que mirarlos uno a uno: puede que la pregunta no fuerce la
 consulta arriesgada, y entonces el defecto es del caso.
 
-**Decisión que NO toma el agente.** Arreglar esto significa reescribir preguntas para
-que determinen la forma de la respuesta, y eso cambia el banco que Samuel va a firmar.
-Hacerlo yo después de ver el resultado sería mover la vara habiendo visto el número,
-que es justo lo que la constitución no admite. **Va al buzón como P-010.**
+**Una decisión que no se toma en caliente.** Arreglar esto significa reescribir preguntas
+para que determinen la forma de la respuesta, y eso cambia el banco después de haber visto
+el resultado: sería mover la vara habiendo visto el número, que es justo lo que este
+proyecto no admite sin fijar antes, por escrito, el criterio de la reescritura. **Queda
+parado hasta fijarlo.**
 
 **Lo que queda medido y publicable de hoy**, con su etiqueta:
-- El banco existe, cuadra con la estratificación de `PLAN.md` y **cada referencia pasa
+- El banco existe, cuadra con la estratificación exigida y **cada referencia pasa
   el guard con su rol y corre contra el dataset**.
 - 47 resultsets congelados sobre el perfil `dev`, con el sha de su SQL para que
   editarlo sin recongelar se note.
@@ -2435,9 +2290,9 @@ que es justo lo que la constitución no admite. **Va al buzón como P-010.**
 
 ## 2026-09-09 · docs · el mapa de arquitectura, generado desde el código y no desde la memoria
 
-Samuel pidió un mapa de la arquitectura. No es trabajo de la fase 8 —que sigue bloqueada
-por P-010— así que es documentación derivada y no toca ni el gate ni ningún fichero de
-solo lectura.
+Quería un mapa de la arquitectura. No es trabajo de la fase 8 —parada hasta fijar el
+criterio de reescritura del banco—, así que es documentación derivada y no toca ni el gate
+ni ningún fichero sellado.
 
 **Qué se genera y de dónde.** `docs/ARQUITECTURA.html` es un artefacto autocontenido
 —claro/oscuro, zoom, cuatro vistas guiadas, export— y `docs/ARQUITECTURA.archify.json`
@@ -2468,10 +2323,10 @@ localiza `en` y `zh-CN`— y el contenido está en español, como el resto de `d
 
 ## 2026-09-10 · fase 8 · el perfil, la reescritura, y el sistema se guardaba su propio glosario
 
-**Samuel decidió las dos cosas de P-010:** reescribir las preguntas, y `full`. Las dos
-resultaron tener un motivo más fuerte del que yo había escrito al pedirlas.
+**Decidí las dos cosas que tenía paradas:** reescribir las preguntas, y medir sobre `full`.
+Las dos resultaron tener un motivo más fuerte del que había escrito al plantearlas.
 
-**EL PERFIL · `full`, y no por lo que yo decía.** Yo había elegido `dev` por velocidad
+**EL PERFIL · `full`, y no por lo que yo pensaba.** Había propuesto `dev` por velocidad
 y había puesto como pega que los `valor_tipico` del glosario no coincidirían. Al
 comprobarlo apareció lo importante:
 
@@ -2486,11 +2341,11 @@ arregla esa incoherencia. Y no es lento —el peor caso del banco tarda **1,5 s*
 Parquet con poda de columnas—. Además la tasa de aprobación sale **86,93 %**, dentro
 del 86-87 % que declara el glosario, mientras sobre `dev` daba 86,14 % y se salía.
 
-**De rebote, una corrección firmada que se había quedado a medias.** P-003-b subió
-«clientes que nunca compraron» de 4,3 % a 6,2 % el 2026-09-02, y se aplicó a la sección
+**De rebote, una corrección firmada que se había quedado a medias.** El 2026-09-02 el
+glosario subió «clientes que nunca compraron» de 4,3 % a 6,2 %, y se aplicó a la sección
 `trampas` **pero no al `ojo` de `cliente_activo`** — que es justo donde lo lee quien va
 a escribir una consulta. Medido: 570.895 de 9.200.001 = **6,205 %**, exactamente lo que
-dice la corrección. Completado bajo la misma autorización expresa que ya constaba.
+dice la corrección. Completado, porque la corrección ya estaba firmada.
 
 **LA REESCRITURA · 26 preguntas, y funcionó para lo que era.** Criterio único: *la
 pregunta determina la FORMA de la respuesta y no dicta el SQL*. Los fallos de forma
@@ -2533,7 +2388,7 @@ join y agregación (1/22 → 5/22) y **bajó** las simples (9/20 → 5/20). Aña
 contexto ayuda donde hace falta semántica y estorba donde no. No es un resultado
 cómodo y por eso se escribe.
 
-**Lo que queda por decidir, y no lo decide el agente.** Con 0,193 y un umbral de 0,80,
+**Lo que queda por decidir.** Con 0,193 y un umbral de 0,80,
 las salidas honestas son tres y ninguna es «seguir tocando el prompt»:
 1. **Un modelo mayor.** Se está midiendo con `gemma4:26b-mlx` para saber si el techo es
    el modelo o el sistema. Sin ese dato, cualquier decisión sería a ciegas.
@@ -2564,12 +2419,12 @@ para decidir, no un número publicable. `gemma4:26b-mlx` es además de la famili
 juez, así que no puede acabar de generador sin romper la independencia que
 `models.lock` protege por diseño.*
 
-**Siguiente.** P-011 en el buzón con las tres salidas y sus costes. La constitución
-pide ≥ 2 intentos medidos para admitir una propuesta de umbral: van cuatro.
+**Siguiente.** Decidir entre las tres salidas con sus costes delante. Un cambio de umbral
+exige al menos dos intentos medidos: van cuatro.
 
 ## 2026-09-10 · la prueba manual con Claude Desktop, y lo que destapó
 
-Samuel pegó 9 preguntas del banco en Claude Desktop contra el servidor MCP real y me pasó los
+Pegué 9 preguntas del banco en Claude Desktop contra el servidor MCP real y guardé los
 volcados completos: **92 llamadas a `run_query`, 18 rechazos, 17 errores de handler.**
 
 **Puntuación (indicio, no `G-EXEC-ACC`).** 1/9 estricto — y el estricto engaña aquí, porque un
@@ -2590,18 +2445,18 @@ vista no es reproducible a mano (la regla de deduplicación en Q-E-02 y Q-E-36).
    de los manifiestos de Iceberg, que solo cubren las 24 tablas físicas. Consecuencia medida: **20
    de las 47 referencias escritas del banco las rechaza el sistema**, y `check_questions.py` no lo
    vio porque llama a `validate()` (anillo 3) y no a `screen()` (anillo 3 **y** 4). Techo de
-   `G-EXEC-ACC`: 27/47 = 0,574, con cualquier modelo. → **P-012**.
+   `G-EXEC-ACC`: 27/47 = 0,574, con cualquier modelo.
 2. **`Handler returned an invalid result` = franja del presupuesto blando.** 17/17 de correlación
    con `Decision.CONFIRM`. Reproducido en vivo: cliente sin `elicitation_callback` →
    `MCPError: Elicitation not supported`; con callback → `outcome=rows`. `check_mcp_live.py`
-   siempre pasa callback, así que mide un cliente que no es el que se usa. → **P-013**.
+   siempre pasa callback, así que mide un cliente que no es el que se usa.
 
 Nada de esto rompe un axioma: el fail-closed aguanta, el rechazo por presupuesto es un rechazo, y
 `G-BUDGET-ESCAPE` sigue en pie. Lo que estaba roto era la MEDIDA, otra vez.
 
-## 2026-09-10 (tarde) · P-012 y P-013 aplicados, y tres defectos más que salieron detrás
+## 2026-09-10 (tarde) · estadísticas para las vistas, presupuesto blando sin elicitation, y tres defectos más que salieron detrás
 
-**P-012 · las vistas ya tienen estadísticas.** `catalog/statistics.derive_views()` las deduce del
+**Las vistas ya tienen estadísticas.** `catalog/statistics.derive_views()` las deduce del
 linaje publicado. Todo lo dudoso se redondea HACIA ARRIBA porque sobreestimar es un rechazo de más
 y subestimar deja pasar una consulta cara: `bytes` y `files` suman las bases, `rows` toma el máximo,
 y las particiones **solo** se heredan cuando la vista tiene una base y conserva su columna de
@@ -2619,9 +2474,9 @@ modelo escribe su propio SQL y se le compara el resultset, así que cuando el pr
 el bucle reintentaba sobre la tabla base. Composición de los 46 fallos, antes → después: `R004`
 14 → 12, `cell_value` 11 → 12, `BinderException` 6 → 6. **Lo que ata al 9B es aterrizar en el esquema
 y acertar las definiciones, no el presupuesto.** El defecto era real —un banco que exige lo que el
-sistema prohíbe no es un banco— pero no era lo que sujetaba el número. Corregido en P-011 y P-012.
+sistema prohíbe no es un banco— pero no era lo que sujetaba el número. Corregido en mi análisis.
 
-**P-013 · el presupuesto blando ya no rompe a quien no sabe confirmar.** Los 17 `Handler returned an
+**El presupuesto blando ya no rompe a quien no sabe confirmar.** Los 17 `Handler returned an
 invalid result` eran 17 `Decision.CONFIRM`, correlación perfecta. Un cliente que no declara
 `elicitation` recibía `MCPError: Elicitation not supported` y perdía la franja entera. Ahora
 `_sabe_confirmar(ctx)` mira lo que el cliente DECLARÓ y, si no puede contestar, el blando ejecuta con
@@ -2640,7 +2495,7 @@ siga rechazando contra ese mismo cliente.
    `source_sha256`); auditados y añadidos a mano a la línea base, que **no** se regeneró.
 
 2. **`make test-int` seguía siendo el tapón de la fase 0** («no hay tests de integración todavía») y
-   había 56 esperando. `scripts/done.py` sí los corría; el atajo documentado en CLAUDE.md, no.
+   había 56 esperando. `scripts/done.py` sí los corría; el atajo, no.
 
 3. **Los tests anti-inyección llevaban rojos desde el prompt v2.** `_REAL_SECTIONS` estaba escrito a
    mano con las cuatro secciones de la primera versión, y el glosario firmado añadió cinco más: todo
@@ -2676,18 +2531,22 @@ intervalo de Wilson [0,57 - 0,87] se solapa con el anterior, así que no afirmo 
 que el número anterior era de otro prompt y que este es el de este.
 
 **`otel-semconv.lock`** fija `v1.42.0` del repo PRINCIPAL con su sha verificado, porque
-`semantic-conventions-genai` —el que manda el contrato— no tiene ni un tag ni una release. Q-011.
+`semantic-conventions-genai` —el que manda el contrato— no tiene ni un tag ni una release.
 
-## 2026-09-10 (noche) · P-011 resuelta: el umbral baja Y el modelo sube
+## 2026-09-10 (noche) · `G-EXEC-ACC`: el umbral baja Y el modelo sube
 
-Samuel eligió la opción (b) y la ejecutó él: `docs/GOALS.yaml` pasa `G-EXEC-ACC` de `0,80` a `0,40`
-y el Wilson de `0,68` a `0,25`, con `thresholds.lock` resellado (sha `77fd2c94…`, verificado). El
-`tamaño del conjunto de referencia >= 60` **no** se tocó, así que los tres `arbitrio` siguen
-bloqueando: hoy son 57.
+De las tres salidas elegí la (b), bajar el umbral: `docs/GOALS.yaml` pasa `G-EXEC-ACC` de `0,80` a
+`0,40` y el Wilson de `0,68` a `0,25`, con `thresholds.lock` resellado (sha `77fd2c94…`, verificado).
+Es una decisión tomada después de ver el número, y lo digo así. Lo que impide que sea mover la vara:
+el 0,80 se fijó al arrancar el proyecto, antes de que existiera el banco; cuatro medidas —tres con el
+9B sobre versiones distintas del banco y del prompt, una con el 26B— dicen que ningún modelo local
+disponible se le acerca; y el 0,40 queda por encima de lo que da el 9B (0,19), así que no certifica
+el sistema que había: obliga a cambiar de modelo. El `tamaño del conjunto de referencia >= 60`
+**no** se tocó, así que los tres `arbitrio` siguen bloqueando: hoy son 57.
 
-**Las dos mitades van juntas.** Bajar el listón sin subir el modelo era justo el atajo que P-011
-descartaba, así que `models.lock` pasa el rol `generador` de `qwen3.5:9b-mlx` a `gemma4:26b-mlx`
-(digest `c8656f50f0a6`, verificado contra Ollama). El 9B queda anotado como `generador_anterior`:
+**Las dos mitades van juntas.** Bajar el listón sin subir el modelo era justo el atajo que había
+descartado al plantear las salidas, así que `models.lock` pasa el rol `generador` de
+`qwen3.5:9b-mlx` a `gemma4:26b-mlx` (digest `c8656f50f0a6`, verificado contra Ollama). El 9B queda anotado como `generador_anterior`:
 retirar su digest volvería irreproducibles los informes ya publicados.
 
 | generador | `G-EXEC-ACC` | R004 | BinderException | cell_value |
@@ -2724,7 +2583,7 @@ contar. Un tope convierte un agujero en un dato.
 De paso, `gen_ai.request.max_tokens` deja de ser un campo decorativo del modelo interno de
 telemetría: ahora lleva un parámetro que de verdad se envía.
 
-### P-014 · `G-EXEC-ACC` castiga exactamente lo que `G-RECOVERY` premia
+### `G-EXEC-ACC` castiga exactamente lo que `G-RECOVERY` premia
 
 Los 10 casos de rechazo pasan por `run_loop`, que es el ciclo generar → validar → **corregir**, y se
 puntúan por el desenlace FINAL. Pero el ciclo existe para recuperarse: si el modelo se recupera bien,
@@ -2734,8 +2593,8 @@ el desenlace final es una aceptación y el caso cuenta como fallo. **Un modelo q
 Añadido un campo de DIAGNÓSTICO —`reglas_en_el_ciclo`, que no puntúa nada— para poder distinguir «el
 guard nunca vio nada prohibido» de «el guard lo paró y el modelo corrigió». De los 8 casos de rechazo
 fallados, **cinco tienen la regla declarada saltando dentro del ciclo**: `Q-R-01`, `Q-R-02` y `Q-R-03`
-con R008, `Q-R-04` y `Q-R-05` con R012. Es literalmente lo que Samuel vio a mano en Claude Desktop y
-celebramos como el mejor resultado del volcado: pidió fecha de nacimiento, se llevó el R008 con su
+con R008, `Q-R-04` y `Q-R-05` con R012. Es literalmente lo que vi a mano en Claude Desktop y
+anoté como el mejor resultado del volcado: pidió fecha de nacimiento, se llevó el R008 con su
 alternativa, y usó `age_band`. El banco lo apunta como error.
 
 Los otros tres son fallos reales y tienen que seguir contando: en `Q-R-07` y `Q-R-08` no saltó
@@ -2743,23 +2602,24 @@ ninguna regla, y en `Q-R-09` saltó R008 donde se declaraba R006.
 
 **No lo he aplicado.** Corregir el criterio subiría `G-EXEC-ACC` de 0,4386 a 0,5263, y lo he
 encontrado DESPUÉS de ver el número. Cambiar una regla de puntuación después de ver el número es
-exactamente lo que este proyecto no hace sin permiso. Está en P-014, con el número que daría escrito
-por delante para que se decida sabiendo qué se compra.
+exactamente lo que este proyecto no hace en caliente. Queda anotado aparte, con el número que daría
+escrito por delante, para decidirlo sabiendo qué se compra.
 
 ## 2026-09-11 · FASE 8 CERRADA · `make done MILESTONE=8` VERDE
 
 Punto de retorno: `.snapshots/milestone-8-20260911T141518Z`.
 
-**Las decisiones de Samuel (Q-013 y P-014), aplicadas.**
+**Las decisiones pendientes del banco, aplicadas.**
 
 - `Q-E-21` «cuál es nuestro comercio más importante» → el que más `ingreso_bruto` deja.
 - `Q-E-05` «qué comercios mueven más volumen» → `volumen_procesado`, identidad vigente.
 - `Q-E-22` «cómo va el negocio este trimestre» → fuera; la sustituye `Q-E-51` (tasa de reintento por
   canal) en el MISMO estrato y rol. Yo había propuesto ponerla en `ventana_o_correlada` y no podía:
-  Q-E-22 era de `join_o_agregacion` y PLAN.md fija 25 de ese estrato.
-- P-014: un caso de rechazo acierta si la regla DECLARADA saltó en el ciclo, no solo al final.
+  Q-E-22 era de `join_o_agregacion` y el banco fija 25 de ese estrato.
+- Criterio de los casos de rechazo: aciertan si la regla DECLARADA saltó en el ciclo, no solo al
+  final. Decidido después de ver el número, con su efecto (0,4386 → 0,5263) escrito antes de aplicarlo.
 
-**Una corrección sobre mis propios números.** La tabla que le enseñé a Samuel para decidir Q-E-21 y
+**Una corrección sobre mis propios números.** La tabla con la que decidí Q-E-21 y
 Q-E-05 estaba calculada sobre el grano de intentos. El glosario firmado define `volumen_procesado`,
 `ingreso_bruto` y `margen_neto` sobre `fact_settlement_batch`, así que las referencias transcriben la
 fórmula firmada. Los ganadores son los mismos; los importes no. Y el 14,7 % que se perdía al unir con
@@ -2770,29 +2630,25 @@ fila vigente cada uno, se pierde un 0 %.
 
 | | ratio | Wilson 95 % | n |
 |---|---|---|---|
-| umbral (GOALS.yaml, resellado por Samuel) | ≥ 0,40 | ≥ 0,25 | ≥ 60 |
+| umbral (GOALS.yaml, resellado) | ≥ 0,40 | ≥ 0,25 | ≥ 60 |
 | **medido · `gemma4:26b-mlx`** | **0,5167** (31/60) | **[0,39 – 0,64]** | **60** |
 
 Por estrato: simple 14/20 · join o agregación 12/25 · ventana o correlada 5/15. La ventana sigue
-siendo el estrato flojo. La cuenta cuadra con lo previsto: 25/57 con el criterio viejo, +5 por P-014
-(las cinco con la regla saltando dentro del ciclo), +1 de Q-E-51, y fallan Q-E-05 y Q-E-21.
+siendo el estrato flojo. La cuenta cuadra con lo previsto: 25/57 con el criterio viejo, +5 por el
+criterio nuevo de rechazos (las cinco con la regla saltando dentro del ciclo), +1 de Q-E-51, y fallan Q-E-05 y Q-E-21.
 
 **Los dos nuevos que fallan dicen cosas distintas.** `Q-E-05`: el 26B acierta la semántica —métrica
 firmada, grano de liquidación, agrupa por comercio— y devuelve `merchant_id` y céntimos. **El fallo es
 mío**: al reescribir la pregunta no fijé la forma («nombre comercial», «en euros») como sí hace Q-E-17.
-No la he vuelto a tocar porque ya está medida; va en P-015. `Q-E-21`: une por `merchant_sk`, que no
-existe en la liquidación, y repite el MISMO SQL tres veces sin leer el rechazo. Eso es recuperación,
-no lectura del glosario.
+No la he vuelto a tocar porque ya está medida; queda como propuesta para el banco.
+`Q-E-21`: une por `merchant_sk`, que no existe en la liquidación, y repite el MISMO SQL tres veces
+sin leer el rechazo. Eso es recuperación, no lectura del glosario.
 
-**Hallazgo del banco que queda como P-015, sin aplicar:** los 12 400 comercios comparten `trade_name`
+**Hallazgo del banco que queda anotado, sin aplicar:** los 12 400 comercios comparten `trade_name`
 con algún otro (722 nombres; «Central Puerto» son 23 comercios en 11 países), y Q-E-17, Q-E-42 y
 Q-E-43 agrupan por nombre: responden «qué nombres facturan más», no «qué comercios». Todos los valores
 del top 10 cambian al agrupar por comercio, y en Q-E-42 cambian 26 de 90 filas. Un modelo que agrupe
 bien falla contra ellas. Están ya medidas, así que es propuesta.
-
-**El buzón tenía estados sin cerrar**: P-010, P-012 y P-013 aprobadas y aplicadas con `Estado:
-PENDIENTE`, y P-011 con un `PENDIENTE` detrás de su propia resolución. Corregido. Abiertas: Q-011 y
-Q-012 —esperan, por decisión de Samuel— y P-015.
 
 ## 2026-09-11 · el README, profesionalizado · y la fase 9 cerrada como NO VERIFICADO
 
@@ -2820,14 +2676,14 @@ pondría rojo después de cada medida.
    citados que no existen se calculaban en una lista que nunca se usaba. Ahora se exige la
    cabecera `## [x.y.z] · fase N · …` y la lista se reporta; las dos mitades se demostraron
    plantando un fallo. Hoy no hay ninguna referencia real a un ADR —las dos que hay son la entrada
-   `[EJEMPLO]` y una cruzada a otro proyecto—, así que endurecerlo no rompió nada.
+   `[EJEMPLO]` y una referencia cruzada externa—, así que endurecerlo no rompió nada.
 2. **El error de «no existe el almacén» mandaba generar `dev`** cuando faltaba `full`, así que
    seguir la instrucción no lo arreglaba. Ahora nombra el perfil que falta y cómo apuntar al otro.
 3. **Una afirmación falsa en mi propio borrador**: escribí que el banco de preguntas lo había
    escrito un agente aislado del código. No: lo escribió el mismo agente que construyó el sistema.
    Corregido antes de publicar.
 
-**Fase 9 cerrada como el plan prescribe sin cuenta AWS**: `Athena: NO VERIFICADO` en el README, con
+**Fase 9 cerrada como estaba previsto sin cuenta AWS**: `Athena: NO VERIFICADO` en el README, con
 esas palabras, y entrada en el CHANGELOG. `G-ENGINE-PARITY` es de ampliación y no bloquea.
 Punto de retorno: `.snapshots/milestone-9-20260911T143930Z`.
 

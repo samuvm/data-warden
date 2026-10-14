@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """`G-WRITE-BLOCK` · la RESERVA. Es el único número publicable de seguridad.
 
-**El agente que escribió el guard no ha visto ni un solo caso de este fichero.** Los
-escribió el subagente `qa-adversario` contra la ESPECIFICACIÓN —`docs/spec/policy.yaml`
+**Quien escribió el guard no ha visto ni un solo caso de este fichero.** Los
+escribió un agente aislado contra la ESPECIFICACIÓN —`docs/spec/policy.yaml`
 firmado, el glosario y el catálogo generado— y sin acceso a `src/datawarden/guard/`,
-a `attacks/` ni a `tests/unit/guard/cases/`. Es la condición 1 de la respuesta de
-Samuel a Q-005, y es lo que convierte «bloqueo del 100 %» en evidencia en vez de en
+a `attacks/` ni a `tests/unit/guard/cases/`. Esa separación es la primera condición
+del método, y es lo que convierte «bloqueo del 100 %» en evidencia en vez de en
 un examen escrito por el examinando.
 
 **Qué se puede afirmar con quince casos, y qué no.** Con 15/15 en verde el intervalo
@@ -55,7 +55,7 @@ def main() -> int:
     if not CASES.exists():
         print(
             "attack_holdout: FALLO · no existe tests/holdout/cases.yaml.\n"
-            "  La reserva la escribe el subagente `qa-adversario` (Q-005). Sin ella no\n"
+            "  La reserva la escribe un agente aislado, sin acceso al guard. Sin ella no\n"
             "  hay número publicable, y contarlo como aprobado sería exactamente el\n"
             "  número inflado que la separación dev/holdout existe para evitar."
         )
@@ -134,9 +134,9 @@ def main() -> int:
             ),
             "autoevaluado": True,
             "por_que_autoevaluado": (
-                "Mientras D-09 no esté instalado, el `deny` de lectura sobre "
-                "tests/holdout/** es DISCIPLINA y no ejecución, así que el número sale "
-                "etiquetado como autoevaluado (condición 3 de Q-005 y matiz de D-06)."
+                "Mientras ningún control externo al entorno de desarrollo imponga el "
+                "`deny` de lectura sobre tests/holdout/**, es DISCIPLINA y no ejecución, "
+                "así que el número sale etiquetado como autoevaluado."
             ),
         },
         command="make attack-holdout && make attack-mut",
@@ -152,7 +152,7 @@ def main() -> int:
     print(f"  sha256 de la reserva: {digest}")
     print(
         "  SE PUBLICA EL INTERVALO, no el punto. Y el número sale ETIQUETADO COMO\n"
-        "  AUTOEVALUADO mientras D-09 no esté instalado: el aislamiento del holdout es\n"
+        "  AUTOEVALUADO mientras no lo imponga un control externo: el aislamiento es\n"
         "  hoy disciplina y no ejecución."
     )
     if passed != total:

@@ -125,7 +125,7 @@ def models_lock(role: str) -> tuple[str, str]:
             return parts[1], parts[2]
     message = (
         f"models.lock no declara el rol {role!r}. Los modelos NO se inventan "
-        "(CLAUDE.md): se fijan en models.lock por digest, y Q-007 ya los fijó."
+        "y no se adivinan: se fijan en models.lock por digest."
     )
     raise KeyError(message)
 
@@ -364,9 +364,10 @@ def main() -> int:
 
     # **El informe transversal, además de la medida del gate.** No son lo mismo y las
     # dos hacen falta: `recovery.json` es lo que lee `goals_check.py` de este repo, y
-    # `recovery-report.json` es lo que lee el proyecto 02, que no conoce nuestro
-    # formato interno. `G-EVAL-REPORT` exige el segundo porque una evaluación que llama
-    # a un modelo y no publica su informe no es consumible desde fuera.
+    # `recovery-report.json` es lo que leen los consumidores externos del contrato,
+    # que no conocen nuestro formato interno. `G-EVAL-REPORT` exige el segundo porque
+    # una evaluación que llama a un modelo y no publica su informe no es consumible
+    # desde fuera.
     eval_report(
         suite="recovery",
         metric_id="G-RECOVERY",

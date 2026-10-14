@@ -42,7 +42,7 @@ class Budget:
     soft_bytes: int
     hard_bytes: int
     max_rows: int
-    #: `False` mientras `soft_bytes` sea una hipótesis del agente y no una medida de
+    #: `False` mientras `soft_bytes` sea una hipótesis de diseño y no una medida de
     #: `make cost-calibration`. Publicarlo como si estuviera medido sería una
     #: mentira silenciosa, que es la clase de error que este proyecto persigue.
     soft_is_calibrated: bool

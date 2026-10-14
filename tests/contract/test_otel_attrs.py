@@ -1,8 +1,8 @@
 """`G-OTEL-ATTRS` · los atributos emitidos cumplen el contrato OTel GenAI pineado.
 
 Nivel 3, contrato. Lo que se comprueba sale de `docs/CONTRACTS/otel-genai.md`, que es una
-copia literal de `_comun/` y un acuerdo con los proyectos 01, 02 y 04: si aquí se inventa
-un nombre, lo que se rompe es un panel del 02, y se rompe en silencio.
+copia literal del directorio de contratos compartidos y un acuerdo con otros proyectos: si
+aquí se inventa un nombre, lo que se rompe es un panel ajeno, y se rompe en silencio.
 
 Cuatro propiedades, y las cuatro se comprueban **sobre lo que se emite**, no sobre el
 código que lo emite:

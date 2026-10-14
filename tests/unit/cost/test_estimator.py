@@ -1,6 +1,6 @@
 """El estimador de coste, contra metadatos FIXTURE. Zona TDD obligatorio.
 
-FASE ROJA. Escritos contra `docs/PLAN.md` fase 3 —«poda de particiones desde el
+FASE ROJA. Escritos contra el criterio de la fase 3 —«poda de particiones desde el
 predicado del árbol validado, poda de columnas desde la proyección»— y contra la
 nota de `G-COST-CALIB`, que es la que fija la dirección del error:
 

@@ -129,7 +129,7 @@ def _hardware() -> str:
 #:
 #: El esquema lo tiene como enumerado —`citebound`, `evalgate`, `datawarden`,
 #: `indexkeeper`— y aquí se publicaba `"data-warden-03"`, que es el nombre de la carpeta.
-#: El informe se escribía igual y el panel del 02 lo habría descartado sin decir nada.
+#: El informe se escribía igual y el panel consumidor lo habría descartado sin decir nada.
 PROYECTO: str = "datawarden"
 
 #: Los roles de prompt del contrato están en INGLÉS y son un enumerado cerrado. Dentro
@@ -171,7 +171,7 @@ def eval_report(
     del proyecto —el de `G-EXEC-ACC`— declaraba `contract_version: "1.0.0"` cuando el
     contrato dice `const: 1`, y metía objetos en `per_stratum` cuando el esquema pide
     números. Los dos fallos son invisibles desde este lado: el fichero se escribe, el
-    gate pasa, y lo que se rompe es un panel del proyecto 02 semanas después.
+    gate pasa, y lo que se rompe es un panel consumidor semanas después.
 
     Con tres evaluaciones escribiendo su propio JSON a mano, esos dos errores tenían
     tres sitios donde volver a aparecer. Con una función, uno — y `check_eval_reports.py`

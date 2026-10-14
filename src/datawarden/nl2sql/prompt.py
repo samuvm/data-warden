@@ -1,6 +1,6 @@
 """Carga y compone los prompts. **El texto vive en `prompts/*.md`, nunca aquí.**
 
-`CLAUDE.md` lo prohíbe explícitamente —«escribir prompts inline en `.py`»— y no es una
+`docs/RULES.md` (I-11) lo prohíbe explícitamente —cero cadenas de prompt en `.py`— y no es una
 manía de orden. Un prompt es el parámetro más sensible de todo el sistema: cambia el
 número de `G-RECOVERY` sin cambiar una línea de lógica. Metido en un `.py` se edita sin
 pensarlo y se despliega sin registrarlo; en un fichero propio con `id` y `version` en
@@ -195,7 +195,7 @@ def _glossary_summary() -> str:
     glosario firmado con esas definiciones y no se lo estaba pasando: es su mejor
     activo y estaba sin usar. Un despliegue real lo expondría.
 
-    Se lee del JSON COMPILADO y no del YAML: `src/` no parsea YAML (P-002), y el
+    Se lee del JSON COMPILADO y no del YAML: `src/` no parsea YAML, y el
     compilado es el mismo artefacto que firma `check_contracts.py`.
     """
     import json

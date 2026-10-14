@@ -3,8 +3,8 @@
 #
 # El dataset CIERZO son 7,1 GB reproducibles byte a byte desde el generador y su
 # semilla. Meterlos aquí haría el repositorio inservible para quien tiene que
-# descargarlo, que es exactamente el público al que va dirigido — y D-07 ya lo
-# anticipaba al decir que se publica el generador, no los datos.
+# descargarlo, que es exactamente el público al que va dirigido: se publica el
+# generador, no los datos.
 # ---------------------------------------------------------------------------
 datagen/out/
 datagen/docker/catalog.sql
@@ -36,22 +36,15 @@ mutants/
 .claude/state/*.json
 
 # ---------------------------------------------------------------------------
-# NO SE PUBLICA: instrucciones del agente, buzon y proceso interno.
-#
-# Lo que se publica es el SISTEMA y sus reglas duras —`docs/RULES.md` tiene los
-# invariantes y el mapa de regimenes por modulo, `docs/GOALS.yaml` los umbrales,
-# `docs/spec/` los contratos—, que es lo que alguien necesita para entender esto y
-# para dirigir a su propio agente. Lo que queda fuera es distinto: son las
-# instrucciones de NUESTRO agente, con rutas de este disco, y el buzon de decisiones
-# de una persona concreta. Ni educa a nadie ni deberia estar en un repositorio
-# publico. Los ficheros siguen aqui, en local; simplemente no se versionan.
+# Notas de trabajo locales y configuracion del entorno de desarrollo: no forman
+# parte del proyecto. Las reglas que si lo son estan en `docs/RULES.md`,
+# `docs/GOALS.yaml` y `docs/spec/`.
 # ---------------------------------------------------------------------------
 CLAUDE.md
 .claude/
 docs/CONSTITUCION.md
 docs/PARA-SAMUEL.md
-# Los documentos de buzon con fecha salen igual que el buzon: son preguntas al
-# humano, no documentacion del proyecto. Sin esto, un `git add -A` los publica.
+# Borradores locales con fecha. Sin esto, un `git add -A` los publica.
 docs/PENDIENTE-*.md
 docs/BORRADOR-RESPUESTAS-Q003-Q010.md
 docs/DECISIONES-GLOBALES-APLICADAS.md

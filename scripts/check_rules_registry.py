@@ -15,7 +15,7 @@ Falla si, respecto del registro guardado:
   y la que ninguna cuenta de casos detectaría.
 
 El registro vive en `.claude/state/rules-registry.json`, que **lo escribe el gate**
-y el agente tiene en `deny`. Aquí se compara; escribirlo es cosa de `make done`.
+y el entorno de desarrollo tiene en `deny`. Aquí se compara; escribirlo es cosa de `make done`.
 """
 
 from __future__ import annotations

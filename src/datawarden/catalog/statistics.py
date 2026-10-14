@@ -221,7 +221,7 @@ def _partition_value(partition: Any, transform: str) -> str:
 def derive_views(stats: Statistics, schema: Any) -> Statistics:
     """Las estadísticas de las VISTAS, deducidas del linaje ya publicado.
 
-    **Esto nace de P-012, y el defecto que arregla era grave.** Los manifiestos de
+    **El defecto que esto arregla era grave.** Los manifiestos de
     Iceberg solo existen para las 24 tablas físicas, pero el catálogo publica 32
     relaciones: las 8 que faltaban son las vistas derivadas. Para el estimador eran
     tablas DESCONOCIDAS, así que les cobraba `UNKNOWN_TABLE_BYTES` —1 GB, un castigo

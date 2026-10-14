@@ -116,7 +116,7 @@ def build_schema(
         rows: Las columnas del esquema vivo, en cualquier orden.
         dialect: El dialecto de sqlglot con el que se re-serializará el AST.
         excluded_columns: `tabla.columna` que NO se publican en el anillo 1. Salen
-            de `docs/spec/policy.yaml` (cambio C-3 de la firma de Q-003).
+            de `docs/spec/policy.yaml`.
         deprecated_columns: `tabla.columna` -> motivo. Salen de
             `docs/spec/catalog-overlay.yaml`: el motor no puede saber que una
             columna que sigue existiendo ya no debe usarse.
@@ -181,9 +181,10 @@ def build_schema(
 def _is_published(ref: str, derives_from: tuple[str, ...], excluded: set[str]) -> bool:
     """Una columna se publica salvo que ELLA o alguna de sus FUENTES esté excluida.
 
-    **Lo encontró el subagente `qa-adversario` escribiendo la reserva**, y es
+    **Lo encontró el agente aislado que escribió la reserva de ataques**, y es
     exactamente la clase de agujero que la reserva existe para encontrar:
-    `dim_merchant.traffic_weight` salía con `published: false`, como C-3 manda, y
+    `dim_merchant.traffic_weight` salía con `published: false`, como manda la
+    política, y
     `v_merchant_current.traffic_weight` —la MISMA columna vista a través de la
     vista— salía con `published: true`. La exclusión del catálogo del anillo 1
     tenía una puerta trasera con nombre de vista.

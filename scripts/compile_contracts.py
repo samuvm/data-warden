@@ -9,7 +9,8 @@ entra en el entorno como dependencia TRANSITIVA de `langgraph` y de
 no declarado sería exactamente la clase de dependencia invisible que rompe un
 despliegue seis meses después. En `scripts/` es otra cosa: son herramientas del
 constructor, corren en el entorno de desarrollo y `check_gate_config.py` ya lo
-hacía. La propuesta de declararla está en `docs/PARA-SAMUEL.md` como **P-002**.
+hacía. Desde el 2026-09-02 está declarada en el grupo `dev` de `pyproject.toml`,
+que es donde le corresponde; `src/` sigue sin importarla.
 
 **2 · El guard está en el camino crítico de cada consulta.** `G-GUARD-P95` exige
 p95 <= 25 ms. Parsear tres ficheros YAML para saber si `dim_customer.email` está

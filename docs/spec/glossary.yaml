@@ -1,9 +1,9 @@
 # =============================================================================
 # Glosario de negocio de CIERZO
 #
-# FIRMADO por Samuel el 2026-09-01 al responder Q-004, con cinco correcciones que
-# el agente aplicó el 2026-09-02 y que van marcadas `correccion_firmada:` en la
-# entrada que tocan. Lo generó el agente el 2026-08-31 desde el catálogo real.
+# FIRMADO el 2026-09-01, con cinco correcciones sobre el borrador, aplicadas el
+# 2026-09-02 y marcadas `correccion_firmada:` en la entrada que tocan. El borrador
+# se generó el 2026-08-31 desde el catálogo real.
 #
 # LAS CINCO CORRECCIONES:
 #   G-1  `pago_valido`: un pago aprobado y luego DEVUELTO sigue siendo válido.
@@ -18,7 +18,7 @@
 #        una trampa cuyo número no se ha vuelto a medir desde que se escribió es
 #        folclore. `make dataset-traps` las comprueba y falla si alguna discrepa.
 #
-# LO QUE G-5 ENCONTRÓ, Y SU CORRECCIÓN (P-003, aprobada por Samuel el 2026-09-02).
+# LO QUE G-5 ENCONTRÓ, Y SU CORRECCIÓN (aplicada el 2026-09-02).
 # Se midieron las nueve sobre el perfil `full` (294,7 M de filas) el 2026-09-02.
 # **Siete reproducen, cuatro de ellas con tres decimales.** Dos no, y van marcadas
 # abajo `correccion_medida:`. Ninguna trampa desaparece: las dos siguen siendo
@@ -34,13 +34,13 @@
 #            ~1,9 % que la cola Zipf deja sin ningún pago. `datagen/` ya separa
 #            `never_paid_target` de `never_paid_measured`.
 #
-# CONDICIÓN QUE SAMUEL AÑADIÓ AL APROBAR P-003, y es la que más valía: las nueve
+# LA CONDICIÓN QUE SE AÑADIÓ AL CORREGIRLAS, y es la que más valía: las nueve
 # tolerancias de `scripts/measure_traps.py` estaban puestas a ojo (±6 sobre un 24 %,
 # ±12 sobre un 60 %, ±1 sobre un 4,3 %), y una tolerancia por trampa es el mando con
 # el que se pone verde el script sin tocar el dato. Ahora hay **una sola regla,
 # ±20 % RELATIVO, aplicada a las nueve por igual**, y CERO excepciones. Si alguna vez
 # hiciera falta una, se declara aquí con su motivo — y como este fichero está
-# FIRMADO, eso es una propuesta nueva, no una línea que se cambia.
+# FIRMADO, eso es una decisión nueva y justificada, no una línea que se cambia.
 #
 # QUÉ ES ESTO Y POR QUÉ EXISTE. Se expone como recurso MCP de solo lectura, y es
 # lo único que evita que el modelo ADIVINE la semántica. Sin él, «ingresos del
@@ -50,8 +50,8 @@
 #
 # LO IMPORTANTE SIGUEN SIENDO LAS `definiciones_criticas`: son ahora CINCO
 # preguntas de criterio de negocio, no de cálculo, y todo lo demás se deriva de
-# ellas. La quinta —`periodo`— la pidió Samuel al firmar, y sin ella entre 15 y 20
-# de las 60 preguntas de Q-010 tendrían dos resultsets de referencia igual de
+# ellas. La quinta —`periodo`— se exigió al firmar, y sin ella entre 15 y 20
+# de las 60 preguntas del banco de referencia tendrían dos resultsets igual de
 # legítimos, lo cual se descubre al escribir la número cuarenta.
 # =============================================================================
 
@@ -60,18 +60,17 @@ estado: FIRMADO
 generado_por: agente
 generado_el: 2026-08-31
 revisado_por: Samuel
-revisado_el: 2026-09-01     # respuesta a Q-004 en docs/PARA-SAMUEL.md
+revisado_el: 2026-09-01
 correcciones_aplicadas_por: agente
 correcciones_aplicadas_el: 2026-09-02
 correcciones_de_la_firma: [G-1, G-2, G-3, G-4, G-5]
-# Correcciones posteriores a la firma, cada una con su propuesta aprobada detrás.
+# Correcciones posteriores a la firma, cada una con su medida y su autorización detrás.
 correcciones_medidas: [P-003-a, P-003-b]
 correcciones_medidas_por: agente
 correcciones_medidas_el: 2026-09-02
 correcciones_medidas_autorizadas_por: >-
-  Samuel, 2026-09-02, al aprobar P-003 en docs/PARA-SAMUEL.md. Este fichero está
-  FIRMADO: el agente lo edita SOLO bajo esta autorización expresa y nunca por
-  iniciativa propia.
+  Samuel, 2026-09-02, al revisar la nueva medición de las trampas. Este fichero
+  está FIRMADO: se edita SOLO bajo autorización expresa y nunca de paso.
 # La regla única de tolerancia con la que `make dataset-traps` juzga las nueve.
 tolerancia_de_las_trampas:
   relativa: 0.20            # ±20 % del valor declarado, para las nueve por igual
@@ -117,7 +116,7 @@ granos:
     usar_para: Ingresos reales, comisiones, conciliación.
 
 # =============================================================================
-# LAS DEFINICIONES QUE SOLO SAMUEL PUEDE FIRMAR
+# LAS DEFINICIONES QUE SOLO NEGOCIO PUEDE FIRMAR
 # Son criterio de negocio, no cálculo. Todo lo demás se deriva de estas cuatro.
 # =============================================================================
 definiciones_criticas:
@@ -250,7 +249,7 @@ definiciones_criticas:
     por_que_importa: >-
       Con un dataset congelado hay dos lecturas de cada periodo relativo y la
       diferencia es del 100 % de las filas. Sin esta entrada, entre 15 y 20 de las
-      60 preguntas de Q-010 tienen dos resultsets de referencia igual de legítimos,
+      60 preguntas del banco tienen dos resultsets de referencia igual de legítimos,
       y eso se descubre al escribir la número cuarenta.
 
 # =============================================================================

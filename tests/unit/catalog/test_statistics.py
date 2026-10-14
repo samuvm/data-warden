@@ -377,7 +377,7 @@ def test_la_epoca_de_la_conversion_es_1970_01_01() -> None:
 
 
 # --------------------------------------------------------------------------
-# `derive_views` · P-012. La dirección del error es lo que se prueba.
+# `derive_views` · las vistas. La dirección del error es lo que se prueba.
 # --------------------------------------------------------------------------
 
 
@@ -406,7 +406,7 @@ def _esquema_de_una_vista(*columnas: _Col, kind: str = "view") -> _Esquema:
 
 
 def test_una_vista_hereda_los_bytes_de_las_columnas_de_las_que_deriva() -> None:
-    """Es el arreglo entero de P-012: 7,5 MB en vez del castigo de 1 GB."""
+    """Es el arreglo entero: 7,5 MB en vez del castigo de 1 GB."""
     from datawarden.catalog.statistics import derive_views
 
     salida = derive_views(

@@ -2,8 +2,8 @@
 
 > **Esto no es el proyecto.** Es el generador de datos sobre el que el proyecto se
 > construirá. Vive en `datagen/`, fuera de `src/`, y **no toca `pyproject.toml`**:
-> `Q-002` (firma de versiones) y `P-001` (cambio de `PROJECT.md` para admitir
-> dataset 100 % sintético) siguen `PENDIENTE` en `docs/PARA-SAMUEL.md`. Sus
+> se escribió antes de fijar las versiones del proyecto y de admitir en
+> `PROJECT.md` un dataset 100 % sintético, y así se mantiene aislado. Sus
 > dependencias están pinadas aparte en `datagen/requirements.txt` y se ejecutan con
 > `uv run --with-requirements`, que no escribe nada en el entorno del proyecto.
 

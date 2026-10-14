@@ -1,18 +1,18 @@
 # Data Warden · reglas específicas del proyecto
 
-> **Solo lectura para el agente.** Complementa `docs/CONSTITUCION.md`; no la repite y no puede contradecirla.
-> Todo lo que aquí no se dice, lo dice la constitución. Cambios: propuesta en `docs/PARA-SAMUEL.md`.
+> Reglas de proceso propias de este proyecto. Un cambio aquí es una decisión de diseño: se justifica por
+> escrito antes de aplicarse, nunca se cuela como edición de paso.
 
 ---
 
 ## 1. Invariantes verificables
 
 Cada una con el comando que la comprueba. Si una invariante no tiene comando, no es una invariante: es un
-deseo. La redundancia pedagógica de las más importantes está en `CLAUDE.md`; la imposición está en el gate.
+deseo. La imposición está en el gate.
 
 | id | Invariante | Verificación |
 |---|---|---|
-| **I-01** | **Ninguna regla del guard se borra, se debilita ni se retira jamás.** Un `rule_id` no se reutiliza nunca. Retirarla exige ADR + propuesta aprobada, y el id queda como `RETIRED` con sus casos migrados | `python scripts/check_rules_registry.py` contra `.claude/state/rules-registry.json` (lo escribe el gate; `deny` para el agente). Falla si desaparece un `rule_id`, si baja `n_reject_cases`, o si un caso migra de `reject` a `accept` |
+| **I-01** | **Ninguna regla del guard se borra, se debilita ni se retira jamás.** Un `rule_id` no se reutiliza nunca. Retirarla exige ADR + propuesta aprobada, y el id queda como `RETIRED` con sus casos migrados | `python scripts/check_rules_registry.py` contra `.claude/state/rules-registry.json` (lo escribe el gate y nada más). Falla si desaparece un `rule_id`, si baja `n_reject_cases`, o si un caso migra de `reject` a `accept` |
 | **I-02** | **Lo que se ejecuta es el AST re-serializado, nunca la cadena de entrada.** `Engine.execute()` acepta `ValidatedQuery`, jamás `str` | `python scripts/check_no_raw_sql.py` (AST sobre `engines/`) + `mypy --strict` |
 | **I-03** | **El guard es allowlist.** Un tipo de nodo o una función desconocidos se rechazan por defecto | `pytest tests/property/test_guard_allowlist.py --hypothesis-profile=gate`: `exp.Anonymous` con nombre aleatorio ⇒ rechazo, 5.000 ejemplos |
 | **I-04** | **Fail-closed.** `validate()` nunca propaga excepción; `except Exception` solo permitido en `validator.validate` y debe terminar en `Rejected` | `pytest tests/property/test_guard_failclosed.py` + `python scripts/check_failclosed.py` (AST) |
@@ -28,14 +28,14 @@ deseo. La redundancia pedagógica de las más importantes está en `CLAUDE.md`; 
 | **I-14** | **Toda familia de ataque tiene una regla que la para, y toda regla tiene su familia de ataque.** Matriz sin filas ni columnas vacías | `python scripts/check_attack_coverage.py` |
 | **I-15** | **`tools/list` devuelve orden determinista y todo resultado lleva `resultType`** | `pytest tests/contract/mcp` + `python scripts/mcp_conformance.py` |
 | **I-16** | **`[tool.gate]` de `pyproject.toml` y `docs/GOALS.yaml` dicen el mismo número.** `cobertura_linea_min` == `G-COV-LINE`, `mutantes_muertos_min` == `G-MUTATION`, el 95 % de `guard/mask/audit/principal` == el umbral adicional de `G-COV-LINE`, el 85 % de `guard/rules` == `G-MUT-GUARD`, y `testable` tiene exactamente los 8 paquetes que cuenta `G-COV-FUNC` | `python scripts/check_gate_config.py`: exit 1 ante cualquier divergencia, corre en el gate B y en `make done` |
-| **I-17** | **`docs/CONTRACTS/` es solo lectura y solo copias; `docs/spec/` es donde este proyecto escribe sus contratos.** Ningún entregable de ninguna fase cae dentro de `docs/CONTRACTS/` | `python scripts/check_contracts.py`: `diff` byte a byte de cada fichero de `docs/CONTRACTS/` contra `_comun/CONTRACTS/`, más la comprobación de que los 4 contratos propios existen y validan en `docs/spec/` |
+| **I-17** | **`docs/CONTRACTS/` es solo lectura y solo copias; `docs/spec/` es donde este proyecto escribe sus contratos.** Ningún entregable de ninguna fase cae dentro de `docs/CONTRACTS/` | `python scripts/check_contracts.py`: `diff` byte a byte de cada fichero de `docs/CONTRACTS/` contra el original del directorio de contratos compartidos, más la comprobación de que los 4 contratos propios existen y validan en `docs/spec/` |
 
 **Por qué I-16 no es burocracia.** Los umbrales de cobertura y mutación viven en dos sitios: `GOALS.yaml`, que
-está en `deny` y bajo el sha256 de `thresholds.lock`, y `[tool.gate]` de `pyproject.toml`, que **no está en
-ninguno de los dos** —el agente lo edita legítimamente cada vez que añade una dependencia—. Sin este check, la
+está sellado por el sha256 de `thresholds.lock`, y `[tool.gate]` de `pyproject.toml`, que **no lo está**
+—se edita legítimamente cada vez que se añade una dependencia—. Sin este check, la
 forma más barata de pasar el gate no es escribir tests: es bajar `cobertura_linea_min` de 90 a 60 en un
 fichero que nadie vigila, y `thresholds.lock` sigue en verde porque `GOALS.yaml` no se ha tocado. Es
-exactamente el agujero del mecanismo 2 de anti-gaming (CONSTITUCION §2.5), y se cierra comparando los dos
+exactamente el agujero del mecanismo 2 de anti-gaming, y se cierra comparando los dos
 sitios en cada gate. **`GOALS.yaml` manda**: ante divergencia el fallo es de `pyproject.toml`, nunca al revés.
 
 **Regla de oro del repo, adaptada a la ausencia de git.** `PROJECT.md` dice: *"ningún PR que toque `guard/` se
@@ -99,7 +99,7 @@ mutantes_muertos_min = 70         # == G-MUTATION. 85 en guard/rules: G-MUT-GUAR
 y la comprueba `scripts/check_gate_config.py` en cada gate. Cambiar uno sin el otro es un fallo de gate, no
 una discrepancia menor.
 
-La definición ejecutable de la constitución (`check_function_coverage.py` con `--cov-context=test`) se aplica
+La definición ejecutable general (`check_function_coverage.py` con `--cov-context=test`) se aplica
 tal cual a los paquetes `testable`. **Pero en `guard/` la unidad no es la función: es el caso.** Una regla
 tiene una única función pública (`check`), así que "un test por función" quedaría satisfecho por un solo test
 y no probaría nada. Regla específica, verificada por `python scripts/check_rule_coverage.py`:
@@ -117,13 +117,13 @@ de por disciplina.
 
 ---
 
-## 4. Presupuestos por capa del gate (CONSTITUCION §2.1, instanciada)
+## 4. Presupuestos por capa del gate
 
 - **Gate A** (≤ 5 s, informa, no bloquea): solo los casos YAML de la regla tocada.
 - **Gate B** (≤ 25 s): `ruff` + `mypy --strict` sobre `testable` + `pytest tests/unit tests/contract -n auto`
   + Hypothesis perfil `dev` + `lint-imports` + los `scripts/check_*.py` de arquitectura, **incluidos
   `check_gate_config.py` (I-16) y `check_contracts.py` (I-17)**, que cuestan milisegundos.
-  **No se activa hasta que `make test-fast` baje de 20 s** (paso 6 del orden de activación).
+  **No se activa hasta que `make test-fast` baje de 20 s.**
 - **Gate C** (≤ 3 min): B + `tests/property` perfil `gate` + `tests/adversarial/dev` + `goals-check` +
   verificación de `thresholds.lock`.
 - **`make done`**: todo + `tests/integration` (testcontainers / DuckDB) + `tests/holdout` + `make coverage`
@@ -134,19 +134,20 @@ de por disciplina.
 
 ## 5. Correcciones al stack respecto de la hoja de investigación
 
-Se declaran aquí porque el agente las va a encontrar y no debe "arreglarlas" por su cuenta.
+Se declaran aquí porque quien compare con la hoja de investigación las va a encontrar, y no son errores que
+"arreglar".
 
 1. **LangGraph: `1.2.10`, no `1.2.7`.** `docs/STACK.md` fija `langgraph==1.2.10` y manda sobre cualquier otra
    fuente. Además se pinean **exactamente** `langgraph-prebuilt` y `langgraph-checkpoint`: hubo un cambio
    rompedor en `langgraph-prebuilt==1.0.2` publicado sin restricción de versión.
 2. **MCP: se pinea `mcp==2.0.0` en `pyproject.toml`.** Que `STACK.md` escriba `mcp>=2,<3` **no es una
-   contradicción**: la constitución §7.2 fija que los rangos de `STACK.md` son la *investigación* —de qué
+   contradicción**: los rangos de `STACK.md` son la *investigación* —de qué
    línea hay que coger, y aquí la línea es la generación v2, spec 2026-07-28— mientras que el `==` exacto vive
-   en `pyproject.toml` y en `uv.lock`. El agente traduce el rango a un `==` concreto por su cuenta y **anota
-   la versión elegida en `docs/JOURNAL.md`**; no hace falta preguntar. Lo mismo vale para cualquier otro rango
+   en `pyproject.toml` y en `uv.lock`. El rango se traduce a un `==` concreto y **la versión elegida se
+   anota en `docs/JOURNAL.md`**. Lo mismo vale para cualquier otro rango
    de `STACK.md`.
 3. **sqlglot: extra `[c]`** (compilado con mypyc), como dice `STACK.md`, no "extra de tokenizer nativo".
-   La versión exacta la propone el agente y **la firma Samuel** (Q-002): el AST de sqlglot cambia entre
+   La versión exacta se fija a mano y se revisa antes de cada cambio: el AST de sqlglot cambia entre
    minors sin semver estricto y aquí es la pieza crítica.
 4. **`semgrep` fuera; `scripts/check_no_raw_sql.py` en su lugar.** Las reglas de inyección SQL de semgrep
    buscan concatenación de cadenas en cursores; aquí el SQL nunca viene de concatenación, viene de renderizar
@@ -159,14 +160,16 @@ Se declaran aquí porque el agente las va a encontrar y no debe "arreglarlas" po
 
 ## 6. Lo que este proyecto NO construye, y por qué
 
-Se escribe para que el agente no lo "descubra" y lo construya por iniciativa propia.
+Se escribe para que nadie lo "descubra" y lo construya por iniciativa propia.
 
-- **No consume trazas del proyecto 02 por Iceberg/Parquet sobre S3.** El mapa de conjunto lo declaraba, pero
-  el 02 almacena en ClickHouse y no produce Iceberg: el contrato es ficticio en ambos extremos, y además
+- **No consume trazas de un sistema de trazas externo por Iceberg/Parquet sobre S3.** El mapa de conjunto
+  lo declaraba, pero ese sistema almacena en ClickHouse y no produce Iceberg: el contrato es ficticio en
+  ambos extremos, y además
   violaría el fuera-de-alcance de `PROJECT.md` ("más de un esquema"). Es trabajo futuro, no una integración
   dada por hecha.
-- **No importa módulos Terraform versionados del proyecto 05.** El 05 se construye después y se declara
-  extracción de lo ya escrito: la dependencia está invertida. Si la fase 9 necesita infraestructura, lleva su
+- **No importa módulos Terraform versionados de un repositorio de infraestructura compartida.** Ese repositorio
+  se construye después y se declara extracción de lo ya escrito: la dependencia está invertida. Si la fase 9
+  necesita infraestructura, lleva su
   propio Terraform mínimo, y la importación por versión se documenta como posible, no como hecha.
 - **No implementa escrituras, gestión de identidades reales, optimización de consultas ni más de un esquema**
   (fuera de alcance de `PROJECT.md` §2, que sigue vigente).
@@ -177,7 +180,7 @@ Se escribe para que el agente no lo "descubra" y lo construya por iniciativa pro
 
 ---
 
-## 7. Errores típicos de este dominio que el agente debe evitar
+## 7. Errores típicos de este dominio que hay que evitar
 
 Salieron todos en la investigación previa. Cada uno cuesta días si se descubre tarde.
 
@@ -206,7 +209,7 @@ Salieron todos en la investigación previa. Cada uno cuesta días si se descubre
    inyectar comentario entre tokens, cambiar mayúsculas, sustituir función por sinónimo de dialecto, colar la
    columna sensible en un `HAVING`).
 9. **Creer que el SQL generado y registrado "produce gratis" el conjunto de evaluación.** Es falso: da
-   entradas, no verdad de referencia. Etiquetarlo cuesta lo mismo que escribirlo (Q-010).
+   entradas, no verdad de referencia. Etiquetarlo cuesta lo mismo que escribirlo.
 10. **Publicar `0,80` a secas con n = 60.** Sin intervalo, ese número no significa nada. Se publica Wilson.
 11. **Estimar coste con `EXPLAIN ANALYZE`.** Ejecuta la consulta: inútil para un guardián preventivo. Y
     `EXPLAIN` de DuckDB da cardinalidad pero no bytes escaneados; Athena solo reporta `DataScannedInBytes`

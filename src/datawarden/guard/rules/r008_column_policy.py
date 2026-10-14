@@ -106,7 +106,7 @@ def _reject_for(
     """El rechazo, con el detalle que lo hace accionable en vez de mudo."""
     # LAS DECISIONES se quedan aquí y se miden: qué nivel se violó, si la columna se
     # alcanzó por otro nombre, y si la política publica una alternativa. El TEXTO con
-    # el que eso se cuenta está en `messages.py`, fuera de la mutación (P-005).
+    # el que eso se cuenta está en `messages.py`, fuera de la mutación.
     alternative = ctx.policy.generalized_for(base)
     written = f"{written_table}.{written_name}" if written_table else written_name
     message, suggestion = messages.column_policy(

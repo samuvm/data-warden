@@ -175,9 +175,9 @@ def main() -> int:
 def _holdout_score() -> int:
     """Cuántos casos del holdout pasan, leído del artefacto que deja `make attack-holdout`.
 
-    **NO se lee el holdout.** Se lee su INFORME, que es un número. El agente tiene
-    `tests/holdout/**` denegado y esa prohibición incluye no pedirlo por
-    conversación; leer el resultado agregado es justo lo contrario de leer los casos.
+    **NO se lee el holdout.** Se lee su INFORME, que es un número. El entorno de
+    desarrollo tiene `tests/holdout/**` denegado y esa prohibición incluye no pedirlo
+    por conversación; leer el resultado agregado es justo lo contrario de leer los casos.
     """
     path = ROOT / "evals" / "reports" / "attack-holdout.json"
     if not path.exists():

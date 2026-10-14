@@ -1,7 +1,7 @@
 """El TEXTO de los rechazos. **Solo el texto, y por eso queda fuera de la mutación.**
 
-P-005, aprobada por Samuel el 2026-09-02 **recortada**, y el recorte es lo que decide
-qué entra aquí y qué no:
+Sacar estos textos de la medida de mutación se aprobó el 2026-09-02 **recortado**, y
+el recorte es lo que decide qué entra aquí y qué no:
 
 > *«Sale de la medida el TEXTO LITERAL de los mensajes. NO sale la composición. Una
 > tabla de posición que devuelve la etiqueta equivocada es un mensaje que dice WHERE
@@ -34,7 +34,7 @@ nota en prosa —«mutantes muertos en guard/rules»— sigue siendo literalment
 **Lo que este fichero NO puede hacer, y hay un check que lo vigila.** Aquí no se
 decide nada: ni una comparación sobre el árbol, ni una `Position`, ni un `retryable`.
 Si algo de eso se colara, saldría de la medida sin que ninguna meta se enterara, y eso
-es exactamente el atajo que P-005 dice haber descartado.
+es exactamente el atajo que esa decisión descartó.
 """
 
 from __future__ import annotations

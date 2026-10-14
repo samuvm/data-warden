@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""`make done MILESTONE=N`: la ÚNICA definición de «hecho». CONSTITUCION §5.
+"""`make done MILESTONE=N`: la ÚNICA definición de «hecho».
 
-Doce condiciones, en el orden de la constitución, parando en la primera que falla.
-Escribe el resultado en `.claude/state/gate-status.json` —que el agente no edita a
+Doce condiciones, en el orden de la Definition of Done, parando en la primera que
+falla. Escribe el resultado en `.claude/state/gate-status.json` —que nadie edita a
 mano: lo escribe el gate, y esto ES el gate— y crea el punto de retorno de
 `.snapshots/`.
 
 **Por qué para en el primer fallo y no acumula.** Porque el segundo número deja de
 significar nada cuando el primero está mal: una cobertura medida sobre una suite que
-no pasa no es una cobertura, es un número. La constitución lo dice en ese orden por
+no pasa no es una cobertura, es un número. La Definition of Done va en ese orden por
 esa razón.
 
 **Lo que NO hace:** decidir. No baja umbrales, no salta pasos, no interpreta. Si una
@@ -102,15 +102,16 @@ def check_suite() -> dict[str, object]:
 
 
 def check_holdout() -> dict[str, object]:
-    """La reserva. El agente NO la lee; la ejecuta y mira el código de salida.
+    """La reserva. No se lee: se ejecuta y se mira el código de salida.
 
     Mientras no exista, se declara ausente en vez de contar como aprobada: un
-    holdout vacío que pasa es exactamente el número inflado que Q-005 evita.
+    holdout vacío que pasa es exactamente el número inflado que la reserva existe
+    para evitar.
     """
     holdout = ROOT / "tests" / "holdout"
     cases = list(holdout.glob("test_*.py"))
     if not cases:
-        return {"present": False, "note": "todavía no existe: fase 2, subagente qa-adversario"}
+        return {"present": False, "note": "todavía no existe: fase 2, agente aislado"}
     code, out = run([PY, "-m", "pytest", "tests/holdout", "-q"])
     if code:
         raise GateError(f"la reserva NO pasa:\n{out[-3000:]}")
@@ -222,15 +223,15 @@ def check_goals(milestone: int) -> dict[str, object]:
 
 def check_thresholds() -> dict[str, object]:
     if not THRESHOLDS.exists():
-        raise GateError("no existe thresholds.lock. Lo genera Samuel, nunca el agente.")
+        raise GateError("no existe thresholds.lock. Se genera a mano al sellar GOALS.yaml.")
     expected = THRESHOLDS.read_text(encoding="utf-8").strip().split()[0]
     actual = hashlib.sha256(GOALS.read_bytes()).hexdigest()
     if expected != actual:
         raise GateError(
             "sha256(docs/GOALS.yaml) NO coincide con thresholds.lock.\n"
             f"  esperado {expected}\n  medido   {actual}\n"
-            "  Alguien cambió un umbral. GOALS.yaml solo lo edita Samuel, y solo él "
-            "regenera el lock."
+            "  Alguien cambió un umbral. GOALS.yaml está sellado por thresholds.lock: "
+            "cambiar un umbral exige una decisión explícita y regenerar el lock."
         )
     code, out = run([PY, "scripts/check_gate_config.py"])
     if code:
@@ -329,9 +330,9 @@ def check_docs(milestone: int) -> dict[str, object]:
     missing = []
     for md in sorted((ROOT / "docs").rglob("*.md")):
         relative = md.relative_to(ROOT)
-        # Los documentos COPIADOS de `_comun/` no son de este proyecto y llevan sus
-        # propios ejemplos: exigirles que sus ADR existan aquí sería exigir que este
-        # repositorio contenga los ADR de otro.
+        # Los documentos COPIADOS del directorio de contratos compartidos no son de
+        # este proyecto y llevan sus propios ejemplos: exigirles que sus ADR existan
+        # aquí sería exigir que este repositorio contenga los ADR de otro.
         if relative.parts[1] in {"CONTRACTS", "adr"} or md.name in {
             "CONSTITUCION.md",
             "STACK.md",
@@ -347,7 +348,7 @@ def check_docs(milestone: int) -> dict[str, object]:
             )
         for lineno, line in enumerate(text_md.splitlines(), start=1):
             for match in re.finditer(r"ADR-(\d{3})(\s+de\b)?", line):
-                # `ADR-002 de citebound-01` es una referencia CRUZADA a otro
+                # `ADR-002 de <otro-proyecto>` es una referencia CRUZADA a otro
                 # proyecto. Este gate no puede exigir que exista aquí.
                 if match.group(2):
                     continue
@@ -472,7 +473,7 @@ def _write_status(
     results: dict[str, object],
     failed: str | None,
 ) -> None:
-    """Lo escribe el GATE, no el agente. Es el artefacto de la constitución §5."""
+    """Lo escribe el GATE, no una persona. Es el artefacto de la Definition of Done."""
     STATE.mkdir(parents=True, exist_ok=True)
     GATE_STATUS.write_text(
         json.dumps(

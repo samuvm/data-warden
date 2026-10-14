@@ -208,11 +208,11 @@ def test_la_transformacion_de_una_columna_enmascarada_esta_declarada(
     assert policy.column("dim_customer.birth_date").transformation == "generalizar"
 
 
-# ------------------------------------------- C-5 · la regla de composición
+# ------------------------------------------------- la regla de composición
 
 
 def test_una_columna_allow_no_puede_derivar_de_una_que_no_lo_es(policy: AccessPolicy) -> None:
-    """C-5 de la firma de Q-003, y es la clase entera de bugs, no un caso.
+    """La regla de composición, y es la clase entera de bugs, no un caso.
 
     `segment_code` es `allow` para analyst y contiene `birth_date`, que para analyst
     es `mask`. Eso es un puente que rodea la política, y el test lo encuentra sin
@@ -244,11 +244,11 @@ def test_una_derivada_de_una_columna_inexistente_es_allow_y_no_revienta() -> Non
     assert policy_from_dict(suelta).derivation_violations() == ()
 
 
-# ---------------------------------------------- C-2 · la excepción de admin
+# ---------------------------------------------------- la excepción de admin
 
 
 def test_la_excepcion_de_admin_es_un_dato_y_no_prosa(policy: AccessPolicy) -> None:
-    """C-2. Si viviera en la justificación, un test de coherencia la «arreglaría»."""
+    """Si la excepción viviera en la justificación, un test de coherencia la «arreglaría»."""
     assert policy.column("dim_employee.salary_band").admin_exception is True
     assert policy.level_for("dim_employee.salary_band", Role.ADMIN) is Level.DENY
 

@@ -254,7 +254,7 @@ def test_caso_del_corpus(case: Case) -> None:
     # ------------------------------------------------------------------------
     # EL VALOR DEL RECHAZO, y no solo que exista.
     #
-    # Lo de abajo lo pidió Samuel al aprobar P-005 «recortada»: *«la composición
+    # Lo de abajo se exigió al sacar los mensajes de la mutación: *«la composición
     # NO sale de la medida: una tabla de posición que devuelve la etiqueta
     # equivocada es un mensaje que dice WHERE cuando la columna estaba en un
     # GROUP BY. Eso no es prosa, es un bug.»* Tenía razón, y el censo de mutantes
@@ -296,14 +296,14 @@ def test_caso_del_corpus(case: Case) -> None:
     # Se declara caso a caso y no se infiere de la regla, porque **no todo rechazo de
     # R008 depende del rol**: el fail-closed del linaje dice «no puedo saber de dónde
     # sale esta columna», y eso es igual de cierto para los cuatro.
-    # EL MENSAJE DICE LA POSICIÓN, y esto lo pidió Samuel con todas sus letras al
-    # recortar P-005: «una tabla de posición que devuelve la etiqueta equivocada es un
-    # mensaje que dice WHERE cuando la columna estaba en un GROUP BY. Eso no es prosa,
-    # es un bug». No se compara la frase entera —eso sería la fragilidad que
-    # `RULES.md §2` prohíbe—: se comprueba que la frase que corresponde a ESA posición
-    # aparece. Es la única coincidencia de texto que este corpus admite, y la admite
-    # porque una posición mal contada manda al modelo a corregir donde no está el
-    # fallo, y `G-RECOVERY` lo paga en la fase 6.
+    # EL MENSAJE DICE LA POSICIÓN, y esto se exigió con todas sus letras al
+    # sacar los mensajes de la mutación: «una tabla de posición que devuelve la
+    # etiqueta equivocada es un mensaje que dice WHERE cuando la columna estaba en
+    # un GROUP BY. Eso no es prosa, es un bug». No se compara la frase entera —eso
+    # sería la fragilidad que `RULES.md §2` prohíbe—: se comprueba que la frase que
+    # corresponde a ESA posición aparece. Es la única coincidencia de texto que este
+    # corpus admite, y la admite porque una posición mal contada manda al modelo a
+    # corregir donde no está el fallo, y `G-RECOVERY` lo paga en la fase 6.
     if case.expects_position_named:
         esperada = messages.position_text(verdict.position)
         assert esperada in verdict.message, (

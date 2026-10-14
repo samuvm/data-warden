@@ -1,7 +1,7 @@
 # =============================================================================
 # Banco de calibración del estimador de coste · `G-COST-CALIB`
 #
-# Sesenta consultas contra `datagen/out/full`, como pide `docs/PLAN.md` en la
+# Sesenta consultas contra `datagen/out/full`, como exige `G-COST-CALIB` en la
 # fase 3. No son sesenta variaciones de la misma: la mitad del valor está en que el
 # banco cubra los dos ejes donde el estimador puede equivocarse, que son los dos que
 # separan un lakehouse de una base de datos de filas:
@@ -17,7 +17,7 @@
 #
 # La fecha de referencia del almacén es 2026-08-31 (`glossary.periodo`), y todos los
 # literales de este banco se anclan a ella. Con `current_date` el banco caducaría
-# solo, que es el bug con fecha de explosión que G-3 de la firma de Q-004 evita.
+# solo, que es el bug con fecha de explosión que la corrección G-3 del glosario evita.
 # =============================================================================
 
 version: 1

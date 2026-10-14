@@ -1,12 +1,12 @@
 -- Consulta 2 de la fase 0. Las tres métricas de dinero con su nombre canónico.
 --
--- G-2 de la firma de Q-004 partió «ingreso» en tres, porque llamar «ingreso» a dos
+-- La firma del glosario partió «ingreso» en tres, porque llamar «ingreso» a dos
 -- cosas distintas es lo que produce el error. Aquí salen las tres a la vez, sobre
 -- el ÚNICO grano donde «cuánto nos han pagado» tiene una sola respuesta:
 -- `fact_settlement_batch`, ya deduplicado, en euros y sin tráfico de pruebas.
 --
 -- El periodo se ancla a `max(settlement_date)` del propio dataset y NUNCA a
--- `current_date` (G-3 y G-4 de la firma): con un dataset congelado, `current_date`
+-- `current_date` (glosario firmado): con un dataset congelado, `current_date`
 -- vacía la métrica sola con el paso del tiempo.
 WITH referencia AS (
     SELECT max(settlement_date) AS hasta FROM fact_settlement_batch

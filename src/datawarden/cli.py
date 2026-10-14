@@ -21,9 +21,9 @@ from collections.abc import Sequence
 #: anillo del presupuesto tarifa 66,6 M de filas; servir `dev` hacía que el motor
 #: ejecutara 683 K. Un anillo tarifaba un almacén y otro ejecutaba otro.
 #:
-#: Lo cazó Q-009: Claude Desktop devolvía «ES = 23.908» y el banco de la fase 8, que
-#: está congelado sobre `full`, dice 2.375.936. Las respuestas eran correctas sobre un
-#: almacén que no era el que se mide.
+#: Lo cazó la prueba manual con Claude Desktop: el cliente devolvía «ES = 23.908» y
+#: el banco de la fase 8, que está congelado sobre `full`, dice 2.375.936. Las
+#: respuestas eran correctas sobre un almacén que no era el que se mide.
 #:
 #: Para desarrollo rápido sigue estando `--database datagen/out/cierzo-dev.duckdb`.
 DEFAULT_DATABASE = pathlib.Path("datagen/out/cierzo-full.duckdb")
@@ -44,7 +44,7 @@ def _cmd_catalog_build(args: argparse.Namespace) -> int:
         f"catálogo generado en {SCHEMA_PATH.relative_to(pathlib.Path.cwd())}\n"
         f"  · {len(schema.tables)} tablas y vistas\n"
         f"  · {sum(len(t.columns) for t in schema.tables)} columnas\n"
-        f"  · {hidden} excluidas del catálogo publicado (C-3 de la firma de Q-003)\n"
+        f"  · {hidden} excluidas del catálogo publicado (docs/spec/policy.yaml)\n"
         f"  · {len(rendered)} bytes"
     )
     return 0

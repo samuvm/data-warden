@@ -7,7 +7,7 @@ SSE; `sampling`, `roots` y `logging` quedaron deprecados; `FastMCP` pasó a
 `MCPServer`. El código de ejemplo de 2025 no compila.
 
 **Los once puntos no se inventan aquí:** salen de `docs/STACK.md §7`, que es donde la
-investigación previa los dejó escritos, y de `docs/PLAN.md` fase 7. Este script los
+investigación previa los dejó escritos, y de los requisitos de la fase 7. Este script los
 comprueba sobre los artefactos REALES —el contrato firmado y lo que el servidor
 publica— y no sobre una lista de deseos.
 

@@ -227,7 +227,7 @@ def customer_payment_counts(
         delta = total_intents - int(counts.sum())
 
     paying = counts[counts > 0]
-    # P-003-b (Samuel, 2026-09-02). This used to publish a single `never_paid_share`
+    # Fixed 2026-09-02. This used to publish a single `never_paid_share`
     # holding `never.mean()`, and the report printed it as the MEASURED value next to
     # the target. It is not a measurement of anything downstream: it is the realised
     # draw of the never-pays cohort, so it tracks the target by construction and always

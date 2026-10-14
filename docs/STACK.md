@@ -1,10 +1,11 @@
 # Stack fijado · agosto 2026
 
-> Matriz de versiones exactas para los cinco proyectos. **Se copia a cada proyecto**, no se importa.
-> Ningún agente cambia una versión de aquí sin propuesta aprobada en `docs/PARA-SAMUEL.md`.
+> Matriz de versiones exactas compartida por cinco proyectos hermanos, de los que `data-warden` es uno.
+> **Se copia a cada proyecto**, no se importa. Cambiar una versión de aquí es una decisión que se
+> justifica por escrito, no una edición de paso.
 >
 > Regla: **versiones exactas (`==`), nunca `^` ni `~`.** Es lo que hace que el repo siga compilando
-> dentro de seis meses y lo que impide que un agente alucine la API de una minor futura.
+> dentro de seis meses y lo que impide escribir contra la API imaginada de una minor futura.
 > Imágenes Docker **por digest**, no por tag.
 
 ---
@@ -21,7 +22,7 @@ Dos consecuencias que cambian decisiones:
 - **Ollama tiene backend MLX para Apple Silicon desde 0.19 (marzo 2026), estable en 0.30.**
   Reporta +93 % de decode y +57 % de prefill frente a Metal/llama.cpp. **Requiere ≥ 32 GB de
   memoria unificada.** Con 36 GB cualificas. Es la diferencia entre cumplir el objetivo de
-  p95 ≤ 1,5 s del proyecto 01 o no cumplirlo.
+  p95 ≤ 1,5 s del proyecto de RAG o no cumplirlo.
 - **Docker en macOS no pasa la GPU.** Postgres y demás van en contenedor; **Ollama va en el
   host** y se accede por `host.docker.internal`. Meter Ollama en compose es el error que
   destruye la latencia y nadie entiende por qué.
@@ -68,7 +69,7 @@ en una entrevista.
 1. **Ollama no tiene endpoint de rerank.** Ni en 0.32.6. Los modelos reranker están en su
    librería pero **no existe `/api/rerank`**. El reranker corre **en proceso** con
    `sentence-transformers==5.7.0` (`CrossEncoder`, backend MPS), detrás de un puerto `Reranker`
-   con un `RecordedReranker` para tests. Si un agente asume "todo por Ollama", se estrella.
+   con un `RecordedReranker` para tests. Si se asume "todo por Ollama", se estrella.
    Bonus: elimina un salto de red del presupuesto de p95.
 2. **El adaptador es `OpenAICompatProvider`, no `OllamaProvider`.** Ollama, llama.cpp server,
    vLLM y LM Studio exponen todos `/v1/chat/completions`. Un solo adaptador cubre los cuatro y
@@ -92,10 +93,10 @@ generación actual es **Nova 2**. Modelos Claude en Bedrock a agosto 2026:
 | DuckDB | **1.5.5** | v2.0.0 previsto para otoño 2026: **riesgo de migración a mitad de proyecto**. Fijar y declararlo |
 | duckdb-iceberg | ≥ 1.5.3 | Soporta Iceberg v3, pero ver la nota de abajo |
 | Apache Iceberg | 1.11.0, **tablas en formato v2** | **Athena no soporta v3.** Si el dataset se escribe en v3, el criterio "el mismo caso funciona en DuckDB y en Athena" falla por el formato, no por tu abstracción |
-| PyIceberg | última 0.1x | Sin escrituras: el 03 es solo lectura |
+| PyIceberg | última 0.1x | Sin escrituras: `data-warden` es solo lectura |
 | ClickHouse | ≥ 25.12, recomendado **26.4** | Sigue siendo la elección correcta para trazas: carga analítica, columnar, ~90 % menos de almacenamiento que alternativas fila |
 
-**El "BM25" del proyecto 01 no es BM25.** `tsvector` + `ts_rank_cd` no normaliza por longitud
+**El "BM25" del proyecto de RAG no es BM25.** `tsvector` + `ts_rank_cd` no normaliza por longitud
 de documento ni satura frecuencia de término. Llamarlo BM25 en el README es exactamente la
 imprecisión que un revisor técnico detecta y que resta credibilidad al resto. Se le llama por
 su nombre (`ts_rank_cd` con configuración `spanish` + `unaccent`), y se hace un spike de un día
@@ -133,7 +134,7 @@ y abstención acotados, LangGraph gana.
 | Airflow 3.2 upstream | | **EOL el 06-jul-2026** |
 | Airflow 2.x | | EOL abril 2026 |
 
-El documento del 04 promete *"el mismo DAG en ambos"*. **Eso no se cumple si desarrollas en
+El documento del proyecto de ingesta con Airflow promete *"el mismo DAG en ambos"*. **Eso no se cumple si desarrollas en
 3.3.0 y MWAA solo ofrece 3.2.1.** Decisión tomada: **fijar `apache-airflow==3.2.1` en local**,
 con el fichero de constraints oficial. Se cumple la promesa literal. El coste es renunciar al
 particionado avanzado y a las tareas con estado de 3.3, y eso va escrito.
@@ -141,7 +142,7 @@ particionado avanzado y a las tareas con estado de 3.3, y eso va escrito.
 Tres cosas de Airflow 3 que los documentos no incorporan y son obligatorias:
 
 1. **`Dataset` → `Asset`.** `from airflow.sdk import Asset`, no `from airflow.datasets import
-   Dataset`. **Si el agente escribe DAGs de memoria (Airflow 2), producirá código roto.** Regla:
+   Dataset`. **Si se escriben DAGs de memoria (Airflow 2), saldrá código roto.** Regla:
    todo import en `dags/` viene de `airflow.sdk`, y el gate ejecuta
    `ruff check --preview --select AIR30` (detecta y autocorrige los rompedores 2→3) más
    `airflow config lint`.
@@ -154,7 +155,7 @@ Tres cosas de Airflow 3 que los documentos no incorporan y son obligatorias:
 
 ### 4.2 Pandera está bien elegido pero mal encajado
 
-Los contratos que lista el documento del 04 —idioma, ratio de caracteres útiles, PDF escaneado
+Los contratos que lista el documento del proyecto de ingesta —idioma, ratio de caracteres útiles, PDF escaneado
 sin capa de texto, longitud mínima, codificación— son **validaciones por documento, no por
 DataFrame**. Meterlas en Pandera obliga a construir un DataFrame de una fila por documento solo
 para validarlo: torpe, lento y con peores mensajes de error.
@@ -186,7 +187,7 @@ Diseño correcto, en dos niveles:
 - Varios artículos de 2026 dicen que "está activamente mantenido": están mirando actividad de
   issues y PRs, no merges. Nada entra en `main` desde hace casi seis meses.
 
-El documento del 01 pone *"Faithfulness (Ragas) ≥ 0,90"* **en la primera línea del README** y
+El documento del proyecto de RAG pone *"Faithfulness (Ragas) ≥ 0,90"* **en la primera línea del README** y
 como criterio de bloqueo. **El riesgo es de credibilidad, no técnico:** en una entrevista con
 alguien que conozca el ecosistema, "¿sabías que Ragas lleva medio año parado?" deja al proyecto
 sin respuesta. Ragas se conserva como referencia histórica y para generar corpus inicial;
@@ -199,7 +200,7 @@ sin respuesta. Ragas se conserva como referencia histórica y para generar corpu
 | Componente | Versión | Notas |
 |---|---|---|
 | OTel semconv GenAI | Repo `semantic-conventions-genai`, **versión exacta pineada en `otel-semconv.lock`** | Ver abajo |
-| Instrumentación | OpenLLMetry o SDK OTel puro | **No OpenInference** (Arize): usa convenciones propias, no `gen_ai.*`, y te saca del estándar que el 02 dice defender |
+| Instrumentación | OpenLLMetry o SDK OTel puro | **No OpenInference** (Arize): usa convenciones propias, no `gen_ai.*`, y te saca del estándar que el proyecto de observabilidad dice defender |
 | Exportador ClickHouse | `clickhouseexporter` de collector-contrib | **traces y logs beta, metrics alpha.** No basar el panel de coste en el exportador de métricas: derivarlo de spans. `create_schema: false` |
 | Grafana | **13.1** + Foundation SDK + Git Sync (GA) | Mejora sobre el documento: dashboards tipados en Go/TS/Python en vez de JSON a mano |
 | LiteLLM | `1.90.x`, imagen `-stable`, **pin por digest** | Ver abajo |
@@ -231,7 +232,7 @@ La spec de julio de 2026 **eliminó las sesiones** (`Mcp-Session-Id`), el handsh
 `ping` y la resumibilidad SSE. `sampling`, `roots` y `logging` están deprecados. En el SDK,
 `FastMCP` → **`MCPServer`**. **El código de ejemplo de 2025 no compila.**
 
-Lo que cambia en el diseño del proyecto 03:
+Lo que cambia en el diseño de `data-warden`:
 
 | Cambio | Efecto |
 |---|---|
@@ -242,7 +243,7 @@ Lo que cambia en el diseño del proyecto 03:
 | JSON Schema 2020-12 completo | Mejora: los esquemas de las cuatro tools pueden ser mucho más expresivos |
 | `ttlMs` + `cacheScope` obligatorios en los `list` | El catálogo como recurso debe declarar TTL |
 | `tools/list` con orden determinista | Check de CI barato |
-| Trace context OTel en `_meta` | **Oportunidad excelente:** encadena 03 con 02 de forma estándar |
+| Trace context OTel en `_meta` | **Oportunidad excelente:** encadena `data-warden` con el proyecto de observabilidad de forma estándar |
 | HTTP+SSE deprecado | Usar Streamable HTTP. stdio sigue válido para clientes de escritorio |
 
 **El argumento del proyecto sale reforzado:** *"da igual qué cliente se conecte, no puede
@@ -260,7 +261,7 @@ en cada subida, que el diseño "una regla = un fichero = un test" ya cubre.
 
 | Componente | Versión | Notas |
 |---|---|---|
-| Terraform | **1.15.x** | `terraform test` es el diferencial del 05 y 1.15 cierra el último hueco (valores mock conformes al formato) |
+| Terraform | **1.15.x** | `terraform test` es el diferencial del proyecto de infraestructura y 1.15 cierra el último hueco (valores mock conformes al formato) |
 | Provider AWS | **`~> 6.57.1`** | ⚠️ **La 6.57.0 fue retirada por un bug grave.** Ir directo a 6.57.1 |
 | `configure-aws-credentials` | **v6.2.3** | v6.0.0 fue breaking (Node 24): exige runner ≥ 2.327.1 |
 | Checkov | 3.2.526 | La principal. Políticas basadas en grafo desde 3.0 |
@@ -276,7 +277,7 @@ Terraform 1.15, **verificar en CI que `tofu plan` también pasa**, y documentar 
 OpenTofu 1.11.6 (MPL 2.0) tiene features que Terraform no tiene en 2026: cifrado de estado,
 valores efímeros, `for_each` en providers.
 
-### Dos cosas que reescriben ADRs del 05
+### Dos cosas que reescriben ADRs del proyecto de infraestructura
 
 1. **El ADR "Function URL vs API Gateway" ya no es "streaming sí o no".** API Gateway REST
    soporta response streaming nativo desde noviembre de 2025, y Lambda response streaming está
@@ -288,7 +289,7 @@ valores efímeros, `for_each` en providers.
    que añade el ID numérico permanente de organización y repositorio tras cada nombre. **Las
    condiciones `StringLike` escritas al estilo antiguo dejan de casar, en silencio.** El módulo
    `least-privilege-role` debe soportar ambos formatos y tener un test negativo que lo
-   demuestre. Hoy es el detalle más vendible de todo el proyecto 05. (Bonus: el thumbprint del
+   demuestre. Hoy es el detalle más vendible de todo el proyecto de infraestructura. (Bonus: el thumbprint del
    proveedor OIDC ya no hace falta y se ignora si se especifica; casi todos los tutoriales de
    2026 lo siguen copiando.)
 

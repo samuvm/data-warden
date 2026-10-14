@@ -78,7 +78,7 @@
         "nullable": { "type": "boolean" },
         "ordinal": { "type": "integer", "minimum": 1 },
         "published": {
-          "description": "`false` si la política firmada la excluye del catálogo del anillo 1 (cambio C-3 de la firma de Q-003). La columna sigue estando aquí porque el esquema describe lo que EXISTE; publicar es otra decisión, y tenerla permite que `qualify()` sepa a qué tabla pertenece en vez de verla como una columna desconocida.",
+          "description": "`false` si la política firmada la excluye del catálogo del anillo 1 (cambio C-3 de `policy.yaml`). La columna sigue estando aquí porque el esquema describe lo que EXISTE; publicar es otra decisión, y tenerla permite que `qualify()` sepa a qué tabla pertenece en vez de verla como una columna desconocida.",
           "type": "boolean"
         },
         "deprecated": { "type": "boolean" },
