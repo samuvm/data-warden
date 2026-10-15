@@ -1,1 +1,1 @@
-"""Ver el mapa de zonas en `docs/RULES.md` §2: cada paquete tiene su regla de test."""
+"""Guard rules: one module per rule, registered in `datawarden.guard.registry`."""

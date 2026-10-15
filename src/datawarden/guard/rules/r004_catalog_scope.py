@@ -1,23 +1,20 @@
-"""R004 · solo tablas del catálogo generado, y nada de funciones de tabla.
+"""R004: only tables from the generated catalog, and no table functions.
 
-Dos formas de traer datos de fuera del ámbito, y las dos se cierran aquí:
+Two ways of pulling data from outside the scope, both closed here.
 
-**Una tabla que no está en el catálogo.** Con el árbol todavía sin cualificar, esto
-se comprueba sobre los nodos `Table`, que ya llevan resueltos los alias del `FROM`.
+A table that is not in the catalog, checked on the `Table` nodes of the unqualified
+tree.
 
-**Una FUNCIÓN de tabla.** `FROM read_parquet('/etc/passwd')` no nombra ninguna
-tabla: nombra un lector de ficheros. sqlglot lo representa como un `Table` cuyo
-contenido NO es un identificador, y esa distinción estructural es lo que lo
-distingue de una tabla de verdad sin necesidad de ninguna lista de funciones
-prohibidas. La lista de `KNOWN_DANGEROUS` existe solo para dar un mensaje mejor:
-lo que para el ataque es la ausencia en la allowlist, no la presencia en una
-denylist.
+A table function. `FROM read_parquet('/etc/passwd')` names a file reader, not a table.
+sqlglot represents it as a `Table` whose content is not an identifier, and that
+structural difference is what separates it from a real table, with no list of
+forbidden functions needed. `KNOWN_DANGEROUS` exists only to produce a better message:
+what stops the attack is absence from the allowlist, not presence on a denylist.
 
-La otra mitad de esta regla —que toda COLUMNA exista— la impone `qualify()` con
-`validate_qualify_columns=True`, y su fallo se traduce a este mismo `rule_id` en el
-validador. Es deliberado: para quien pregunta, «esa columna no existe» y «esa tabla
-no existe» son el mismo problema, y separarlos en dos reglas daría dos mensajes
-para la misma confusión.
+The other half of the rule, that every column exists, is enforced by `qualify()` with
+`validate_qualify_columns=True`, and the validator maps that failure to this same
+`rule_id`. That is deliberate: to the caller, "no such column" and "no such table" are
+the same problem, and two rules would give two messages for the same confusion.
 """
 
 from __future__ import annotations
@@ -31,12 +28,12 @@ from datawarden.guard.rules import messages
 
 
 class CatalogScopeRule:
-    """Toda relación referenciada existe en el catálogo generado."""
+    """Every referenced relation exists in the generated catalog."""
 
     rule_id = "R004"
     code = "relation_out_of_scope"
     severity = Severity.SECURITY
-    summary = "Toda tabla del árbol existe en el catálogo generado"
+    summary = "Every table in the tree exists in the generated catalog"
     families: tuple[str, ...] = (
         "tabla_fuera_de_ambito",
         "funcion_de_tabla",
@@ -52,8 +49,8 @@ class CatalogScopeRule:
             inner = table.this
             if not isinstance(inner, exp.Identifier):
                 name = _function_name(inner)
-                # LA DECISION —si la funcion lee de fuera del proceso— se queda aqui
-                # y se mide; el fragmento de frase que la cuenta esta en `messages`.
+                # The decision (whether the function reads from outside the process)
+                # stays here and is measured; the wording lives in `messages`.
                 message, suggestion = messages.table_function(
                     name, dangerous=name in KNOWN_DANGEROUS
                 )
@@ -66,11 +63,10 @@ class CatalogScopeRule:
                     retryable=False,
                 )
             name = table.name.lower()
-            # UNA TABLA CUALIFICADA CON OTRA BASE DE DATOS. Lo encontró el corpus:
-            # `SELECT 1 FROM otra_base.dim_customer` tiene `name == "dim_customer"`,
-            # que SÍ está en el catálogo, y pasaba. El catálogo de este proyecto es
-            # un solo esquema (`PROJECT.md` deja «más de un esquema» fuera de
-            # alcance), así que cualquier cualificación es un intento de salir de él.
+            # A relation qualified with another database. In
+            # `SELECT 1 FROM other_db.dim_customer` the name is `dim_customer`, which is
+            # in the catalog. The catalog is a single schema (multiple schemas are out of
+            # scope in `docs/DESIGN.md`), so any qualifier is an attempt to reach outside.
             qualifier = (table.db or table.catalog or "").lower()
             if qualifier:
                 message, suggestion = messages.qualified_relation(qualifier, name)
@@ -98,7 +94,7 @@ class CatalogScopeRule:
 
 
 def _function_name(node: exp.Expression | None) -> str:
-    """El nombre de la función de tabla, en minúsculas y sin adornos."""
+    """Name of the table function, lowercased and unadorned."""
     if node is None:
         return "unknown"
     if isinstance(node, exp.Anonymous):

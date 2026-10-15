@@ -1,23 +1,21 @@
-"""Mutación de AST sobre corpus semilla. La otra mitad de `G-WRITE-BLOCK`.
+"""AST mutation over a seed corpus. The other half of `G-WRITE-BLOCK`.
 
-`docs/RULES.md §7`, error 8, descarta explícitamente lo que parecería la opción
-obvia: *«Escribir un generador gramatical de SQL válido para Hypothesis es un
-subproyecto de una o dos semanas.»* Y propone esto en su lugar, a una décima parte
-del coste: **mutar el árbol de un corpus semilla**.
+`docs/RULES.md §7`, error 8, rules out the obvious option: a grammar-based generator
+of valid SQL for Hypothesis is a one- to two-week subproject. Mutating the trees of a
+seed corpus costs a tenth of that.
 
-La idea que lo hace valer: **una mutación de un ataque sigue siendo un ataque.** Si
-`DELETE FROM t` se rechaza, también tiene que rechazarse envuelto en una CTE, con un
-comentario entre tokens, con las mayúsculas cambiadas o unido por `UNION` a una
-consulta legítima. Cada mutación es una de las evasiones clásicas del cuaderno, y
-aplicarlas todas contra los veinticinco ataques da miles de casos que nadie ha
-escrito a mano y que no se parecen a los que escribió quien hizo las reglas.
+Premise: a mutated attack is still an attack. If `DELETE FROM t` is rejected, it
+must also be rejected when wrapped in a CTE, with comments between tokens, with
+changed casing, or `UNION`ed with a legitimate query. Each mutation is a classic
+evasion; applying them to the attack corpus yields thousands of cases nobody wrote by
+hand and that do not resemble what the rule author had in mind.
 
-Y en la otra dirección: **una mutación de una consulta legítima que el guard acepta
-tiene que seguir cumpliendo los invariantes** —ni escritura, ni estrella sin
-expandir—. Sin esa mitad, «todo se rechaza» satisfaría la meta.
+In the other direction, a mutation of a legitimate query that the guard accepts must
+still satisfy the invariants (no writes, no unexpanded star). Without that half,
+"reject everything" would satisfy the goal.
 
-Determinista por obligación: la semilla es un argumento, no un `random` global. Un
-contraejemplo que no se puede reproducir no es un contraejemplo, es una anécdota.
+Deterministic: the seed is an argument, not global `random` state, so every
+counterexample is reproducible.
 """
 
 from __future__ import annotations
@@ -31,9 +29,8 @@ import sqlglot
 from sqlglot import expressions as exp
 from sqlglot.errors import SqlglotError
 
-#: Sinónimos de dialecto. Cambiar `substr` por `substring` no cambia lo que la
-#: consulta hace: si una regla dependiera del nombre en vez del nodo, esto la
-#: rompería, y ese es exactamente el fallo que la mutación busca.
+#: Dialect synonyms. `substr` vs `substring` does not change semantics; a rule keyed
+#: on the name rather than the node would break, which is what this looks for.
 _SYNONYMS: Final[tuple[tuple[str, str], ...]] = (
     ("substr(", "substring("),
     ("upper(", "ucase("),
@@ -43,8 +40,8 @@ _SYNONYMS: Final[tuple[tuple[str, str], ...]] = (
     (" OR ", " or "),
 )
 
-#: Comentarios que se inyectan ENTRE tokens. Es la evasión número uno contra un
-#: validador que busque palabras, y contra un árbol no es nada.
+#: Comments injected between tokens: the top evasion against a keyword-matching
+#: validator, and a no-op against a tree.
 _COMMENTS: Final = ("/**/", "/* x */", "/*SELECT*/", "--\n", "/*\n*/")
 
 
@@ -53,7 +50,7 @@ def _tokens(sql: str) -> list[str]:
 
 
 def inject_comment(sql: str, rng: random.Random) -> str:
-    """Un comentario entre dos tokens cualesquiera."""
+    """Insert a comment between two arbitrary tokens."""
     tokens = _tokens(sql)
     if len(tokens) < 2:
         return sql
@@ -62,29 +59,28 @@ def inject_comment(sql: str, rng: random.Random) -> str:
 
 
 def flip_case(sql: str, rng: random.Random) -> str:
-    """Mayúsculas y minúsculas al azar, letra a letra."""
+    """Randomize letter case character by character."""
     return "".join(c.upper() if rng.random() < 0.5 else c.lower() for c in sql)
 
 
 def swap_synonym(sql: str, rng: random.Random) -> str:
-    """Una función por su sinónimo de dialecto."""
+    """Replace a function with its dialect synonym."""
     frm, to = rng.choice(_SYNONYMS)
     return sql.replace(frm, to, 1)
 
 
 def pad_whitespace(sql: str, rng: random.Random) -> str:
-    """Saltos de línea y tabuladores donde había un espacio."""
+    """Replace spaces with newlines and tabs."""
     filler = rng.choice(["\n", "\t", "  ", "\r\n", " \n "])
     return sql.replace(" ", filler, rng.randint(1, 3))
 
 
 def wrap_in_cte(sql: str, rng: random.Random) -> str:
-    """Envolver en una CTE. La evasión que esconde una escritura tras un SELECT."""
+    """Wrap in a CTE: the evasion that hides a write behind a SELECT."""
     name = f"m{rng.randrange(1000)}"
-    # S608 avisa de inyección por concatenación. AQUÍ ES EL TRABAJO: este módulo
-    # construye SQL deliberadamente malformado para dárselo al guard. En `src/` la
-    # regla sigue activa para todo lo demás, y una consulta de verdad se arma sobre
-    # un AST validado y jamás por concatenación.
+    # S608 flags injection by concatenation, which is the purpose here: this module
+    # builds adversarial SQL to feed the guard. The rule stays active elsewhere in
+    # `src/`, where real queries are built from a validated AST.
     return f"WITH {name} AS ({sql}) SELECT * FROM {name}"  # noqa: S608
 
 
@@ -94,7 +90,7 @@ def wrap_in_subquery(sql: str, rng: random.Random) -> str:
 
 
 def add_union(sql: str, rng: random.Random) -> str:
-    """Unir con una consulta legítima: el ataque se esconde en una rama."""
+    """Union with a legitimate query, hiding the attack in one branch."""
     inocente = rng.choice(
         [
             "SELECT 1 AS x",
@@ -108,14 +104,13 @@ def add_union(sql: str, rng: random.Random) -> str:
 
 
 def rename_aliases(sql: str, rng: random.Random) -> str:
-    """Renombrar los alias del árbol. Un alias no cambia de qué columna sale un dato."""
+    """Rename table aliases. An alias does not change where a value comes from."""
     try:
         tree = sqlglot.parse_one(sql, dialect="duckdb")
     except SqlglotError:
-        # `SqlglotError` y no `ParseError`: una comilla suelta la lanza el
-        # TOKENIZADOR, que es otra excepción de la misma familia. Lo encontró un
-        # test con basura, y una mutación que revienta pararía el corpus justo en la
-        # clase de entrada que más interesa mutar.
+        # `SqlglotError`, not `ParseError`: an unbalanced quote is raised by the
+        # tokenizer, a sibling exception. A crashing mutation would halt the corpus
+        # on exactly the malformed inputs most worth mutating.
         return sql
     for i, table in enumerate(tree.find_all(exp.Table)):
         if table.alias:
@@ -126,14 +121,13 @@ def rename_aliases(sql: str, rng: random.Random) -> str:
 
 
 def push_into_having(sql: str, _rng: random.Random) -> str:
-    """Colar la condición en un `HAVING`, que es otra posición del árbol."""
+    """Move the `WHERE` condition into `HAVING`, a different tree position."""
     try:
         tree = sqlglot.parse_one(sql, dialect="duckdb")
     except SqlglotError:
-        # `SqlglotError` y no `ParseError`: una comilla suelta la lanza el
-        # TOKENIZADOR, que es otra excepción de la misma familia. Lo encontró un
-        # test con basura, y una mutación que revienta pararía el corpus justo en la
-        # clase de entrada que más interesa mutar.
+        # `SqlglotError`, not `ParseError`: an unbalanced quote is raised by the
+        # tokenizer, a sibling exception. A crashing mutation would halt the corpus
+        # on exactly the malformed inputs most worth mutating.
         return sql
     select = tree.find(exp.Select)
     where = select.args.get("where") if select is not None else None
@@ -145,8 +139,8 @@ def push_into_having(sql: str, _rng: random.Random) -> str:
     return tree.sql(dialect="duckdb")
 
 
-#: Las ocho mutaciones. Cada una es una evasión documentada del cuaderno, no una
-#: transformación al azar: por eso son ocho y no ochenta.
+#: The mutations. Each is a documented evasion technique, not a random transformation,
+#: which is why the list is short.
 MUTATIONS: Final = (
     inject_comment,
     flip_case,
@@ -161,13 +155,13 @@ MUTATIONS: Final = (
 
 
 def mutants(sql: str, *, rounds: int, seed: int) -> Iterator[tuple[str, str]]:
-    """`(nombre_de_la_mutación, sql_mutado)`, de forma determinista.
+    """Yield `(mutation_name, mutated_sql)` deterministically.
 
-    Cada ronda aplica las nueve mutaciones al resultado de la ronda anterior, así
-    que la ronda dos son mutaciones COMPUESTAS —un comentario dentro de una CTE
-    dentro de un UNION—, que es donde un validador escrito con prisa se rompe.
+    Each round applies all nine mutations to the previous round's output, so later
+    rounds produce composed mutations (a comment inside a CTE inside a UNION), which
+    is where hastily written validators break.
     """
-    rng = random.Random(seed)  # noqa: S311 -- corpus reproducible, no criptografía
+    rng = random.Random(seed)  # noqa: S311 -- reproducible corpus, not cryptography
     current = [sql]
     for round_no in range(rounds):
         siguiente: list[str] = []
@@ -176,13 +170,13 @@ def mutants(sql: str, *, rounds: int, seed: int) -> Iterator[tuple[str, str]]:
                 try:
                     mutated = mutation(base, rng)
                 except Exception:  # noqa: S112
-                    # Una mutación que revienta no para el corpus: se salta y se
-                    # sigue. Pararlo aquí dejaría sin probar justo la clase de
-                    # entrada que más interesa mutar, que es la que ya venía rota.
+                    # A crashing mutation is skipped rather than halting the corpus,
+                    # which would leave already-broken inputs, the most interesting
+                    # ones, untested.
                     continue
                 if mutated and mutated != base:
                     yield (f"{mutation.__name__}@{round_no}", mutated)
                     siguiente.append(mutated)
-        # Solo se propagan unas pocas por ronda: el crecimiento es exponencial y
-        # dos rondas completas serían ochenta y un mil mutantes por semilla.
+        # Propagate only a few per round: full propagation grows exponentially
+        # (nine mutations per input per round).
         current = siguiente[:3]

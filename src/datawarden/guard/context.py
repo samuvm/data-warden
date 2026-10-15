@@ -1,13 +1,13 @@
-"""Construir el `GuardContext`: parsear y CUALIFICAR. Aquí no se decide nada.
+"""Builds the `GuardContext`: parse and qualify. No decisions are made here.
 
-`qualify()` con el esquema del catálogo es la decisión que ahorra más código de todo
-el proyecto (`docs/RULES.md §7`, error 1): con el árbol cualificado, **los alias, las
-CTE anidadas y `SELECT *` ya están resueltos, así que no hay que «buscar» el alias
-porque ya no existe**. Once de las catorce reglas se apoyan en eso.
+`qualify()` against the catalog schema removes more code than any other choice in the
+guard (`docs/RULES.md` §7, item 1): once the tree is qualified, aliases, nested CTEs and
+`SELECT *` are already resolved, so there is no alias left to look up. Eleven of the
+fourteen rules rely on it.
 
-Este módulo NO rechaza. Devuelve o un contexto o un problema descrito, y quien
-decide qué hacer con el problema es el validador, que es el único sitio donde puede
-haber un `except Exception` (I-04).
+This module never rejects. It returns either a context or a described problem, and the
+validator decides what to do with it; the validator is the only place allowed an
+`except Exception` (I-04).
 """
 
 from __future__ import annotations
@@ -26,15 +26,14 @@ from datawarden.domain.types import Principal
 from datawarden.guard.rule import GuardContext
 from datawarden.principal.policy import AccessPolicy
 
-#: Presupuesto del guard por consulta. Es a la vez el máximo absoluto de
-#: `G-GUARD-P95` y el timeout de fail-closed: pasado esto, la consulta se RECHAZA.
-#: Un guard que tarda no es lento, es un guard caído.
+#: Guard budget per query. It is both the hard ceiling of `G-GUARD-P95` and the
+#: fail-closed timeout: past it, the query is rejected.
 DEFAULT_TIMEOUT_MS: float = 250.0
 
 
 @dataclass(frozen=True, slots=True)
 class ParseProblem:
-    """Lo que impidió construir el contexto, con el vocabulario del guard."""
+    """What prevented building the context, in the guard's vocabulary."""
 
     stage: str
     message: str
@@ -42,17 +41,17 @@ class ParseProblem:
 
 
 def parse(sql: str, dialect: str) -> exp.Expression | ParseProblem:
-    """Parsea UNA sentencia. Varias sentencias es un problema, no una consulta.
+    """Parse exactly one statement. Several statements are a problem, not a query.
 
-    `parse_one` aceptaría la primera y descartaría el resto en silencio, que es
-    exactamente cómo `SELECT 1; DROP TABLE x` pasaría por un validador escrito con
-    prisa: la validación miraría el `SELECT` y el motor ejecutaría las dos.
+    `parse_one` would accept the first and silently drop the rest, which is how
+    `SELECT 1; DROP TABLE x` gets past a hasty validator: validation sees the `SELECT`
+    and the engine runs both.
     """
     try:
         statements = sqlglot.parse(sql, dialect=dialect)
     except ParseError as exc:
         return ParseProblem(stage="parse", message=_first_line(str(exc)))
-    except SqlglotError as exc:  # tokenizer, recursión, dialecto
+    except SqlglotError as exc:  # tokenizer, recursion, dialect
         return ParseProblem(stage="parse", message=_first_line(str(exc)))
 
     real = [s for s in statements if s is not None]
@@ -63,21 +62,21 @@ def parse(sql: str, dialect: str) -> exp.Expression | ParseProblem:
             stage="parse",
             message=f"the input contains {len(real)} statements and only one is allowed",
         )
-    # `cast` y no una anotación: sqlglot tipa `parse()` con un self-type (`Expr`),
-    # y el verificador estricto no lo unifica con `Expression`. La alternativa sería
-    # ensanchar el tipo de retorno de esta función, que es peor: el resto del guard
-    # razona sobre `Expression` y no tiene por qué saber de los genéricos de sqlglot.
+    # `cast` rather than an annotation: sqlglot types `parse()` with a self-type (`Expr`)
+    # that strict type checking does not unify with `Expression`. Widening this
+    # function's return type instead would leak sqlglot generics into the rest of the
+    # guard, which reasons about `Expression`.
     return cast("exp.Expression", real[0])
 
 
 def qualify_tree(
     tree: exp.Expression, schema: CatalogSchema, dialect: str
 ) -> exp.Expression | ParseProblem:
-    """Cualifica contra el catálogo GENERADO. Un fallo aquí es un rechazo.
+    """Qualify against the generated catalog. A failure here is a rejection.
 
-    `validate_qualify_columns=True` es lo que hace que una columna que no existe se
-    detecte AQUÍ y no más adelante: sin ello, `SELECT no_existe FROM t` pasaría el
-    guard entero y fallaría en el motor, donde ya no hay mensaje accionable que dar.
+    `validate_qualify_columns=True` makes a nonexistent column fail here rather than
+    later: without it, `SELECT missing FROM t` would pass the whole guard and fail in
+    the engine, where no actionable message can be given.
     """
     try:
         qualified: exp.Expression = qualify(
@@ -106,7 +105,7 @@ def build_context(
     max_rows: int,
     timeout_ms: float = DEFAULT_TIMEOUT_MS,
 ) -> GuardContext:
-    """Empaqueta el contexto y arranca el reloj."""
+    """Package the context and start the clock."""
     return GuardContext(
         raw_sql=raw_sql,
         tree=tree,
@@ -121,11 +120,11 @@ def build_context(
 
 
 def lineage_index(schema: CatalogSchema) -> dict[str, tuple[str, ...]]:
-    """`tabla.columna` -> columnas base, aplanado una vez por catálogo.
+    """`table.column` -> base columns, flattened once per catalog.
 
-    Se construye aquí y no dentro de cada regla porque recorrer 428 columnas por
-    consulta no cabe en los 25 ms de `G-GUARD-P95`. En un servidor de verdad esto se
-    calcula al arrancar; el índice es inmutable mientras el catálogo lo sea.
+    Built here rather than in each rule because walking 428 columns per query does not
+    fit in the 25 ms of `G-GUARD-P95`. A long-running server computes it at startup; the
+    index is immutable as long as the catalog is.
     """
     return {
         f"{table.name.lower()}.{column.name.lower()}": column.derives_from
@@ -135,11 +134,11 @@ def lineage_index(schema: CatalogSchema) -> dict[str, tuple[str, ...]]:
 
 
 def _first_line(message: str) -> str:
-    """El mensaje de sqlglot, acotado. Un rechazo no es un volcado de pila.
+    """First line of sqlglot's message, truncated. A rejection is not a stack trace.
 
-    Y hay un motivo de seguridad además del estético: los errores de sqlglot citan
-    el fragmento de entrada, y la entrada puede llevar un literal con datos. El
-    contrato de rechazo prohíbe revelar valores (I-09), así que se recorta.
+    There is also a security reason: sqlglot errors quote the input fragment, which may
+    contain a literal with data, and the rejection contract forbids revealing values
+    (I-09).
     """
     first = message.strip().splitlines()[0] if message.strip() else "unparseable input"
     return first[:200]

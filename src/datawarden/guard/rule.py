@@ -1,20 +1,18 @@
-"""El protocolo de regla. **Se congela ANTES de escribir la primera regla.**
+"""The rule protocol.
 
-El orden es deliberado y no es ceremonia: si el protocolo se decide
-mientras se escriben las reglas, cada regla acaba con una firma un poco distinta y
-la parametrización del corpus —«una regla = un fichero = un test»— deja de ser
-posible. Catorce reglas con catorce formas de invocarse son catorce tests.
+Every rule shares one signature, which is what lets the case corpus parametrise over
+rules: one rule, one module, one case file.
 
-**Qué es una regla aquí.** Una función pura de `GuardContext` a `RuleResult`. No
-lee ficheros, no toca el motor, no conoce el transporte y no lanza excepciones: si
-algo va mal dentro, devuelve un rechazo. El único `except Exception` del guard vive
-en `validator.validate` (I-04), y esto es lo que hace que esa única red de
-seguridad baste.
+A rule is a pure function from `GuardContext` to `RuleResult`. It reads no files,
+touches no engine, knows nothing about transport and never raises: if something goes
+wrong inside, it returns a rejection. The guard's only `except Exception` lives in
+`validator.validate` (I-04), and this contract is what makes that single safety net
+sufficient.
 
-**Una regla puede REESCRIBIR el árbol.** R006 inyecta el `LIMIT` que falta y R009
-expande `SELECT *`. Por eso `RuleResult` lleva un árbol opcional: la alternativa
-—que cada regla mutase el árbol en sitio— haría imposible saber qué regla cambió
-qué, y el registro de auditoría dejaría de poder explicar la consulta que corrió.
+A rule may rewrite the tree (R006 injects or clamps the `LIMIT`), which is why
+`RuleResult` carries an optional tree. Mutating the tree in place would make it
+impossible to tell which rule changed what, and the audit record could no longer explain
+the query that ran.
 """
 
 from __future__ import annotations
@@ -31,18 +29,17 @@ from datawarden.principal.policy import AccessPolicy
 
 @dataclass(frozen=True, slots=True)
 class GuardContext:
-    """Todo lo que una regla necesita, ya resuelto y ya indexado.
+    """Everything a rule needs, already resolved and indexed.
 
-    **El árbol viene YA CUALIFICADO** por `sqlglot.optimizer.qualify.qualify()`
-    contra el catálogo generado. Es la decisión que más código ahorra de todo el
-    proyecto: con el árbol cualificado, los alias, las CTE anidadas y `SELECT *` ya
-    están resueltos, así que ninguna regla tiene que «buscar» a qué tabla pertenece
-    una columna. La alternativa —que cada regla resolviera alias por su cuenta— es
-    catorce implementaciones de lo mismo y catorce sitios donde equivocarse.
+    For post-qualify rules the tree arrives qualified by
+    `sqlglot.optimizer.qualify.qualify()` against the generated catalog: aliases, nested
+    CTEs and `SELECT *` are already resolved, so no rule has to work out which table a
+    column belongs to. The alternative, each rule resolving aliases on its own, would be
+    fourteen implementations of the same thing and fourteen places to get it wrong.
     """
 
-    #: La cadena de entrada. **Solo para diagnóstico y para medir.** JAMÁS se
-    #: ejecuta: lo que se ejecuta es `tree.sql(dialect)` (I-02).
+    #: The input string, for diagnostics and measurement only. It is never executed:
+    #: what runs is `tree.sql(dialect)` (I-02).
     raw_sql: str
     tree: exp.Expression
     schema: CatalogSchema
@@ -50,25 +47,24 @@ class GuardContext:
     principal: Principal
     dialect: str
     max_rows: int
-    #: Instante límite del reloj monótono. Un guard que tarda es un guard caído, y
-    #: por eso el propio guard tiene fecha de caducidad por consulta.
+    #: Monotonic-clock deadline. A guard that takes too long is a guard that is down, so
+    #: every query carries its own expiry.
     deadline: float | None = None
-    #: `tabla.columna` -> columnas base de las que sale. Copiado del catálogo para
-    #: no recorrerlo por columna: `G-GUARD-P95` son 25 ms para toda la consulta.
+    #: `table.column` -> base columns. Copied from the catalog so it is not walked per
+    #: column: `G-GUARD-P95` allows 25 ms for the whole query.
     lineage: dict[str, tuple[str, ...]] = field(default_factory=dict, repr=False)
-    #: `id(nodo Column)` -> columnas base, resuelto DENTRO de esta consulta. Es lo
-    #: que sigue un alias a través de una CTE o una subconsulta: `c.b` es
-    #: `dim_customer.birth_date` con otro nombre, y una política que no lo siguiera
-    #: dejaría abierto el canal lateral por predicado con dos líneas de SQL.
+    #: `id(Column node)` -> base columns, resolved within this query. This is what follows
+    #: an alias through a CTE or a subquery: `c.b` is `dim_customer.birth_date` under
+    #: another name, and a policy that did not follow it would leave the predicate side
+    #: channel open.
     column_sources: dict[int, tuple[str, ...]] = field(default_factory=dict, repr=False)
 
     def sources_of(self, column: object, table: str, name: str) -> tuple[str, ...]:
-        """Las columnas base detrás de ESTE nodo columna.
+        """Base columns behind this column node.
 
-        Primero el linaje de la consulta —que sigue alias, CTE y subconsultas— y
-        solo si no lo tiene, el del catálogo. El orden importa: el de la consulta es
-        más específico, y el del catálogo no sabe nada de las relaciones que la
-        propia consulta inventa.
+        Query lineage first (it follows aliases, CTEs and subqueries), catalog lineage
+        only as a fallback. The order matters: query lineage is more specific, and the
+        catalog knows nothing about relations the query itself defines.
         """
         found = self.column_sources.get(id(column))
         if found:
@@ -76,11 +72,11 @@ class GuardContext:
         return self.base_columns(table, name)
 
     def base_columns(self, table: str, column: str) -> tuple[str, ...]:
-        """Las columnas base detrás de `tabla.columna`, ya resueltas.
+        """Base columns behind `table.column`, already resolved.
 
-        Si no hay linaje —una relación que no está en el catálogo—, se devuelve la
-        referencia tal cual. Quien decide qué hacer con una columna desconocida es
-        R004, no esto: aquí no se inventa una respuesta segura, se dice la verdad.
+        Without lineage (a relation outside the catalog) the reference is returned as is.
+        Deciding what to do with an unknown column is R004's job; this method does not
+        invent a safe answer.
         """
         key = f"{table.lower()}.{column.lower()}"
         return self.lineage.get(key, (key,))
@@ -88,17 +84,17 @@ class GuardContext:
 
 @dataclass(frozen=True, slots=True)
 class RuleResult:
-    """Lo que devuelve una regla: un rechazo, un árbol reescrito, o nada.
+    """What a rule returns: a rejection, a rewritten tree, or nothing.
 
-    «Nada» es el caso normal y por eso es el valor por defecto: una regla que no
-    tiene nada que objetar no construye ningún objeto.
+    Nothing is the normal case and therefore the default: a rule with no objection
+    builds no object.
     """
 
     rejection: RejectionReason | None = None
-    #: El árbol reescrito, si la regla reescribió. `None` significa «no he tocado
-    #: nada», que es distinto de «lo he dejado igual».
+    #: The rewritten tree, if the rule rewrote it. `None` means "untouched", which is not
+    #: the same as "rewritten to an identical tree".
     tree: exp.Expression | None = None
-    #: Notas para la auditoría: qué hizo la regla, si hizo algo.
+    #: Audit notes: what the rule did, if anything.
     notes: tuple[str, ...] = ()
 
     @property
@@ -106,33 +102,31 @@ class RuleResult:
         return self.rejection is not None
 
 
-#: Las dos fases del guard, y por qué son dos.
+#: The guard's two phases, and why there are two.
 #:
-#: `qualify()` resuelve alias, expande `SELECT *` y cualifica cada columna con su
-#: tabla, y eso es lo que hace que once de las catorce reglas no tengan que
-#: «buscar» nada. Pero cualificar un `DROP TABLE` no significa nada, y entregarle a
-#: `qualify()` un árbol que ni siquiera es una consulta es pedirle que decida algo
-#: que no le toca. Por eso las reglas que deciden QUÉ CLASE DE COSA es el árbol
-#: corren ANTES, sobre el árbol crudo, y las que razonan sobre columnas corren
-#: DESPUÉS, sobre el árbol cualificado.
+#: `qualify()` resolves aliases, expands `SELECT *` and qualifies every column with its
+#: table, which spares eleven of the fourteen rules any lookup. But qualifying a
+#: `DROP TABLE` means nothing, and handing `qualify()` a tree that is not even a query
+#: asks it to decide something outside its job. Rules that decide what kind of thing the
+#: tree is therefore run first, on the raw tree; rules that reason about columns run
+#: afterwards, on the qualified tree.
 PRE_QUALIFY: str = "pre"
 POST_QUALIFY: str = "post"
 
-#: El resultado limpio, compartido por todas las reglas que no objetan nada. Es un
-#: singleton porque se construye una vez por regla y por consulta: catorce objetos
-#: por consulta multiplicados por el p95 de 25 ms no son gratis.
+#: The clean result, shared by every rule with no objection. A singleton avoids
+#: allocating fourteen objects per query inside a 25 ms p95 budget.
 PASS = RuleResult()
 
 
 @runtime_checkable
 class Rule(Protocol):
-    """Una regla del guard.
+    """A guard rule.
 
-    Los cuatro atributos de clase no son metadatos decorativos: `rule_id` es lo que
-    `scripts/check_rules_registry.py` vigila para que ninguna regla desaparezca
-    jamás (I-01), `code` es lo que agrupa las métricas, `severity` decide si el
-    rechazo es un evento de seguridad, y `families` es lo que hace comprobable que
-    toda familia de ataque tiene una regla que la para (I-14).
+    The class attributes are not decorative: `rule_id` is what
+    `scripts/check_rules_registry.py` tracks so that no rule ever disappears (I-01),
+    `code` groups metrics, `severity` decides whether the rejection is a security event,
+    and `families` makes it checkable that every attack family has a rule that stops it
+    (I-14).
     """
 
     rule_id: str
@@ -143,7 +137,7 @@ class Rule(Protocol):
     phase: str
 
     def check(self, ctx: GuardContext) -> RuleResult:
-        """Decide sobre el árbol. **No lanza. Nunca.**"""
+        """Decide on the tree. Never raises."""
         ...
 
 
@@ -157,12 +151,11 @@ def reject(
     alternative: str | None = None,
     retryable: bool = True,
 ) -> RuleResult:
-    """Construye el rechazo de una regla con sus metadatos ya rellenos.
+    """Build a rule's rejection with its metadata filled in.
 
-    Existe para que ninguna regla pueda equivocarse de `rule_id` al rechazar, que es
-    el fallo silencioso más caro de este diseño: un caso que se cree cubierto por
-    R008 y que en realidad para R002 por accidente. El día que R002 cambie, R008
-    tiene un agujero y nadie se entera.
+    It exists so that no rule can report the wrong `rule_id`, the costliest silent
+    failure in this design: a case believed covered by R008 that is in fact stopped by
+    R002 by accident. The day R002 changes, R008 has a hole and nobody notices.
     """
     from datawarden.domain.types import Position
 

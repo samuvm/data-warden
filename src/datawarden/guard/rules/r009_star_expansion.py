@@ -1,16 +1,14 @@
-"""R009 · `SELECT *` no sobrevive al guard. Invariante I-10.
+"""R009: `SELECT *` does not survive the guard (invariant I-10).
 
-`qualify()` con el esquema del catálogo expande la estrella por sí solo: eso es lo
-que hace que esta regla sea, casi siempre, una comprobación de que el trabajo se
-hizo. Y esa comprobación es la que importa, porque si la estrella sobreviviera, el
-guard estaría razonando sobre una lista de columnas que no ha visto.
+`qualify()` with the catalog schema expands the star on its own, so this rule is
+usually a check that the expansion happened. That check matters: if a star survived,
+the guard would be reasoning about a column list it never saw.
 
-**Por qué no basta con confiar en `qualify()`.** Porque hay un caso en que no
-expande: cuando no sabe de qué relación tirar —una subconsulta sin esquema, una
-función de tabla, un `UNION` mal formado—. En esos casos devuelve el árbol con la
-estrella dentro y sin error. Que R008 mirase después ese árbol sería revisar la
-política sobre cero columnas y darla por buena: **el `SELECT *` es exactamente cómo
-una columna sensible entra en una respuesta sin que ninguna regla la nombre.**
+`qualify()` alone is not enough because, when it cannot tell which relation to expand
+(a schemaless subquery, a table function, a malformed `UNION`), it returns the tree with
+the star still in it and raises nothing. R008 would then check the policy against zero
+columns and pass. An unexpanded `SELECT *` is exactly how a sensitive column reaches a
+response without any rule naming it.
 """
 
 from __future__ import annotations
@@ -23,12 +21,12 @@ from datawarden.guard.rules import messages
 
 
 class StarExpansionRule:
-    """Ninguna estrella queda en el árbol validado."""
+    """No star remains in the validated tree."""
 
     rule_id = "R009"
     code = "star_not_expanded"
     severity = Severity.SECURITY
-    summary = "`SELECT *` se expande contra el catálogo o se rechaza"
+    summary = "`SELECT *` is expanded against the catalog or rejected"
     families: tuple[str, ...] = ("select_estrella",)
     phase = POST_QUALIFY
 
@@ -37,10 +35,8 @@ class StarExpansionRule:
             (
                 node
                 for node in ctx.tree.find_all(exp.Star)
-                # `COUNT(*)` NO es una estrella sin expandir: es un agregado que
-                # cuenta filas y no nombra ninguna columna. Rechazarlo aquí sería
-                # rechazar la mitad de las consultas legítimas del almacén, y por el
-                # motivo equivocado, que es peor.
+                # `COUNT(*)` is not an unexpanded star: it counts rows and names
+                # no column. Rejecting it would reject most legitimate aggregates.
                 if not isinstance(node.parent, exp.Func)
             ),
             None,

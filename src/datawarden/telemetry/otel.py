@@ -1,14 +1,12 @@
-"""El traductor. **El único módulo del repositorio que escribe `gen_ai.*`.**
+"""The translator: the only module that writes `gen_ai.*` attributes.
 
-`docs/CONTRACTS/otel-genai.md §4` da la lista literal de atributos obligatorios y §6 la
-regla que no se negocia: *un fallo de observabilidad nunca tumba la aplicación*. Las dos
-cosas viven aquí porque las dos son propiedades de la frontera con el estándar, no del
-dominio.
+`docs/CONTRACTS/otel-genai.md` section 4 lists the mandatory attributes and section 6
+states that an observability failure never breaks the application. Both are
+properties of the boundary with the standard, not of the domain.
 
-**Por qué `to_attributes` devuelve un diccionario y no toca un span.** Porque así el
-contrato se puede comprobar sin levantar un SDK, y porque el mismo diccionario sirve para
-un span, para un log y para el informe. Emitir es otra responsabilidad, y está en `emit`,
-que es tres líneas y un `except`.
+`to_attributes` returns a dict instead of touching a span, so the contract can be
+checked without an SDK and the same dict serves spans, logs and reports. Emitting is
+`emit`'s job.
 """
 
 from __future__ import annotations
@@ -18,18 +16,17 @@ from typing import Any, Final
 
 from datawarden.telemetry.model import LlmCall
 
-#: La versión de las convenciones semánticas contra la que traduce este módulo.
+#: Semantic conventions version this module translates to.
 #:
-#: Está DUPLICADA a propósito con `otel-semconv.lock`, y un test comprueba que coinciden.
-#: El fichero es el pin —lo que se firma y se revisa—; esta constante es lo que el código
-#: cree estar cumpliendo. Que puedan discrepar es justo lo que hay que poder detectar:
-#: subir el pin sin revisar el traductor es el error que §3 prohíbe.
+#: Deliberately duplicated in `otel-semconv.lock`, and a test checks they match: the
+#: lock file is the pin, this constant is what the code believes it implements.
+#: Bumping the pin without reviewing the translator is what section 3 forbids.
 SEMCONV_VERSION: Final = "v1.42.0"
 
-#: El prefijo del estándar. Nada nuestro entra aquí.
+#: Standard prefix. No project-specific attribute goes here.
 GEN_AI: Final = "gen_ai."
 
-#: Lista LITERAL de §4. Un span que no los lleve todos es un span roto.
+#: Verbatim list from section 4. A span missing any of them is broken.
 MANDATORY: Final[tuple[str, ...]] = (
     "gen_ai.operation.name",
     "gen_ai.provider.name",
@@ -41,36 +38,35 @@ MANDATORY: Final[tuple[str, ...]] = (
     "server.address",
 )
 
-#: Los «si aplica» de §4. Se emiten solo cuando tienen valor, que es lo que significa.
+#: The "if applicable" attributes from section 4, emitted only when set.
 OPTIONAL: Final[tuple[str, ...]] = (
     "gen_ai.request.temperature",
     "gen_ai.request.max_tokens",
     "error.type",
 )
 
-#: Todo `gen_ai.*` que este proyecto tiene permitido emitir. **Es una allowlist**, por el
-#: mismo motivo que el guard: inventar un nombre dentro de `gen_ai.*` es el error que
-#: hace inútil la integración con cualquier herramienta de terceros, y una denylist no
-#: puede prohibir lo que todavía no se le ha ocurrido a nadie.
+#: Every `gen_ai.*` name this project may emit. An allowlist, as in the guard: an
+#: invented `gen_ai.*` name breaks third-party tooling, and a denylist cannot forbid
+#: names nobody has thought of yet.
 ALLOWED_GEN_AI: Final[frozenset[str]] = frozenset(
     name for name in (*MANDATORY, *OPTIONAL) if name.startswith(GEN_AI)
 )
 
 
 def to_attributes(call: LlmCall) -> dict[str, Any]:
-    """Los atributos de un span de invocación de modelo, en la versión pineada.
+    """Attributes of a model-invocation span, in the pinned version.
 
-    Lo nuestro sale bajo `app.*` y lo del estándar bajo `gen_ai.*`, y no hay un solo
-    sitio donde se decida eso dos veces.
+    Project attributes go under `app.*` and standard ones under `gen_ai.*`; this is
+    the single place that decides it.
     """
     attributes: dict[str, Any] = {
         "gen_ai.operation.name": call.operation,
-        # `provider.name`, NO `system`: la spec lo renombró en v1.37.0 y el nombre viejo
-        # sigue apareciendo en la mitad de los ejemplos de internet.
+        # `provider.name`, not `system`: renamed in v1.37.0, though the old name is
+        # still common in examples.
         "gen_ai.provider.name": call.provider,
         "gen_ai.request.model": call.requested_model,
         "gen_ai.response.model": call.responded_model,
-        # `input`/`output`, NO `prompt`/`completion`: renombrados en v1.27.0.
+        # `input`/`output`, not `prompt`/`completion`: renamed in v1.27.0.
         "gen_ai.usage.input_tokens": call.input_tokens,
         "gen_ai.usage.output_tokens": call.output_tokens,
         "gen_ai.response.finish_reasons": list(call.finish_reasons),
@@ -98,16 +94,14 @@ def to_attributes(call: LlmCall) -> dict[str, Any]:
 
 
 def atributos_ausentes(attributes: dict[str, Any]) -> tuple[str, ...]:
-    """Los obligatorios que faltan. Vacío es lo único aceptable."""
+    """Missing mandatory attributes. Only an empty result is acceptable."""
     return tuple(name for name in MANDATORY if name not in attributes)
 
 
 def gen_ai_inventados(attributes: dict[str, Any]) -> tuple[str, ...]:
-    """Los `gen_ai.*` que este proyecto se ha inventado. **Tiene que ser vacío.**
+    """`gen_ai.*` names not defined by the standard. Must be empty.
 
-    Es la mitad del valor de `G-OTEL-ATTRS`: el contrato dice que inventar dentro de
-    `gen_ai.*` te saca del estándar que el contrato dice defender, y eso no se puede
-    comprobar leyendo el código —se comprueba sobre lo que se emite—.
+    Half of `G-OTEL-ATTRS`. Checked on emitted attributes rather than by reading code.
     """
     return tuple(
         sorted(
@@ -119,12 +113,10 @@ def gen_ai_inventados(attributes: dict[str, Any]) -> tuple[str, ...]:
 
 
 class Dropped:
-    """Cuántos spans se han descartado. `app.spans.dropped` de §4, contador.
+    """Count of dropped spans: the `app.spans.dropped` counter from section 4.
 
-    **Un descarte silencioso es peor que un descarte medido.** El contrato lo dice con
-    esas palabras y lo pone en el panel: el documento del 02 declara a la vez «pérdida
-    de trazas 0 %» y «la cola se llena y descarta sin bloquear», que son objetivos en
-    tensión, y se resuelven exponiendo el contador en vez de fingir que no pasa.
+    A measured drop beats a silent one. "0 % trace loss" and "a full queue drops
+    without blocking" are in tension, resolved by exposing the counter.
     """
 
     def __init__(self) -> None:
@@ -140,17 +132,13 @@ def emit(
     *,
     dropped: Dropped,
 ) -> bool:
-    """Manda los atributos al `sink`. **Nunca lanza.** Devuelve si llegó.
+    """Send the attributes to `sink`. Never raises; returns whether it was delivered.
 
-    §6, la regla que no se negocia: si el almacén de trazas no responde, la aplicación
-    sigue sirviendo y descarta el span contando cuántos. Una capa de observabilidad que
-    puede tirar la aplicación es peor que no tenerla — y por eso el `except` es
-    `Exception` a secas y no una lista de las que se nos ocurran hoy: el fallo puede
-    venir de un socket, de un serializador o de una cola llena, y la respuesta correcta
-    es la misma para todos.
+    Per section 6, if the trace store does not respond the application keeps serving
+    and counts the dropped span. The `except` is a bare `Exception` because failures
+    may come from a socket, a serializer or a full queue, and the response is the same.
 
-    La traducción va DENTRO del `try` a propósito: un `LlmCall` con un campo imposible
-    tampoco puede tumbar a quien lo llamó.
+    Translation is inside the `try` so a malformed `LlmCall` cannot break the caller.
     """
     try:
         sink(to_attributes(call))

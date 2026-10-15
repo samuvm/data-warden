@@ -1,19 +1,16 @@
-"""Tipos del catálogo. Puros, congelados y sin una sola importación de motor.
+"""Catalog types. Pure, frozen, with no engine imports.
 
-El catálogo es el anillo 1 y a la vez la entrada del anillo 3: `qualify()` no puede
-resolver un alias, expandir un `SELECT *` ni decidir a qué tabla pertenece una
-columna sin el esquema. Por eso vive aquí, en un tipo propio, y no como un `dict`
-que cada capa interpreta a su manera.
+The catalog is ring 1 and also the input to ring 3: `qualify()` cannot resolve an
+alias, expand `SELECT *` or attribute a column to a table without the schema. It is
+a dedicated type rather than a `dict` each layer interprets its own way.
 
-Tres cosas que este módulo NO representa, y es deliberado:
+Deliberately not represented here:
 
-- **La sensibilidad de una columna.** Eso lo dice `docs/spec/policy.yaml`, que lo
-  firma negocio. Mezclarlas haría que regenerar el catálogo pudiera cambiar una
-  decisión de acceso, que es exactamente lo que no puede pasar.
-- **El significado de negocio.** Está en `docs/spec/glossary.yaml`.
-- **Los conteos de fila y los bytes.** Cambian con el perfil del dataset y con cada
-  regeneración; el esquema no. Mezclarlos haría que el sha del catálogo dependiera
-  de cuántas filas se generaron, y `G-CATALOG-FRESH` dejaría de significar nada.
+- Column sensitivity. That lives in `docs/spec/policy.yaml`; mixing it in would let
+  a catalog regeneration change an access decision.
+- Business meaning. That lives in `docs/spec/glossary.yaml`.
+- Row counts and bytes. They change with the dataset profile; including them would
+  make the catalog sha depend on row counts and void `G-CATALOG-FRESH`.
 """
 
 from __future__ import annotations
@@ -21,9 +18,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Final
 
-#: Familias canónicas de tipo. El nombre exacto del motor se conserva aparte: dos
-#: motores escriben `VARCHAR` y `string` para la misma cosa, y una regla del guard
-#: que compare nombres de tipo de motor se rompería al cambiar de engine.
+#: Canonical type families. The exact engine type name is kept separately: engines
+#: spell the same type `VARCHAR` or `string`, and a guard rule comparing engine type
+#: names would break when the engine changes.
 FAMILY_INTEGER: Final = "integer"
 FAMILY_DECIMAL: Final = "decimal"
 FAMILY_FLOAT: Final = "float"
@@ -50,40 +47,38 @@ FAMILIES: Final = frozenset(
     }
 )
 
-#: Cómo se llama cada tabla según lo que es. `view` no es un detalle: las vistas de
-#: este almacén son las que resuelven las trampas declaradas del glosario
-#: (`v_attempt_dedup`, `v_payment_intent`), así que el catálogo tiene que decir
-#: cuáles son para que el generador prefiera la vista correcta a la tabla cruda.
+#: Relation kinds. Views matter: they resolve the traps declared in the glossary
+#: (`v_attempt_dedup`, `v_payment_intent`), so the catalog must flag them for the
+#: generator to prefer the right view over the raw table.
 KIND_TABLE: Final = "table"
 KIND_VIEW: Final = "view"
 
 
 @dataclass(frozen=True, slots=True)
 class ColumnSpec:
-    """Una columna del esquema vivo."""
+    """A column of the live schema."""
 
     name: str
     engine_type: str
     family: str
     nullable: bool
     ordinal: int
-    #: `False` si `docs/spec/policy.yaml` la excluye del catálogo del anillo 1.
-    #: Sigue estando aquí porque el esquema
-    #: describe lo que EXISTE; publicar es otra decisión.
+    #: `False` if `docs/spec/policy.yaml` excludes it from the ring 1 catalog. It is
+    #: still listed because the schema describes what exists; publishing is a
+    #: separate decision.
     published: bool = True
-    #: `True` si `docs/spec/catalog-overlay.yaml` la marca obsoleta. El motor no
-    #: puede saberlo: es conocimiento de negocio sobre una columna que sigue
-    #: existiendo y que ya no hay que usar.
+    #: `True` if `docs/spec/catalog-overlay.yaml` marks it deprecated. The engine
+    #: cannot know this: the column still exists but should no longer be used.
     deprecated: bool = False
     deprecated_reason: str | None = None
-    #: Las `tabla_base.columna` de las que sale esta columna. Para una tabla base es
-    #: ella misma; para una columna de vista, todas sus fuentes. Es lo que impide
-    #: que `v_customer.full_name` —que es `concat(first_name, last_name_1)`— escape
-    #: a una política que solo casa por `tabla.columna`.
+    #: The `base_table.column` sources of this column: itself for a base table, all
+    #: sources for a view column. This keeps `v_customer.full_name`
+    #: (`concat(first_name, last_name_1)`) from escaping a policy that matches only
+    #: on `table.column`.
     derives_from: tuple[str, ...] = ()
-    #: `False` cuando sqlglot no pudo seguir el linaje (el caso real es una CTE
-    #: recursiva) y `derives_from` contiene el cierre de dependencias en vez del
-    #: origen exacto. Se publica: un límite contado vale más que uno escondido.
+    #: `False` when sqlglot could not trace lineage (in practice, a recursive CTE)
+    #: and `derives_from` holds the dependency closure instead of the exact source.
+    #: Published so the limitation is visible.
     lineage_resolved: bool = True
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,14 +100,14 @@ class ColumnSpec:
 
 @dataclass(frozen=True, slots=True)
 class TableSpec:
-    """Una tabla o vista del esquema vivo."""
+    """A table or view of the live schema."""
 
     name: str
     kind: str
     columns: tuple[ColumnSpec, ...]
 
     def column(self, name: str) -> ColumnSpec | None:
-        """La columna con ese nombre, o `None`. Sin distinguir mayúsculas."""
+        """The column with that name, or `None`. Case-insensitive."""
         lowered = name.lower()
         for col in self.columns:
             if col.name.lower() == lowered:
@@ -129,11 +124,11 @@ class TableSpec:
 
 @dataclass(frozen=True, slots=True)
 class CatalogSchema:
-    """El esquema completo, tal y como está en el motor.
+    """The full schema as it exists in the engine.
 
-    Es lo que `sqlglot.optimizer.qualify.qualify()` necesita para que el guard deje
-    de «buscar» alias: con el árbol cualificado contra este esquema, los alias, las
-    CTE anidadas y `SELECT *` ya están resueltos y no hay nada que buscar.
+    Input to `sqlglot.optimizer.qualify.qualify()`: once the tree is qualified
+    against it, aliases, nested CTEs and `SELECT *` are already resolved and the
+    guard does not need to chase them.
     """
 
     dialect: str
@@ -151,12 +146,10 @@ class CatalogSchema:
         return tuple(t.name for t in self.tables)
 
     def published(self) -> CatalogSchema:
-        """El catálogo del anillo 1: sin las columnas que la política excluye.
+        """The ring 1 catalog: without the columns the policy excludes.
 
-        Se calcula, no se guarda: el fichero generado describe lo que existe, y lo
-        que se publica es una vista de eso. Si fueran dos ficheros, el día que
-        alguien regenerase solo uno la política y el catálogo dirían cosas
-        distintas y nadie se enteraría.
+        Computed rather than stored, so the policy and the published catalog cannot
+        drift apart when only one file is regenerated.
         """
         return CatalogSchema(
             dialect=self.dialect,
@@ -171,13 +164,11 @@ class CatalogSchema:
         )
 
     def sqlglot_schema(self) -> dict[str, object]:
-        """El mapa `{tabla: {columna: tipo}}` que consume `qualify()`.
+        """The `{table: {column: type}}` map consumed by `qualify()`.
 
-        Se construye sobre el esquema COMPLETO, no sobre el publicado: si una
-        columna excluida no estuviera aquí, `qualify()` no sabría a qué tabla
-        pertenece y el guard la vería como una columna desconocida en vez de como
-        lo que es. Un rechazo por el motivo equivocado es un acierto por
-        casualidad, y aquí además daría un mensaje inútil.
+        Built from the full schema, not the published one: without excluded columns
+        `qualify()` could not attribute them, and the guard would reject them as
+        unknown columns instead of for the actual reason.
         """
         out: dict[str, object] = {
             t.name: {c.name: c.engine_type for c in t.columns} for t in self.tables
@@ -193,7 +184,7 @@ class CatalogSchema:
 
 
 def from_dict(payload: dict[str, Any]) -> CatalogSchema:
-    """Reconstruye un `CatalogSchema` desde el JSON generado."""
+    """Rebuild a `CatalogSchema` from the generated JSON."""
     return CatalogSchema(
         dialect=payload["dialect"],
         tables=tuple(

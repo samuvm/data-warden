@@ -1,18 +1,16 @@
-"""R003 · una función que sqlglot no reconoce es una función que no se ejecuta.
+"""R003: a function sqlglot does not recognise is a function that does not run.
 
-`exp.Anonymous` es lo que sqlglot construye cuando encuentra una llamada a función
-que no sabe traducir a un nodo propio: una extensión de DuckDB, una UDF, o
-`read_csv('/etc/passwd')`. Es decir, **es exactamente el conjunto de cosas cuyo
-comportamiento este guard no puede razonar**, y por eso se rechaza por defecto.
+sqlglot builds `exp.Anonymous` for a call it cannot map to a dedicated node: a DuckDB
+extension, a UDF, or `read_csv('/etc/passwd')`. That is precisely the set of things whose
+behaviour the guard cannot reason about, so it is rejected by default.
 
-`docs/RULES.md` lo dice en una línea: *`exp.Anonymous` ⇒ rechazo*. La allowlist de
-`ALLOWED_ANONYMOUS` es corta a propósito y cada entrada es una decisión: una
-función que se añade porque «hacía falta para una consulta» es cómo una allowlist se
-convierte en una denylist con más pasos.
+`ALLOWED_ANONYMOUS` is deliberately short and each entry is a decision. Adding a
+function because one query needed it is how an allowlist turns into a denylist with
+extra steps.
 
-R002 no puede hacer este trabajo: para él, todo `Anonymous` es el mismo nodo. Hace
-falta mirar el NOMBRE, y ese es el único sitio del guard donde se mira un nombre de
-función — con la allowlist delante, no con una lista negra detrás.
+R002 cannot do this job, since to it every `Anonymous` is the same node. The name has to
+be inspected, and this is the only place in the guard that inspects a function name,
+against an allowlist rather than a denylist.
 """
 
 from __future__ import annotations
@@ -26,12 +24,12 @@ from datawarden.guard.rules import messages
 
 
 class FunctionAllowlistRule:
-    """Ninguna función desconocida sobrevive al guard."""
+    """No unknown function survives the guard."""
 
     rule_id = "R003"
     code = "function_not_allowed"
     severity = Severity.SECURITY
-    summary = "Toda función es conocida y está en la allowlist"
+    summary = "Every function is known and on the allowlist"
     families: tuple[str, ...] = (
         "funcion_desconocida",
         "funcion_de_motor",
@@ -44,9 +42,9 @@ class FunctionAllowlistRule:
             name = str(node.this).lower()
             if name in ALLOWED_ANONYMOUS:
                 continue
-            # LA DECISIÓN se queda aquí y se mide: una función que lee de fuera del
-            # proceso no es reintentable, y una desconocida sí. El TEXTO de cada una
-            # está en `messages.py`, fuera de la mutación.
+            # The decision stays here so mutation testing measures it: a function that
+            # reads from outside the process is not retryable, an unknown one is. The
+            # wording lives in `messages.py`, which is excluded from mutation.
             dangerous = name in KNOWN_DANGEROUS
             retryable = not dangerous
             message, suggestion = messages.function_not_allowed(name, dangerous=dangerous)

@@ -1,40 +1,28 @@
-"""El TEXTO de los rechazos. **Solo el texto, y por eso queda fuera de la mutación.**
+"""Rejection wording, and only wording; excluded from mutation testing.
 
-Sacar estos textos de la medida de mutación se aprobó el 2026-09-02 **recortado**, y
-el recorte es lo que decide qué entra aquí y qué no:
+The exclusion covers the literal text, not its composition. A position table that
+returns the wrong label produces a message saying WHERE when the column was in a
+GROUP BY, and that is a bug, not prose. The line between the two:
 
-> *«Sale de la medida el TEXTO LITERAL de los mensajes. NO sale la composición. Una
-> tabla de posición que devuelve la etiqueta equivocada es un mensaje que dice WHERE
-> cuando la columna estaba en un GROUP BY. Eso no es prosa, es un bug.»*
+- Stays in the rule and is measured: the `Position`, the `subject`, whether the
+  rejection is `retryable`, which policy level was violated, whether an alternative is
+  published. These are decisions, and the case corpus asserts each of them through the
+  `posicion`, `sujeto` and `reintentable` fields.
+- Lives here and is not measured: the words used to report them. A mutant that drops a
+  word from a sentence reveals no defect; catching it would require asserting messages
+  word by word, which yields a suite that breaks on every rewording (the same reason
+  `docs/RULES.md` §2 forbids asserting generated SQL).
 
-**La línea que separa las dos cosas, dicha para que nadie tenga que adivinarla.**
+These texts are expected to change: actionable messages are what `G-RECOVERY` measures,
+and they are tuned against how the model responds to each one.
 
-- **Se queda en la regla, y se mide:** qué `Position` es, cuál es el `subject`, si el
-  rechazo es `retryable`, qué nivel de política se violó, si hay alternativa
-  publicada. Todo eso son DECISIONES, y el corpus las asierta una a una desde el
-  2026-09-02 con las columnas `posicion`, `sujeto` y `reintentable`.
-- **Viene aquí, y no se mide:** las palabras con las que eso se cuenta. Un mutante que
-  quita una palabra de una frase no encuentra ningún fallo; encontrarlo exigiría
-  asertar los mensajes palabra por palabra, que es lo que `docs/RULES.md §2` prohíbe
-  para el SQL generado y por el mismo motivo: produce una suite que se rompe con cada
-  cambio de redacción.
+Mechanism: `[tool.mutmut].do_not_mutate` lists this file, so mutmut copies it unmutated
+and it yields zero mutants. It leaves both denominators (`G-MUT-GUARD` and
+`G-MUTATION`) instead of moving from one to the other.
 
-**Y estos textos VAN a cambiar.** El mensaje accionable es lo que `G-RECOVERY` mide en
-la fase 6: se van a reescribir cuando se vea cómo responde el modelo a cada uno.
-Congelarlos con aserciones palabra por palabra sería congelar justo la parte del
-sistema que más tiene que poder mejorar.
-
-**Cómo queda fuera de la medida, exactamente.** `[tool.mutmut].do_not_mutate` lista
-este fichero, así que mutmut lo COPIA sin mutar y produce cero mutantes. Sale de los
-dos denominadores —`G-MUT-GUARD` y `G-MUTATION`— en vez de mudarse de uno a otro, que
-es lo que habría pasado moviéndolo de carpeta. `docs/GOALS.yaml` no cambia: el alcance
-de las dos metas lo decide el prefijo de módulo en `scripts/check_mutation.py`, y su
-nota en prosa —«mutantes muertos en guard/rules»— sigue siendo literalmente cierta.
-
-**Lo que este fichero NO puede hacer, y hay un check que lo vigila.** Aquí no se
-decide nada: ni una comparación sobre el árbol, ni una `Position`, ni un `retryable`.
-Si algo de eso se colara, saldría de la medida sin que ninguna meta se enterara, y eso
-es exactamente el atajo que esa decisión descartó.
+Nothing is decided here: no comparison on the tree, no `Position`, no `retryable`.
+`scripts/check_mutation_scope.py` enforces this, because logic that slipped in would
+leave the measured scope unnoticed.
 """
 
 from __future__ import annotations
@@ -43,9 +31,8 @@ from typing import Final
 
 from datawarden.domain.types import Position
 
-#: `Position` -> cómo se dice en una frase. Es una tabla de RENDERIZADO: la posición
-#: la decide la regla mirando el árbol, y el corpus la asierta por su valor. Aquí solo
-#: se elige con qué palabras se cuenta.
+#: `Position` -> phrase. A rendering table only: the rule decides the position from the
+#: tree and the corpus asserts it by value; this only picks the words.
 POSITION_TEXT: Final[dict[Position, str]] = {
     Position.PROJECTION: "in the SELECT list",
     Position.WHERE: "in a WHERE predicate",
@@ -64,7 +51,7 @@ POSITION_TEXT: Final[dict[Position, str]] = {
 
 
 def position_text(position: Position) -> str:
-    """La posición, en palabras. Nunca vacío: un rechazo mudo no redirige."""
+    """The position in words. Never empty: a silent rejection redirects nothing."""
     return POSITION_TEXT.get(position, "in the query")
 
 
@@ -106,11 +93,11 @@ def node_not_allowed(name: str) -> tuple[str, str]:
 
 
 def function_not_allowed(name: str, *, dangerous: bool) -> tuple[str, str]:
-    """El texto de una función rechazada. **`dangerous` lo decide la regla.**
+    """Wording for a rejected function; `dangerous` is decided by the rule.
 
-    La distinción entre «lee de fuera del proceso» y «no la conozco» es una decisión
-    de seguridad —gobierna además el `retryable`— y se toma en `r003`, contra la lista
-    `KNOWN_DANGEROUS`. Aquí solo se elige con qué palabras se cuenta cada una.
+    Whether the function reads from outside the process is a security decision that
+    also governs `retryable`; it is made in `r003` against `KNOWN_DANGEROUS`. This only
+    picks the words.
     """
     if dangerous:
         return (
@@ -131,11 +118,10 @@ def function_not_allowed(name: str, *, dangerous: bool) -> tuple[str, str]:
 
 
 def table_function(name: str, *, dangerous: bool) -> tuple[str, str]:
-    """La función de tabla rechazada. **`dangerous` lo decide la regla.**
+    """Wording for a rejected table function; `dangerous` is decided by the rule.
 
-    Si la función lee de fuera del proceso —ficheros, red— es una decisión de
-    seguridad que se toma en `r004` contra `KNOWN_DANGEROUS`. Aquí solo se elige si
-    la frase lo menciona o no.
+    Whether the function reads from outside the process (files, network) is decided in
+    `r004` against `KNOWN_DANGEROUS`; this only decides whether the sentence says so.
     """
     danger = " it reads from outside the query;" if dangerous else ""
     return (
@@ -241,11 +227,11 @@ def column_policy(
     written: str | None,
     alternative: str | None,
 ) -> tuple[str, str]:
-    """El rechazo por política de columna, con el detalle que lo hace accionable.
+    """Column-policy rejection, with the detail that makes it actionable.
 
-    **Todo lo que ramifica aquí lo decidió la regla**: si el nivel era `deny`, si la
-    columna se alcanzó por otro nombre, y si la política publica alternativa. Este
-    módulo elige palabras; `r008` decide.
+    Every branch here was decided by the rule: whether the level was `deny`, whether the
+    column was reached under another name, and whether the policy publishes an
+    alternative. This module picks words; `r008` decides.
     """
     where = position_text(position)
     if denied:
@@ -294,10 +280,10 @@ def star_survived(where: str) -> tuple[str, str]:
 
 
 def write_node_present(kind: str, position: Position) -> tuple[str, str]:
-    """El nodo de escritura, y DÓNDE estaba.
+    """The write node, and where it was.
 
-    La `position` la decide `r010` mirando la ascendencia del nodo en el árbol, y el
-    corpus la asierta por su valor. Aquí solo se traduce a palabras.
+    `position` is decided by `r010` from the node's ancestry and asserted by value in the
+    corpus; this only renders it.
     """
     return (
         f"the tree contains a {kind.upper()} node {position_text(position)}; this "
@@ -342,7 +328,7 @@ def having_group_too_small(comparison: str, value: int, minimum: int) -> tuple[s
 
 
 def group_by_identifier(base: str, data_type: str, alternative: str | None) -> tuple[str, str]:
-    """Agrupar por un identificador. La alternativa la publica la POLÍTICA."""
+    """Grouping by an identifier. The alternative is published by the policy."""
     message = (
         f"grouping by {base} makes each group one person: it is a {data_type} and "
         "every distinct value identifies an individual"

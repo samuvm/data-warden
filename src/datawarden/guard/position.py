@@ -1,20 +1,18 @@
-"""Dónde está una columna dentro del árbol. Es la mitad de la tesis del proyecto.
+"""Where a column sits in the tree, which decides what the policy allows.
 
-`docs/spec/policy.yaml` lo dice en su encabezado: los tres niveles **no son una
-escala de confianza, son una escala de POSICIÓN EN EL ÁRBOL**. Una columna `mask` es
-legal en la proyección y prohibida en el `WHERE`, y esa asimetría es lo que cierra
-el canal lateral por predicado:
+As the header of `docs/spec/policy.yaml` states, the three access levels are not a
+trust scale but a scale of position in the tree. A `mask` column is legal in the
+projection and forbidden in `WHERE`, and that asymmetry closes the predicate side
+channel:
 
     SELECT count(*) FROM dim_customer WHERE birth_date BETWEEN '1985-01-01' AND '1985-12-31'
 
-Eso no devuelve ni una fecha de nacimiento y la reconstruye a base de preguntas. El
-rango entre 1930 y 2010 son 29.220 días, así que **quince consultas con distinto
-literal fijan la fecha exacta de una persona**. Una máscara esconde el valor; no
-esconde la respuesta. Rechazar la posición sí.
+returns no birth date, yet reconstructs it one question at a time. The range 1930-2010
+spans 29,220 days, so fifteen queries with different literals pin down a person's exact
+date. A mask hides the value, not the answer; rejecting the position does.
 
-Por eso este módulo existe aparte: R008 y R012 lo necesitan igual, y dos
-implementaciones de «dónde está esta columna» serían dos criterios distintos sobre
-la misma pregunta.
+R008 and R012 both need this, hence a separate module: two implementations of "where is
+this column" would be two criteria for the same question.
 """
 
 from __future__ import annotations
@@ -25,17 +23,15 @@ from datawarden.domain.types import Position
 
 
 def position_of(column: exp.Expression) -> Position:
-    """La posición de una columna, subiendo por sus ancestros.
+    """Position of a column, found by walking up its ancestors.
 
-    El orden de las comprobaciones ES la semántica. Una columna dentro de una
-    función dentro de un `WHERE` está en el `WHERE`: las dos posiciones están
-    prohibidas para una columna enmascarada, pero el mensaje tiene que nombrar la
-    cláusula, porque es lo que la persona que preguntó puede cambiar.
+    The order of the checks is the semantics. A column inside a function inside a
+    `WHERE` is in the `WHERE`: both positions are forbidden for a masked column, but the
+    message must name the clause, since that is what the caller can change.
 
-    Y una columna dentro de una función EN LA PROYECCIÓN no está «en la
-    proyección»: está dentro de una función, que es una posición distinta y
-    prohibida. `SELECT substr(national_id, 1, 3)` devuelve tres dígitos de un NIF
-    sin que la columna aparezca desnuda en ningún sitio.
+    A column inside a function in the projection is not "in the projection": it is a
+    function argument, a distinct and forbidden position. `SELECT substr(national_id,
+    1, 3)` returns three digits of a national ID without the column appearing bare.
     """
     node = column.parent
     inside_function = False
@@ -53,9 +49,8 @@ def position_of(column: exp.Expression) -> Position:
         if isinstance(node, exp.Window):
             return _window_position(column, node)
         if isinstance(node, exp.Order):
-            # Un `ORDER BY` dentro de una ventana ordena la ventana, no el
-            # resultado, y lo cubre `_window_position`. Aquí solo llega el de
-            # verdad, el de la consulta.
+            # An `ORDER BY` inside a window orders the window, not the result, and is
+            # handled by `_window_position`. Only the query-level one reaches here.
             return Position.ORDER_BY
         if isinstance(node, exp.Func):
             inside_function = True
@@ -64,12 +59,12 @@ def position_of(column: exp.Expression) -> Position:
 
 
 def _window_position(column: exp.Expression, window: exp.Window) -> Position:
-    """Dentro de una ventana, `PARTITION BY` es la posición peligrosa.
+    """Inside a window, `PARTITION BY` is the dangerous position.
 
-    Particionar por una columna sensible agrupa por ella: es un `GROUP BY` con otro
-    nombre, y expone la columna por cardinalidad exactamente igual. Ordenar por ella
-    dentro de la ventana también revela su orden, así que se trata igual de
-    restrictivamente y se dice cuál de las dos fue.
+    Partitioning by a sensitive column groups by it: it is a `GROUP BY` under another
+    name and exposes the column through cardinality in the same way. Ordering by it
+    inside the window also reveals its order, so it is treated as restrictively, and the
+    position reported says which of the two it was.
     """
     for part in window.args.get("partition_by") or []:
         if column is part or _contains(part, column):
@@ -82,10 +77,10 @@ def _contains(haystack: exp.Expression, needle: exp.Expression) -> bool:
 
 
 def table_and_column(column: exp.Column) -> tuple[str, str]:
-    """`(tabla, columna)` en minúsculas. Tras `qualify()`, la tabla siempre está.
+    """`(table, column)`, lowercased. After `qualify()` the table is always set.
 
-    Si no estuviera —una columna que `qualify()` no supo resolver— se devuelve
-    cadena vacía, y quien decide qué hacer con eso es R008: aquí no se inventa una
-    tabla, porque inventarla es adjudicar una política que no le corresponde.
+    If it is not (a column `qualify()` could not resolve), an empty string is returned
+    and R008 decides what to do with it. No table is invented here: inventing one would
+    assign the column a policy that does not apply to it.
     """
     return (column.table or "").lower(), column.name.lower()

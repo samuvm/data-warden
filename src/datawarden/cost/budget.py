@@ -1,16 +1,14 @@
-"""El presupuesto, aplicado. `G-BUDGET-ESCAPE` es un AXIOMA.
+"""Budget enforcement. `G-BUDGET-ESCAPE` is an axiom.
 
-**Ninguna consulta por encima del presupuesto llega al motor.** No «casi ninguna»,
-no «se avisa y se ejecuta»: cero. Por eso la meta lleva `propuesta_admisible: false`
-y por eso este módulo no tiene ninguna vía de escape ni bandera para saltárselo.
+No query above budget reaches the engine: zero, not "almost none" and not "warn and
+run". The goal has `propuesta_admisible: false`, and this module has no escape hatch
+or bypass flag.
 
-Y hay una segunda mitad que importa igual: **el rechazo tiene que ser accionable.**
-Un «te has pasado de presupuesto» sin decir cuánto costaba, cuánto cabía y qué
-recortar es el rechazo que enseña a reintentar lo mismo — y `G-RECOVERY` mide
-exactamente si el modelo se corrige solo con el mensaje. Por eso la sugerencia se
-construye MIRANDO EL DETALLE del estimador: si la consulta se comió las 730
-particiones, lo que hay que decir es «pon un predicado de fecha», no «hazla más
-pequeña».
+Rejections must also be actionable. "Over budget" without the cost, the limit and
+what to cut teaches the model to retry the same query, and `G-RECOVERY` measures
+whether the model can self-correct from the message alone. The suggestion is built
+from the estimator's detail: if the query scanned all 730 partitions, the advice is
+"add a date predicate", not "make it smaller".
 """
 
 from __future__ import annotations
@@ -30,11 +28,11 @@ from datawarden.principal.budgets import BudgetBook, Decision
 
 @dataclass(frozen=True, slots=True)
 class BudgetVerdict:
-    """Qué hacer con la consulta, y por qué.
+    """What to do with the query, and why.
 
-    `warning` existe para el caso intermedio: por encima del blando, la consulta NO
-    se rechaza y quien la lanza tiene derecho a saber que va a costar. En la fase 7
-    eso se convierte en un `InputRequiredResult` de MRTR; hasta entonces es texto.
+    `warning` covers the middle band: above the soft limit the query is not rejected,
+    but the caller is told it will be expensive. Over MCP this becomes an MRTR
+    `InputRequiredResult`.
     """
 
     decision: Decision
@@ -43,7 +41,7 @@ class BudgetVerdict:
 
 
 def enforce(cost: CostEstimate, book: BudgetBook, role: Role) -> BudgetVerdict:
-    """Aplica el presupuesto del rol al coste estimado."""
+    """Apply the role's budget to the estimated cost."""
     budget = book.for_role(role)
     decision = book.decide(role, estimated_bytes=cost.estimated_bytes)
 
@@ -75,15 +73,15 @@ def enforce(cost: CostEstimate, book: BudgetBook, role: Role) -> BudgetVerdict:
             severity=Severity.BUDGET,
             position=Position.STATEMENT,
             subject=f"{cost.estimated_bytes} bytes",
-            # Acotar la pregunta SÍ arregla esto, al revés que un intento de
-            # escritura: reintentar aquí es exactamente lo que se quiere.
+            # Unlike a write attempt, narrowing the question does fix this, so a
+            # retry is exactly what is wanted.
             retryable=True,
         ),
     )
 
 
 def _suggestion(cost: CostEstimate, role: Role) -> str:
-    """La sugerencia mira el detalle del estimador, no un texto genérico."""
+    """Suggestion derived from the estimator's detail rather than generic text."""
     unpruned = _table_without_pruning(cost.detail)
     if unpruned is not None:
         table, column = unpruned
@@ -105,13 +103,13 @@ def _suggestion(cost: CostEstimate, role: Role) -> str:
 
 
 def _table_without_pruning(detail: dict[str, Any]) -> tuple[str, str] | None:
-    """La primera tabla particionada cuyas particiones NO se podaron."""
+    """First partitioned table whose partitions were not pruned."""
     for name, spec in (detail.get("per_table") or {}).items():
         total = spec.get("partitions_total", 1)
         kept = spec.get("partitions_kept", 1)
         if total > 1 and kept >= total:
-            # `event_date` es la columna de partición de las dos tablas grandes de
-            # este almacén; el estimador la conoce y el mensaje la nombra.
+            # `event_date` is the partition column of the warehouse's two large
+            # tables, so the message can name it.
             return (name, "event_date")
     return None
 
@@ -125,11 +123,10 @@ def _widest_table(detail: dict[str, Any]) -> str | None:
 
 
 def _human(nbytes: int) -> str:
-    """Bytes en una unidad que una persona pueda comparar de un vistazo.
+    """Bytes in a unit a person can compare at a glance.
 
-    GB decimales, como `docs/spec/budgets.yaml` declara. Que el contrato fije la
-    base evita la discusión de GB frente a GiB justo donde más confunde: en un
-    mensaje de rechazo.
+    Decimal GB, as declared in `docs/spec/budgets.yaml`, so rejection messages never
+    mix GB and GiB.
     """
     for unit, size in (("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000)):
         if nbytes >= size:

@@ -1,24 +1,20 @@
-"""R006 · el `LIMIT` es del dominio, y si falta se inyecta.
+"""R006: the row cap belongs to the domain, and is injected when missing.
 
-`PROJECT.md` lo pide así —«`LIMIT` obligatorio; si falta, se inyecta»— y la
-invariante I-12 dice por qué tiene que ponerlo el dominio y **nunca el motor**: si
-cada engine aplicara el suyo, DuckDB y Athena devolverían resultados distintos para
-el mismo rol, y el criterio de aceptación nº 5 de `PROJECT.md` fallaría por el
-límite y no por la abstracción.
+Invariant I-12 says why the domain sets it and never the engine: if each engine applied
+its own, DuckDB and Athena would return different results for the same role, and
+cross-engine parity would fail because of the limit rather than the abstraction.
 
-**Es la única regla del guard que reescribe casi siempre**, y por eso corre la
-última: el `LIMIT` que inyecta se calcula sobre `max_rows` del rol, que es un dato
-del presupuesto, y recortar antes habría hecho que las demás reglas razonaran sobre
-un árbol que no es el que escribió quien preguntó.
+It is the only rule that rewrites in most cases, so it runs last: the injected `LIMIT`
+comes from the role's `max_rows`, and clamping earlier would make the other rules
+reason about a tree different from the one submitted.
 
-Tres cosas SÍ se rechazan, y las tres por el mismo motivo: **no se puede saber
-cuántas filas van a salir antes de ejecutar.**
+Three things are rejected, all for the same reason: the number of rows cannot be known
+before execution.
 
-- Un `LIMIT` que no es un literal —`LIMIT (SELECT count(*) ...)`— convierte el tope
-  en algo que depende de los datos.
-- Un `LIMIT` negativo no significa nada y cada motor hace una cosa distinta.
-- Un `OFFSET` enorme obliga al motor a producir y tirar millones de filas: el coste
-  es de escaneo completo aunque el `LIMIT` diga diez.
+- A non-literal `LIMIT` (`LIMIT (SELECT count(*) ...)`) makes the cap data-dependent.
+- A negative `LIMIT` means nothing, and each engine handles it differently.
+- A huge `OFFSET` makes the engine produce and discard millions of rows: the cost is a
+  full scan even if the `LIMIT` says ten.
 """
 
 from __future__ import annotations
@@ -31,30 +27,27 @@ from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
 from datawarden.guard.rules import messages
 
-#: Desplazamiento máximo. Un `OFFSET 1000000` recorre un millón de filas para
-#: tirarlas: el coste es el mismo que devolverlas y no aparece en el `LIMIT`.
+#: Maximum offset. `OFFSET 1000000` walks a million rows to discard them: the cost equals
+#: returning them, and it does not show in the `LIMIT`.
 MAX_OFFSET: Final = 100_000
 
 
 class RowLimitRule:
-    """Hay `LIMIT`, es un literal sano, y no pasa de `max_rows`."""
+    """A `LIMIT` exists, is a sane literal, and does not exceed `max_rows`."""
 
     rule_id = "R006"
     code = "row_limit"
     severity = Severity.POLICY
-    summary = "El tope de filas lo pone el dominio; se inyecta si falta y se recorta"
+    summary = "The row cap is set by the domain: injected when missing, clamped when larger"
     families: tuple[str, ...] = ("sin_limite", "limite_no_estatico", "desplazamiento_excesivo")
     phase = POST_QUALIFY
 
     def check(self, ctx: GuardContext) -> RuleResult:
         tree = ctx.tree
 
-        # TODA subconsulta, no solo la raíz. LO ENCONTRÓ LA MUTACIÓN DE AST: envolver
-        # la consulta en una CTE o en una subconsulta escondía el `OFFSET` del nodo de
-        # arriba, y `SELECT * FROM (SELECT ... OFFSET 9000000) s` hacía que el motor
-        # produjera y tirara nueve millones de filas sin que ninguna regla lo viera.
-        # Es exactamente para esto que existe el corpus de mutantes: la regla estaba
-        # bien escrita para el caso que alguien pensó, y mal para el que no.
+        # Every subquery, not just the root. Otherwise wrapping the query in a CTE or a
+        # subquery would hide its `OFFSET`: `SELECT * FROM (SELECT ... OFFSET 9000000) s`
+        # would make the engine produce and discard nine million rows unnoticed.
         for select in tree.find_all(exp.Select, exp.Union, exp.Except, exp.Intersect):
             rejection = self._check_bounds(select)
             if rejection is not None:
@@ -83,7 +76,7 @@ class RowLimitRule:
         return PASS
 
     def _check_bounds(self, node: exp.Expression | exp.Query) -> RuleResult | None:
-        """`LIMIT` y `OFFSET` sanos en ESTE nodo, esté donde esté en el árbol."""
+        """`LIMIT` and `OFFSET` are sane on this node, wherever it is in the tree."""
         if not hasattr(node, "args"):
             return None
 

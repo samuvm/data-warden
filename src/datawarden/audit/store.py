@@ -1,19 +1,15 @@
-"""El almacén de la cadena: SQLite en WAL, append-only por TRIGGER.
+"""Audit chain storage: SQLite in WAL mode, append-only enforced by triggers.
 
-**El append-only lo impone el motor, no la disciplina de quien llama.** Si viviera
-en el código de este módulo, el primer script que abriera el fichero con `sqlite3`
-se lo saltaría sin enterarse. Un trigger viaja con los datos: quien quiera reescribir
-un registro tiene que borrar el trigger primero, y eso es un acto deliberado que
-deja huella, no un descuido.
+Append-only is enforced by the database, not by caller discipline: a check in this
+module would be bypassed by the first script that opens the file with `sqlite3`.
+Triggers travel with the data, so rewriting a record requires dropping a trigger
+first, which is deliberate and leaves a trace.
 
-**WAL** porque el escritor no puede bloquear a `warden audit verify`: un almacén que
-hay que parar para auditarlo se audita una vez y nunca más.
+WAL lets `warden audit verify` read while the writer keeps writing.
 
-**Y el límite honesto, que no lo tapa ninguna de las dos cosas:** quien tiene
-escritura sobre el fichero puede borrar los triggers y recalcular la cadena entera.
-El hash encadenado detecta a quien NO puede reescribir todo lo posterior. Va escrito
-en `docs/threat-model.md` porque una defensa cuyo límite no se publica se lee como
-una promesa que no es.
+Known limit, documented in `docs/threat-model.md`: anyone with write access to the
+file can drop the triggers and recompute the whole chain. The hash chain only
+detects tampering by someone who cannot rewrite every later record.
 """
 
 from __future__ import annotations
@@ -28,13 +24,11 @@ from typing import Any, Final
 from datawarden.audit.chain import GENESIS, AuditRecord, link, verify
 from datawarden.domain.types import Role, RoleSource, Status
 
-#: Las columnas de la tabla, en el orden en que se leen y se escriben. Se recorre
-#: esta tupla en vez de indexar el diccionario por un literal, y eso NO es estilo:
-#: `scripts/check_role_source.py` pone el gate en rojo ante cualquier `x["role"]` o
-#: `x["principal_id"]` fuera de `principal/`, porque es la forma que tiene un rol de
-#: colarse desde datos no autenticados (I-05). Aquí el rol viene de un `Principal`
-#: ya construido, pero el checker es estático y tiene razón en no distinguir: la
-#: forma que no se puede escribir mal es la que se recorre.
+#: Table columns, in read and write order. Iterating this tuple instead of indexing
+#: by literal is required: `scripts/check_role_source.py` fails the gate on any
+#: `x["role"]` or `x["principal_id"]` outside `principal/`, since that is how a role
+#: leaks in from unauthenticated data (I-05). The role here comes from an already
+#: built `Principal`, but the checker is static and rightly does not distinguish.
 _COLUMNS: Final = (
     "seq",
     "recorded_at",
@@ -63,8 +57,8 @@ _COLUMNS: Final = (
     "chain_hash",
 )
 
-#: Campos que se guardan serializados a JSON porque SQLite no tiene ni listas ni
-#: objetos. Se leen de vuelta con el mismo mapa, para que no haya dos listas.
+#: Fields stored as JSON because SQLite has no lists or objects. Read back through
+#: the same tuple so there is a single list.
 _JSON_FIELDS: Final = ("tables", "columns_masked", "rejection", "model")
 
 _SCHEMA_SQL: Final = """
@@ -92,32 +86,32 @@ CREATE TABLE IF NOT EXISTS audit_log (
     model            TEXT,
     trace_id         TEXT,
     prev_hash        TEXT    NOT NULL,
-    -- La versión del contrato con la que se escribió ESTA fila. Se guarda en vez de
-    -- derivarse: entra en el hash, y un registro al que se le inyectara la versión
-    -- de hoy dejaría de verificar el día que la versión suba.
+    -- Contract version this row was written with. Stored, not derived: it is part
+    -- of the hash, so injecting today's version would break verification of old
+    -- rows as soon as the version is bumped.
     schema_version   INTEGER NOT NULL,
     chain_hash       TEXT    NOT NULL
 );
 
--- APPEND-ONLY, impuesto por el motor. El mensaje nombra el motivo porque quien se
--- lo encuentre tiene que entender que es deliberado y no un permiso mal puesto.
+-- Append-only, enforced by the engine. The message states the reason so nobody
+-- mistakes it for a misconfigured permission.
 CREATE TRIGGER IF NOT EXISTS audit_log_no_update
 BEFORE UPDATE ON audit_log
 BEGIN
-    SELECT RAISE(ABORT, 'audit_log es append-only: un registro escrito no se edita');
+    SELECT RAISE(ABORT, 'audit_log is append-only: a written record cannot be updated');
 END;
 
 CREATE TRIGGER IF NOT EXISTS audit_log_no_delete
 BEFORE DELETE ON audit_log
 BEGIN
-    SELECT RAISE(ABORT, 'audit_log es append-only: un registro escrito no se borra');
+    SELECT RAISE(ABORT, 'audit_log is append-only: a written record cannot be deleted');
 END;
 """
 
 
 @dataclass(frozen=True, slots=True)
 class Entry:
-    """Un registro ya escrito, con el `seq` que le tocó y su hash."""
+    """A written record, with its assigned `seq` and its hash."""
 
     record: AuditRecord
     chain_hash: str
@@ -128,42 +122,38 @@ class Entry:
 
 
 def _utc_now() -> str:
-    """La marca de tiempo del contrato: UTC con la `Z` EXPLÍCITA.
+    """Contract timestamp: UTC with an explicit `Z`.
 
-    `isoformat()` produce `+00:00`, que **no casa** el `pattern: "Z$"` del schema, y
-    `utcnow()` —que sí daría la Z— está deprecada y la suite corre con
-    `filterwarnings = ["error"]`. Así que se formatea a mano. Los microsegundos van
-    porque dos registros del mismo milisegundo son normales bajo carga; el orden no
-    depende de esto de todos modos, lo da `seq`.
+    `isoformat()` yields `+00:00`, which does not match the schema's `pattern: "Z$"`,
+    and `utcnow()` is deprecated (the suite runs with `filterwarnings = ["error"]`).
+    Microseconds are kept because same-millisecond records are normal under load;
+    ordering comes from `seq` regardless.
     """
     return dt.datetime.now(tz=dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
 
 
 class AuditStore:
-    """La cadena, persistida. `":memory:"` para los tests unitarios."""
+    """The persisted chain. Use `":memory:"` in unit tests."""
 
     def __init__(self, path: str) -> None:
-        # `check_same_thread=False` + CERROJO, y el cerrojo no es por los hilos: lo
-        # exige la propia cadena. `append()` LEE la cabeza (`seq`, `chain_hash`) y
-        # luego ESCRIBE encadenando contra ella. Dos escrituras simultáneas leerían
-        # el mismo `prev_hash` y producirían dos registros hermanos: la cadena
-        # dejaría de ser una cadena y `verify()` lo cantaría después, cuando ya no
-        # se puede saber cuál era el bueno.
+        # The lock is required by the chain itself, not just by threading: `append()`
+        # reads the head (`seq`, `chain_hash`) and then writes linked to it. Two
+        # concurrent writers would read the same `prev_hash` and fork the chain,
+        # which `verify()` would only report afterwards.
         #
-        # Lo de los hilos vino de rebote y era real: el SDK de MCP ejecuta las tools
-        # síncronas en un hilo de trabajo, y SQLite se negaba —«objects created in a
-        # thread can only be used in that same thread»—. Se descubrió conduciendo el
-        # servidor con un cliente MCP de verdad; en proceso no aparecía.
+        # `check_same_thread=False` is needed because the MCP SDK runs synchronous
+        # tools on a worker thread, and SQLite otherwise refuses objects created on
+        # another thread. This only shows up with a real MCP client, not in-process.
         self._lock = threading.RLock()
         self.connection = sqlite3.connect(path, isolation_level=None, check_same_thread=False)
-        # WAL no aplica a `:memory:` y SQLite lo ignora sin protestar; se pide
-        # igual para que el camino de código sea EL MISMO en test y en producción.
+        # WAL does not apply to `:memory:` and SQLite silently ignores it; it is
+        # requested anyway so tests and production run the same code path.
         if path != ":memory:":
             self.connection.execute("PRAGMA journal_mode = WAL")
         self.connection.execute("PRAGMA foreign_keys = ON")
         self.connection.executescript(_SCHEMA_SQL)
 
-    # ------------------------------------------------------------- escritura ---
+    # ----------------------------------------------------------------- write ---
 
     def append(
         self,
@@ -176,12 +166,11 @@ class AuditStore:
         sql_digest: str,
         **optional: Any,
     ) -> Entry:
-        """Escribe un registro al final de la cadena y devuelve lo que quedó.
+        """Append a record to the end of the chain and return what was written.
 
-        **El `seq` lo asigna el almacén y nunca quien llama.** Un `seq` de fuera se
-        puede repetir o saltar, y un hueco en la numeración es indistinguible de un
-        registro borrado: la comprobación de consecutividad de `verify()` dejaría de
-        significar nada.
+        `seq` is assigned by the store, never by the caller. An external `seq` can
+        repeat or skip, and a gap is indistinguishable from a deleted record, which
+        would defeat the consecutiveness check in `verify()`.
         """
         with self._lock:
             return self._append_locked(
@@ -205,7 +194,7 @@ class AuditStore:
         sql_digest: str,
         **optional: Any,
     ) -> Entry:
-        """El cuerpo de `append`, ya bajo el cerrojo. Leer la cabeza y encadenar."""
+        """Body of `append`, under the lock: read the head and link to it."""
         row = self.connection.execute(
             "SELECT seq, chain_hash FROM audit_log ORDER BY seq DESC LIMIT 1"
         ).fetchone()
@@ -223,9 +212,9 @@ class AuditStore:
             question_digest=question_digest,
             sql_digest=sql_digest,
             prev_hash=previous,
-            # Redondeado a microsegundos: es la precisión donde el `repr` de Python
-            # y el formato de número de ECMAScript coinciden, y JCS exige el de
-            # ECMAScript. Ver el docstring de `chain.canonicalize`.
+            # Rounded to microseconds, the precision at which Python's float `repr`
+            # and ECMAScript number formatting agree, as JCS requires. See
+            # `chain.canonicalize`.
             duration_ms=None if duration is None else round(float(duration), 3),
             **optional,
         )
@@ -242,12 +231,10 @@ class AuditStore:
                 values.append(json.dumps(value if value is not None else [], sort_keys=True))
             else:
                 values.append(value)
-        # S608: los nombres de columna salen de `_COLUMNS`, una constante de este
-        # módulo, y JAMÁS de una entrada. Los VALORES van por parámetro, que es lo
-        # único que un atacante controla. Interpolar la lista de columnas es lo que
-        # permite que exista un solo sitio donde se declara el orden: dos listas
-        # —una para escribir y otra para leer— divergen, y una columna leída en la
-        # posición equivocada cambia el JCS y rompe la cadena sin que nadie la toque.
+        # S608: column names come from the module constant `_COLUMNS`, never from
+        # input; values are bound as parameters. A single column list for reads and
+        # writes prevents drift: a column read at the wrong position would change the
+        # JCS and break the chain.
         self.connection.execute(
             f"INSERT INTO audit_log ({','.join(_COLUMNS)}) "  # noqa: S608
             f"VALUES ({','.join('?' * len(_COLUMNS))})",
@@ -255,16 +242,14 @@ class AuditStore:
         )
         return Entry(record=record, chain_hash=chain_hash)
 
-    # -------------------------------------------------------------- lectura ---
+    # ------------------------------------------------------------------ read ---
 
     def rows_as_entries(self) -> list[Entry]:
-        """Toda la cadena, en orden de `seq`."""
-        # S608: mismo motivo que en `append` — columnas de una constante, cero
-        # entrada. Y la misma tupla, para que leer y escribir no puedan divergir.
+        """The whole chain, ordered by `seq`."""
+        # S608: same as `append`; columns come from a constant, never from input.
         with self._lock:
-            # El `fetchall()` va DENTRO del cerrojo: un cursor de SQLite consumido
-            # fuera vuelve a tocar la conexión, que es justo lo que se está
-            # serializando.
+            # `fetchall()` stays inside the lock: consuming the cursor outside would
+            # touch the connection again, which is what the lock serializes.
             raws = self.connection.execute(
                 f"SELECT {','.join(_COLUMNS)} FROM audit_log ORDER BY seq"  # noqa: S608
             ).fetchall()
@@ -276,11 +261,11 @@ class AuditStore:
         return entries
 
     def rows(self) -> list[tuple[AuditRecord, str]]:
-        """La cadena en la forma que `chain.verify()` consume."""
+        """The chain in the shape `chain.verify()` consumes."""
         return [(e.record, e.chain_hash) for e in self.rows_as_entries()]
 
     def verify(self) -> tuple[bool, str | None]:
-        """¿Está intacta la cadena? El veredicto lo da `chain.verify`, que es PURO."""
+        """Whether the chain is intact. The verdict comes from the pure `chain.verify`."""
         return verify(self.rows())
 
     def count(self) -> int:
@@ -289,11 +274,10 @@ class AuditStore:
         return int(row[0])
 
     def count_by_status(self) -> dict[Status, int]:
-        """Cuántos registros de cada estado. Los cuatro salen, valgan cero.
+        """Record count per status. All four are present, including zeros.
 
-        Es lo que `warden audit reconcile` compara contra el contador del motor, y
-        un estado que no apareciera por no tener filas obligaría a quien lee el
-        informe a distinguir «cero» de «no medido».
+        `warden audit reconcile` compares this against the engine counter; a missing
+        status would leave readers unable to tell "zero" from "not measured".
         """
         counts = dict.fromkeys(Status, 0)
         with self._lock:
@@ -310,13 +294,12 @@ class AuditStore:
 
 
 def _record_from(fields: dict[str, Any]) -> AuditRecord:
-    """Reconstruye el registro leído de disco.
+    """Rebuild a record read from disk.
 
-    Se recorre `_COLUMNS` y se indexa por una VARIABLE, nunca por un literal como
-    `fields["role"]`: ver el comentario de `_COLUMNS`. Y los tipos se restauran
-    explícitamente porque SQLite no tiene booleano —`truncated` vuelve como 0 o 1— y
-    un `0` donde había `False` cambia el JCS y por tanto el hash, con lo que la
-    cadena se declararía rota sin que nadie la hubiera tocado.
+    Fields are indexed by variable, never by a literal like `fields["role"]` (see
+    `_COLUMNS`). Types are restored explicitly because SQLite has no boolean:
+    `truncated` comes back as 0 or 1, and `0` instead of `False` changes the JCS and
+    therefore the hash, making an untouched chain look broken.
     """
     restored: dict[str, Any] = {}
     for name, value in fields.items():

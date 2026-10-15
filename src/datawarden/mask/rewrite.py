@@ -1,38 +1,28 @@
-"""Anillo 4 · el enmascarado, **reescribiendo el AST antes de ejecutar**.
+"""Output ring: masking by rewriting the AST before execution.
 
-El plan de la fase 4 lo exige con esas palabras, y la alternativa —post-procesar el
-DataFrame por nombre de columna— falla de tres maneras distintas: en cuanto hay un
-alias, en cuanto una vista renombra, y en cuanto dos tablas tienen una columna con el
-mismo nombre. Pero el motivo de fondo es otro y es más grave: **post-procesar deja el
-valor real viajar desde el motor hasta el proceso**, donde ya se le ha escapado a
-quien mira los logs del motor. Reescribiendo el árbol, el valor real no sale nunca de
-la base de datos.
+Post-processing the result by column name breaks on aliases, on renaming views and on
+two tables sharing a column name. More importantly, post-processing lets the real
+value travel from the engine to the process, where it is already exposed to anyone
+reading engine logs. Rewriting the tree keeps the real value inside the database.
 
-**Dónde encaja, y dónde NO.** Corre DESPUÉS de `validate()` y ANTES de ejecutar. No
-relaja ni un rechazo del guard: R008 sigue rechazando toda columna `deny` en cualquier
-posición, y toda `mask` fuera de la proyección directa —`where`, `join_on`,
-`group_by`, `order_by`, `having`, `qualify`, argumento de función, partición de
-ventana—. Lo único que pasa de rechazo a reescritura es exactamente un caso: **nivel
-`mask` en proyección directa.** Esa asimetría es la tesis del anillo: una columna
-enmascarada es legal en la salida y prohibida en el predicado, porque en la salida se
-ve un sustituto y en el predicado se ADIVINA el original.
+Runs after `validate()` and before execution, and relaxes no guard rejection: R008
+still rejects any `deny` column anywhere, and any `mask` column outside a direct
+projection (`where`, `join_on`, `group_by`, `order_by`, `having`, `qualify`, function
+argument, window partition). Exactly one case moves from rejection to rewrite: a
+`mask` column in a direct projection. In the output a substitute is shown; in a
+predicate the original can be guessed.
 
-**El problema es más pequeño de lo que parece, y lo es gracias al guard.** Toda
-proyección que sobrevive llevando una columna enmascarada es un `exp.Column` desnudo,
-con o sin alias: `concat(...)`, `upper(substring(...))` y `CASE WHEN ... THEN
-first_name` son argumento de función y R008 los rechaza, y `a || b` lo rechaza R002
-porque `DPipe` no está en la allowlist. Así que reescribir es «sustituye la expresión
-de la proyección y conserva el alias», y encontrarse cualquier otra forma **es un
-fallo del anillo anterior**: se rechaza, no se improvisa.
+The guard keeps this small. Any projection that survives with a masked column is a
+bare `exp.Column`, aliased or not: `concat(...)`, `upper(substring(...))` and
+`CASE WHEN ... THEN first_name` are function arguments rejected by R008, and `a || b`
+is rejected by R002 because `DPipe` is not allowlisted. Rewriting is therefore
+"replace the projection expression, keep the alias"; any other shape is a guard
+defect and is rejected, not improvised.
 
-**LÍMITE DECLARADO: la pimienta viaja dentro del SQL.** `hash_estable` se calcula en
-el motor, así que la pimienta aparece como literal en el árbol que se ejecuta, y por
-tanto en los logs del motor y en el campo `sql` del registro de auditoría. Es la
-consecuencia directa de que el enmascarado sea una reescritura de AST y no un
-post-proceso; no hay forma de hashear en el motor sin darle la clave. Afecta a dos
-columnas (`dim_device.device_fingerprint` y `fact_payment_attempt.ip_address_int`) y
-se trató aparte: ver `mask/macro.py`. Se declara aquí en vez de
-descubrirse leyendo un registro de auditoría.
+`hash_estable` is computed in the engine through the `warden_hash` macro, so the
+pepper stays out of the executed tree and the audit record; see `mask/macro.py` for
+the remaining exposure in engine logs. It affects two columns:
+`dim_device.device_fingerprint` and `fact_payment_attempt.ip_address_int`.
 """
 
 from __future__ import annotations
@@ -55,28 +45,23 @@ from datawarden.mask.config import MaskConfig
 from datawarden.mask.macro import MACRO_NAME
 from datawarden.principal.policy import AccessPolicy, Level
 
-#: Los nodos que puede contener un árbol ENMASCARADO: los del guard más el hash.
+#: Nodes a masked tree may contain: the guard's allowlist plus the hash call.
 #:
-#: `SHA2` no se añade a `ALLOWED_NODES` y es deliberado. El usuario no debe poder
-#: escribir `sha256()` a mano —es una función de motor y R003 la para—, pero el
-#: enmascarador corre después de validar y necesita producirla. Declarar la
-#: diferencia en un conjunto propio mantiene acotada la superficie del anillo 3 y
-#: deja comprobable que el anillo 4 no la agranda por su cuenta.
+#: Hashing is deliberately not added to `ALLOWED_NODES`: users must not write
+#: `sha256()` themselves (R003 blocks engine functions), but the masker runs after
+#: validation and must emit it. A separate set keeps the guard's surface bounded and
+#: makes it checkable that masking does not widen it.
 MASK_NODES: Final[frozenset[str]] = frozenset(ALLOWED_NODES) | {"Anonymous"}
 
 
 def uses_only_mask_nodes(tree: exp.Expression) -> bool:
-    """¿El árbol enmascarado usa SOLO lo que el anillo 4 tiene permitido añadir?
+    """Whether the masked tree uses only what masking is allowed to add.
 
-    No basta un conjunto plano, y por eso esto es una función. La máscara necesita
-    llamar a `warden_hash`, y sqlglot representa una función que no conoce como
-    `exp.Anonymous` — el nodo comodín—. Pero el invariante del proyecto dice que
-    **`exp.Anonymous` es rechazo**, así que admitirlo a secas convertiría el conjunto
-    en «cualquier función», que es exactamente lo que la allowlist del anillo 3
-    existe para impedir.
-
-    Se admite `Anonymous` **solo con nuestro nombre**: el anillo 4 añade al árbol
-    validado exactamente una función, y es la suya.
+    A flat set is not enough. Masking calls `warden_hash`, which sqlglot represents
+    as `exp.Anonymous`, but `exp.Anonymous` is a rejection under the project
+    invariants; allowing it unconditionally would mean "any function", which the
+    guard allowlist exists to prevent. `Anonymous` is accepted only with our macro
+    name: masking adds exactly one function to the validated tree.
     """
     for node in tree.walk():
         name = node.__class__.__name__
@@ -89,25 +74,24 @@ def uses_only_mask_nodes(tree: exp.Expression) -> bool:
     return True
 
 
-#: Lo que sustituye a un valor tachado. Sin conservar longitud: la longitud de un
-#: apellido o de una dirección también informa.
+#: Replacement for a redacted value. Length is not preserved: the length of a
+#: surname or an address is itself information.
 REDACTED: Final = "***"
 
-#: Caracteres del hash que se publican. Doce hex son 48 bits: suficientes para que
-#: dos valores distintos casi nunca colisionen —medido sobre las 104.164 IPs
-#: distintas del perfil dev: cero colisiones— y pocos para que el hash no sea una
-#: copia del valor.
+#: Published hash length. Twelve hex characters are 48 bits: enough to make
+#: collisions rare (zero across the 104,164 distinct IPs of the dev profile) and
+#: short enough that the hash is not a copy of the value.
 HASH_HEX: Final = 12
 
 
 def mask_query(
     query: ValidatedQuery, *, policy: AccessPolicy, config: MaskConfig
 ) -> ValidatedQuery | RejectionReason:
-    """Reescribe el árbol validado para que las columnas `mask` salgan enmascaradas.
+    """Rewrite the validated tree so `mask` columns come out masked.
 
-    Devuelve una `ValidatedQuery` nueva —con `masked_columns` relleno, que es la
-    evidencia que va al registro de auditoría— o un rechazo si se encuentra una forma
-    que el guard no debería haber dejado pasar.
+    Returns a new `ValidatedQuery` with `masked_columns` set (the evidence recorded in
+    the audit log), or a rejection if it finds a shape the guard should not have let
+    through.
     """
     role = query.principal.role
     tree = query.ast.copy()
@@ -148,12 +132,11 @@ def mask_query(
 
 
 def lineage_index_for(query: ValidatedQuery) -> dict[str, tuple[str, ...]]:
-    """El índice de linaje del catálogo, para volver a resolver sobre el árbol nuevo.
+    """Catalog lineage index, to resolve lineage again on the copied tree.
 
-    Se recalcula en vez de arrastrarse desde el guard porque `mask_query` trabaja
-    sobre una COPIA del árbol, y el índice del guard está referenciado por `id()` de
-    los nodos del original: reutilizarlo daría respuestas de otro árbol, que es la
-    peor clase de acierto.
+    Recomputed rather than reused from the guard: `mask_query` works on a copy, and
+    the guard's index is keyed by `id()` of the original nodes, so reusing it would
+    silently answer for a different tree.
     """
     from datawarden.catalog import SCHEMA_PATH, load_generated
 
@@ -166,7 +149,7 @@ def _masked_bases(
     policy: AccessPolicy,
     role: object,
 ) -> list[str]:
-    """Las columnas base de esta proyección que están enmascaradas para el rol."""
+    """Base columns of this projection that are masked for the role."""
     found: list[str] = []
     for column in target.find_all(exp.Column):
         for base in lineage.get(id(column), ()):
@@ -180,23 +163,20 @@ def _masked_bases(
 def _mask_expression(
     column: exp.Column, column_policy: object, config: MaskConfig
 ) -> exp.Expression | None:
-    """La máscara de una columna, **preservando NULL**.
+    """Mask expression for a column, preserving NULL.
 
-    La forma canónica es `CASE WHEN <col> IS NULL THEN NULL ELSE <máscara> END`, y no
-    es un detalle: `policy.yaml` dice que el NULL de `last_name_2` significa «este
-    sistema de nombres no tiene segundo apellido» —o sea, es un DATO— y
-    `resultset-equality.md` decide que NULL y cadena vacía son DISTINTOS y tienen
-    motivo propio en el informe. Una máscara que convirtiera NULL en `'***'`
-    INVENTARÍA un valor donde no lo había, y las respuestas de referencia del banco
-    de 60 saldrían falsas sin que nadie lo notara.
+    Shape: `CASE WHEN <col> IS NULL THEN NULL ELSE <mask> END`. `policy.yaml` states
+    that a NULL `last_name_2` means "this naming system has no second surname", i.e.
+    it is data, and `resultset-equality.md` treats NULL and empty string as distinct.
+    Masking NULL to `'***'` would invent a value and silently corrupt the evaluation
+    reference answers.
     """
     body = _mask_body(column, column_policy)
     if body is None:
         return None
-    # La envoltura es la misma para las cuatro, incluida `generalizar`, donde el
-    # sustituto es OTRA columna: el NULL que se preserva sigue siendo el de la
-    # ORIGINAL, porque saber que no había fecha de nacimiento es información y la
-    # franja de edad de una fila sin fecha sería una invención.
+    # Same wrapper for all four transformations, including `generalizar` where the
+    # substitute is another column: the preserved NULL is the original column's,
+    # since an age band for a row with no birth date would be invented.
     return exp.Case(
         ifs=[exp.If(this=exp.Is(this=column.copy(), expression=exp.Null()), true=exp.Null())],
         default=body,
@@ -204,11 +184,10 @@ def _mask_expression(
 
 
 def _mask_body(column: exp.Column, column_policy: object) -> exp.Expression | None:
-    """El sustituto, sin la envoltura que preserva NULL.
+    """The substitute expression, without the NULL-preserving wrapper.
 
-    Ya no recibe la configuración: desde que existe la macro del motor la pimienta vive en ella
-    y no en el árbol, así que este módulo no necesita tocarla. Dejar el parámetro
-    habría sido una firma que miente sobre qué secreto maneja quién.
+    Takes no configuration: the pepper lives in the engine macro, not in the tree, so
+    this function never handles the secret.
     """
     transformation = getattr(column_policy, "transformation", None)
 
@@ -219,19 +198,17 @@ def _mask_body(column: exp.Column, column_policy: object) -> exp.Expression | No
         generalized = getattr(column_policy, "generalized", None)
         if not generalized:
             return None
-        # Se conserva el calificador de tabla del nodo original: la consulta puede
-        # haber puesto un alias a la tabla, y escribir el nombre del contrato a pelo
-        # produciría una referencia que no resuelve.
+        # Keep the original table qualifier: the query may alias the table, and the
+        # bare contract name would not resolve.
         return exp.column(str(generalized).split(".")[-1], table=column.table or None)
 
     if transformation == "ultimos_n":
         keep = getattr(column_policy, "keep_last_n", None)
         if not keep:
             return None
-        # Nodos por CLASE CONCRETA y no por `exp.func("CONCAT", ...)`: en sqlglot 30
-        # `func()` devuelve un `Func` generico que ni siquiera es un `Expression`, y
-        # sobre todo la allowlist del guard casa por NOMBRE DE CLASE. Construir el
-        # nodo que la allowlist espera es lo que hace comprobable `MASK_NODES`.
+        # Build concrete node classes, not `exp.func("CONCAT", ...)`: in sqlglot 30
+        # `func()` returns a generic `Func`, and the guard allowlist matches by class
+        # name. Emitting the class the allowlist expects keeps `MASK_NODES` checkable.
         return exp.Concat(
             expressions=[
                 exp.Literal.string(REDACTED),
@@ -240,17 +217,17 @@ def _mask_body(column: exp.Column, column_policy: object) -> exp.Expression | No
         )
 
     if transformation == "hash_estable":
-        # `warden_hash(CAST(col AS TEXT))`. **La pimienta y el truncado viven DENTRO
-        # de la macro** (`mask/macro.py`), así que la clave no viaja en cada consulta
-        # ni acaba en el campo `sql` del registro de auditoría.
+        # `warden_hash(CAST(col AS TEXT))`. Pepper and truncation live inside the
+        # macro (`mask/macro.py`), so the key neither travels with each query nor
+        # lands in the audit record's `sql` field.
         return exp.Anonymous(this=MACRO_NAME, expressions=[_as_text(column)])
 
     return None
 
 
 def _as_text(column: exp.Column) -> exp.Expression:
-    """`CAST(col AS TEXT)`. Las columnas enmascarables no son todas de texto:
-    `ip_address_int` es un entero y `birth_date` una fecha."""
+    """`CAST(col AS TEXT)`. Not every maskable column is text: `ip_address_int` is an
+    integer and `birth_date` a date."""
     return exp.cast(column.copy(), "TEXT")
 
 

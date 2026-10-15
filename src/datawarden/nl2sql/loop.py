@@ -1,20 +1,12 @@
-"""El ciclo de corrección: generar → validar → mensaje accionable → reintentar.
+"""Correction loop: generate, validate, return an actionable message, retry.
 
-**Un bucle propio de sesenta líneas, y no un framework.** Es una decisión de diseño,
-y el motivo es que este bucle es el sitio donde se demuestra la tesis del proyecto:
-*el valor no está en la tasa de acierto, está en la garantía sobre el fallo.* Un
-framework que hiciera esto por dentro dejaría el número de `G-RECOVERY` a merced de su
-política de reintentos, que es exactamente lo que aquí se está midiendo.
+A small hand-written loop rather than a framework: `G-RECOVERY` measures whether the
+model corrects itself from the rejection message, and a framework's own retry
+policy would confound that measurement.
 
-**Qué mide `G-RECOVERY`, dicho con precisión.** No si el modelo acierta a la primera:
-si **se corrige con el mensaje de rechazo**. Un guard que rechaza sin explicar produce
-un modelo que reintenta al azar; uno que explica produce uno que corrige. La
-diferencia entre las dos cosas es este bucle y el `suggestion` que lo alimenta.
-
-**El bucle es CÓDIGO y se prueba; el generador se MIDE.** Cuántas veces se reintenta,
-qué se le pasa al intento siguiente y cuándo se para son decisiones deterministas y
-tienen sus tests con un provider grabado. Lo que el modelo escribe no se testea: un
-test unitario sobre la salida de un modelo mide el modelo, no el código.
+The loop is code and is tested with a recorded provider (retry count, what is fed
+to the next attempt, when to stop). What the model writes is measured by evals, not
+unit-tested.
 """
 
 from __future__ import annotations
@@ -31,10 +23,8 @@ from datawarden.domain.types import (
 )
 from datawarden.nl2sql.providers import Provider, Request
 
-#: Dos reintentos, tres intentos en total. No es una comodidad: cada reintento cuesta
-#: una llamada al modelo y un guard entero, y un bucle sin tope convierte un rechazo
-#: persistente en una factura y en una latencia sin fin. Si el mensaje no ha servido
-#: en dos intentos, el problema es el mensaje y eso es lo que hay que arreglar.
+#: Two retries, three attempts in total. Each retry costs a model call and a full
+#: guard pass; if the message has not helped after two, the message needs fixing.
 MAX_RETRIES: Final = 2
 
 Validate = Callable[[str], ValidatedQuery | RejectionReason]
@@ -42,7 +32,7 @@ Validate = Callable[[str], ValidatedQuery | RejectionReason]
 
 @dataclass(frozen=True, slots=True)
 class Attempt:
-    """Un intento, con lo que se generó y lo que el guard dijo."""
+    """One attempt: the generated SQL and the guard's verdict."""
 
     sql: str
     rejection: RejectionReason | None
@@ -50,11 +40,10 @@ class Attempt:
 
 @dataclass(frozen=True, slots=True)
 class LoopResult:
-    """El resultado del ciclo, con TODA la historia.
+    """Loop result with the full attempt history.
 
-    La historia completa y no solo el último intento: guardar solo el final haría
-    imposible responder «¿de qué se corrigió?», que es la única pregunta interesante
-    sobre una recuperación y la que agrupa el informe de `G-RECOVERY`.
+    The full history is kept because the `G-RECOVERY` report groups by what the
+    model recovered from, which the last attempt alone cannot tell.
     """
 
     query: ValidatedQuery | None
@@ -68,20 +57,18 @@ class LoopResult:
 
     @property
     def recovered(self) -> bool:
-        """Aceptada DESPUÉS de al menos un rechazo. Es lo que cuenta `G-RECOVERY`.
+        """Accepted after at least one rejection; what `G-RECOVERY` counts.
 
-        Acertar a la primera es bueno y no es una recuperación: no hubo mensaje que
-        seguir. Contarlo como tal inflaría la métrica con los casos fáciles.
+        A first-attempt success is not a recovery and would inflate the metric.
         """
         return self.accepted and len(self.attempts) > 1
 
     @property
     def first_rejection(self) -> RejectionReason | None:
-        """El PRIMER rechazo, que es el que agrupa la métrica.
+        """The first rejection, which is what the metric groups by.
 
-        Si se agrupara por el último, una consulta que se corrige de R008 y cae en
-        R006 contaría como fallo de R006 — y el mensaje que se estaba evaluando era
-        el de R008.
+        Grouping by the last one would count a query that recovers from R008 and then
+        hits R006 as an R006 failure, while the message under evaluation was R008's.
         """
         for attempt in self.attempts:
             if attempt.rejection is not None:
@@ -99,14 +86,13 @@ def run_loop(
     prompt_version: str = "1",
     seed: Attempt | None = None,
 ) -> LoopResult:
-    """Genera, valida y reintenta con el mensaje. Nunca lanza, nunca ejecuta.
+    """Generate, validate and retry with the message. Never raises, never executes.
 
-    **`seed` es un intento que YA OCURRIÓ**, con su SQL y el rechazo que se llevó.
-    Existe porque `G-RECOVERY` no mide si el modelo se equivoca del modo previsto
-    —eso varía con el modelo y no es interesante—, mide si SE CORRIGE. Sembrando el
-    rechazo, el denominador es fijo y lo único que queda por medir es la corrección.
-    Entra en la historia como primer intento, así que `recovered` y `first_rejection`
-    salen solos y significan lo mismo que en el camino normal.
+    `seed` is an attempt that already happened, with its SQL and rejection.
+    `G-RECOVERY` measures whether the model corrects itself, not whether it fails in
+    the expected way; seeding the rejection fixes the denominator. The seed enters
+    the history as the first attempt, so `recovered` and `first_rejection` keep their
+    usual meaning.
     """
     name = getattr(provider, "name", "unknown")
     if not question.strip():
@@ -129,10 +115,8 @@ def run_loop(
         rejection = seed.rejection
         previous_sql = seed.sql
         if rejection is not None and not rejection.retryable:
-            # Un rechazo sembrado que no se puede reformular tampoco se reintenta.
-            # Sembrarlo y darle la oportunidad de fallar contaminaría la métrica
-            # con casos que nadie puede arreglar, que es lo mismo que ya se evita
-            # en el camino normal.
+            # A seeded non-retryable rejection is not retried either, as in the
+            # normal path: unfixable cases would pollute the metric.
             return LoopResult(
                 query=None, rejection=rejection, attempts=tuple(attempts), provider=name
             )
@@ -149,9 +133,8 @@ def run_loop(
         try:
             sql = provider.generate(request)
         except Exception as exc:
-            # FAIL-CLOSED, el mismo principio que gobierna el guard: lo que no se
-            # puede completar se convierte en un veredicto, nunca en un fallo del
-            # proceso. Un modelo caído no puede tumbar al llamante.
+            # Fail-closed, as in the guard: a model failure becomes a verdict, never
+            # an exception propagated to the caller.
             rejection = _internal(
                 f"the model did not answer: {type(exc).__name__}",
                 "retry later, or run with the recorded provider, which needs no model",
@@ -178,16 +161,15 @@ def run_loop(
         previous_sql = sql
         attempts.append(Attempt(sql=sql, rejection=verdict))
         if not verdict.retryable:
-            # NO SE REINTENTA lo que no se puede reformular. Un `DELETE` no se
-            # convierte en pregunta reescribiéndolo, y darle la oportunidad de
-            # fallar contaminaría `G-RECOVERY` con casos que nadie puede arreglar.
+            # Non-retryable rejections are not retried: rewording a `DELETE` does
+            # not make it a question, and retrying would pollute `G-RECOVERY`.
             break
 
     return LoopResult(query=None, rejection=rejection, attempts=tuple(attempts), provider=name)
 
 
 def _internal(message: str, suggestion: str) -> RejectionReason:
-    """Un rechazo que no viene de una regla: viene de que el ciclo no pudo seguir."""
+    """A rejection raised by the loop itself rather than by a guard rule."""
     return RejectionReason(
         rule_id="INTERNAL",
         code="generation_failed",

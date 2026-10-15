@@ -1,27 +1,24 @@
-"""Cuánto costaría la consulta, calculado **antes de ejecutarla**.
+"""What a query would cost, computed before running it.
 
-`docs/RULES.md §7`, error 11, descarta las dos vías obvias con su motivo: `EXPLAIN
-ANALYZE` **ejecuta la consulta**, así que es inútil para un guardián preventivo; y
-el `EXPLAIN` de DuckDB da cardinalidad pero no bytes escaneados, mientras que Athena
-solo reporta `DataScannedInBytes` **después**. El estimador se construye sobre los
-metadatos de Iceberg, que llevan `column_sizes` por fichero y el valor de partición
-de cada uno **sin leer una sola fila** — y por eso mismo sirve para los dos motores.
+`docs/RULES.md §7`, error 11, rules out the obvious options: `EXPLAIN ANALYZE` runs
+the query, so it is useless for a preventive guard; DuckDB's `EXPLAIN` gives
+cardinality but not bytes scanned; Athena reports `DataScannedInBytes` only
+afterwards. The estimator uses Iceberg metadata, which carries per-file
+`column_sizes` and partition values, without reading a row, so it works for both
+engines.
 
-Dos podas, que son las dos razones de ser de un lakehouse columnar:
+Two kinds of pruning, the two reasons a columnar lakehouse exists:
 
-- **Por proyección.** Solo se pagan las columnas que la consulta toca. No solo las
-  del `SELECT`: también las del `WHERE`, las del `JOIN` y las del `GROUP BY`, porque
-  el motor tiene que leerlas igual aunque no las devuelva.
-- **Por partición.** Un predicado sobre la columna de partición reduce los ficheros,
-  y eso se lee del ÁRBOL VALIDADO —no del texto—, así que ni un comentario ni unas
-  mayúsculas raras cambian la cuenta.
+- Projection. Only the columns the query touches are charged, including those in
+  `WHERE`, `JOIN` and `GROUP BY`: the engine reads them even if it does not return
+  them.
+- Partition. A predicate on the partition column reduces the files. It is read from
+  the validated tree, not the text, so comments or odd casing do not change the count.
 
-**LA REGLA QUE GOBIERNA TODO EL MÓDULO: ante la duda, se cobra de más.**
-`G-COST-CALIB` mide `p95(real/estimado) <= 1,5` y exige cero casos con ratio > 3. Ese
-cociente dice hacia dónde tiene que equivocarse el estimador: si subestima, el ratio
-se dispara y una consulta cara se cuela; si sobreestima, alguien tiene que acotar más
-su pregunta y no ha pasado nada. Por eso un predicado que el estimador no sabe leer
-NO poda, y una tabla que no conoce NO vale cero.
+Rule for the whole module: when in doubt, overcharge. `G-COST-CALIB` requires
+`p95(actual/estimated) <= 1.5` and zero cases with ratio > 3. Underestimating lets
+an expensive query through; overestimating only makes someone narrow the question.
+So an unreadable predicate does not prune, and an unknown table does not cost zero.
 """
 
 from __future__ import annotations
@@ -33,14 +30,14 @@ from sqlglot import expressions as exp
 from datawarden.catalog.statistics import Statistics, TableStats
 from datawarden.domain.types import CostEstimate, ValidatedQuery
 
-#: Lo que se supone que ocupa una tabla que las estadísticas no conocen. No es una
-#: estimación: es un CASTIGO deliberado. Cobrar cero por lo desconocido es la forma
-#: exacta de dejar escapar lo caro, y `G-BUDGET-ESCAPE` es un axioma.
+#: Assumed size of a table missing from the statistics. A deliberate penalty, not an
+#: estimate: charging zero for the unknown is how expensive queries escape, and
+#: `G-BUDGET-ESCAPE` is an axiom.
 UNKNOWN_TABLE_BYTES: Final = 1_000_000_000
 
 
 def estimate(query: ValidatedQuery, stats: Statistics) -> CostEstimate:
-    """Bytes, filas y ficheros que la consulta tocaría. Nunca ejecuta nada."""
+    """Bytes, rows and files the query would touch. Never executes anything."""
     tree = query.ast
     per_table: dict[str, dict[str, Any]] = {}
     unknown: list[str] = []
@@ -91,7 +88,7 @@ def estimate(query: ValidatedQuery, stats: Statistics) -> CostEstimate:
 
 
 def _tables_of(tree: exp.Expression) -> list[str]:
-    """Las tablas reales del árbol, sin las CTE, que no ocupan bytes en disco."""
+    """Real tables in the tree, excluding CTEs, which occupy no bytes on disk."""
     cte_names = {c.alias_or_name.lower() for c in tree.find_all(exp.CTE) if c.alias_or_name}
     seen: list[str] = []
     for table in tree.find_all(exp.Table):
@@ -102,12 +99,12 @@ def _tables_of(tree: exp.Expression) -> list[str]:
 
 
 def _alias_map(tree: exp.Expression) -> dict[str, str]:
-    """`alias -> tabla real`, en minúsculas.
+    """Lowercase `alias -> real table` map.
 
-    `qualify()` cualifica cada columna con el ALIAS —`f.auth_status`—, no con el
-    nombre de la tabla. Sin este mapa, un `FROM fact_payment_attempt AS f` no
-    atribuía ni una columna y se cobraba la tabla entera: la poda por proyección
-    desaparecía en cuanto alguien escribía un alias, que es siempre.
+    `qualify()` qualifies each column with the alias (`f.auth_status`), not the table
+    name. Without this map, `FROM fact_payment_attempt AS f` attributes no columns and
+    the whole table is charged: projection pruning would vanish whenever an alias is
+    used.
     """
     out: dict[str, str] = {}
     for table in tree.find_all(exp.Table):
@@ -119,15 +116,12 @@ def _alias_map(tree: exp.Expression) -> dict[str, str]:
 
 
 def _columns_of(tree: exp.Expression, table: str, aliases: dict[str, str]) -> set[str]:
-    """Toda columna de esa tabla que aparezca en CUALQUIER posición del árbol.
+    """Every column of the table that appears anywhere in the tree.
 
-    Incluye las del `WHERE`, el `JOIN` y el `GROUP BY`: el motor las lee aunque no
-    las devuelva, y contar solo la proyección subestimaría justo en las consultas
-    con predicado, que son las que más se escriben.
-
-    El alias ya está resuelto porque el árbol viene de `qualify()`; sin eso, esta
-    función tendría que resolver alias y sería la decimoquinta implementación de lo
-    mismo.
+    Includes `WHERE`, `JOIN` and `GROUP BY` columns: the engine reads them even if it
+    does not return them, and counting only the projection would underestimate
+    exactly the queries with predicates. Qualification comes from `qualify()`, so no
+    alias resolution happens here.
     """
     return {
         column.name.lower()
@@ -137,7 +131,7 @@ def _columns_of(tree: exp.Expression, table: str, aliases: dict[str, str]) -> se
 
 
 def _surviving_partitions(tree: exp.Expression, stats: TableStats) -> tuple[int, int, int, int]:
-    """`(particiones, bytes, filas, ficheros)` que sobreviven a la poda."""
+    """`(partitions, bytes, rows, files)` that survive pruning."""
     if stats.partition_column is None or not stats.partitions:
         return (1, stats.bytes, stats.rows, stats.files)
 
@@ -152,15 +146,14 @@ def _surviving_partitions(tree: exp.Expression, stats: TableStats) -> tuple[int,
 
 
 def _partition_filter(tree: exp.Expression, column: str, values: set[str]) -> set[str] | None:
-    """Los valores de partición que sobreviven, o `None` si no se puede saber.
+    """Surviving partition values, or `None` if they cannot be determined.
 
-    `None` NO significa «ninguno»: significa «el estimador no sabe acotar», y
-    entonces se cobran todas. La diferencia es exactamente la que separa un
-    estimador prudente de uno que deja escapar consultas caras.
+    `None` does not mean "none survive"; it means the estimator cannot narrow, so
+    every partition is charged.
 
-    Solo se miran los predicados unidos por `AND` en el `WHERE`. Un `OR` con una
-    rama que no habla de la partición no acota nada, y tratarlo como si acotara sería
-    subestimar por el camino más fácil de recorrer sin querer.
+    Only `AND`-joined predicates in `WHERE` are considered. An `OR` with a branch that
+    does not mention the partition column narrows nothing, and treating it as if it
+    did would underestimate.
     """
     where = tree.find(exp.Where)
     if where is None:
@@ -173,22 +166,20 @@ def _partition_filter(tree: exp.Expression, column: str, values: set[str]) -> se
             continue
         kept = narrowed if kept is None else kept & narrowed
 
-    # UNA INTERSECCIÓN VACÍA NO SE TOMA POR BUENA, y lo enseñó un fallo real: las
-    # claves de partición se estaban generando como `Record[19967]` en vez de como
-    # fechas ISO, así que ningún literal casaba, la poda salía vacía y el estimador
-    # cobraba CERO bytes por una tabla de 4,1 GB. `G-BUDGET-ESCAPE` habría dejado
-    # pasar cualquier consulta con predicado de fecha.
+    # An empty intersection is not trusted. Partition keys were once generated as
+    # `Record[19967]` instead of ISO dates, so no literal matched, pruning came out
+    # empty and a 4.1 GB table was estimated at zero bytes; every date-filtered query
+    # would have escaped the budget.
     #
-    # Un rango legítimamente vacío existe —preguntar por un día sin datos— y con
-    # esto se sobreestima. Pero sobreestimar cuesta que alguien acote su pregunta, y
-    # subestimar a cero cuesta el axioma entero.
+    # A legitimately empty range (a day with no data) is overestimated as a result,
+    # which only costs a narrower question; underestimating to zero costs the axiom.
     if kept is not None and not kept:
         return None
     return kept
 
 
 def _conjuncts(node: exp.Expression) -> list[exp.Expression]:
-    """Los predicados unidos por `AND`, aplanados. Un `OR` se devuelve entero."""
+    """`AND`-joined predicates, flattened. An `OR` is returned whole."""
     if isinstance(node, exp.And):
         return [*_conjuncts(node.this), *_conjuncts(node.expression)]
     if isinstance(node, exp.Paren):
@@ -197,7 +188,7 @@ def _conjuncts(node: exp.Expression) -> list[exp.Expression]:
 
 
 def _values_from(predicate: exp.Expression, column: str, values: set[str]) -> set[str] | None:
-    """Qué valores de partición deja pasar ESTE predicado, si se puede saber."""
+    """Partition values this predicate lets through, if determinable."""
     if isinstance(predicate, exp.EQ):
         for left, right in (
             (predicate.this, predicate.expression),
@@ -230,7 +221,7 @@ def _values_from(predicate: exp.Expression, column: str, values: set[str]) -> se
 def _values_from_range(
     predicate: exp.Expression, column: str, values: set[str]
 ) -> set[str] | None:
-    """`>=`, `>`, `<=`, `<` sobre la columna de partición."""
+    """`>=`, `>`, `<=`, `<` on the partition column."""
     left, right = predicate.this, predicate.expression
     if _is_partition_column(left, column):
         bound, inclusive, lower = (
@@ -239,7 +230,7 @@ def _values_from_range(
             isinstance(predicate, exp.GT | exp.GTE),
         )
     elif _is_partition_column(right, column):
-        # `DATE '2026-08-03' <= event_date` es lo mismo con los lados cambiados.
+        # `DATE '2026-08-03' <= event_date`: same predicate with sides swapped.
         bound, inclusive, lower = (
             _literal_text(left),
             isinstance(predicate, exp.GTE | exp.LTE),
@@ -255,17 +246,15 @@ def _values_from_range(
 
 
 def _is_partition_column(node: exp.Expression | None, column: str) -> bool:
-    """La columna DESNUDA. `date_trunc('month', event_date)` no lo es, y no poda."""
+    """The bare column only. `date_trunc('month', event_date)` is not, and does not prune."""
     return isinstance(node, exp.Column) and node.name.lower() == column.lower()
 
 
 def _literal_text(node: exp.Expression | None) -> str | None:
-    """El literal como texto, o `None` si no es un literal que se pueda comparar.
+    """The literal as text, or `None` if it is not a comparable literal.
 
-    Las particiones de este almacén son fechas y sus claves son cadenas ISO, así que
-    comparar como texto es comparar como fecha. Se dice aquí porque el día que
-    aparezca una partición numérica esta suposición dejará de valer, y es mejor que
-    esté escrita a que se descubra.
+    Partitions in this warehouse are dates keyed by ISO strings, so text comparison
+    equals date comparison. This assumption breaks for numeric partitions.
     """
     if isinstance(node, exp.Cast):
         return _literal_text(node.this)

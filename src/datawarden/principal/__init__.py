@@ -1,10 +1,9 @@
-"""Quién pregunta, con qué autoridad y con qué presupuesto.
+"""Who is asking, with what authority and with what budget.
 
-**El rol nunca viene de datos no autenticados** (I-05). Es el invariante que la
-spec MCP 2026-07-28 vuelve crítico: al eliminar las sesiones, cualquier cosa que el
-cliente diga sobre sí mismo es dato transportado y jamás autoridad. Aquí viven las
-tres fuentes legítimas —proceso servidor, `PrincipalToken` acuñado por el servidor,
-bandera del CLI— y la matriz de acceso que firma negocio.
+The role never comes from unauthenticated data (I-05). MCP 2026-07-28 removed
+protocol sessions, so anything the client says about itself is transported data,
+never authority. This package holds the three legitimate sources (server process,
+server-minted `PrincipalToken`, CLI flag) and the business-signed access matrix.
 """
 
 from __future__ import annotations

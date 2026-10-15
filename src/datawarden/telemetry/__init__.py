@@ -1,16 +1,15 @@
-"""Modelo interno de una llamada a modelo, y su traducción a OpenTelemetry.
+"""Internal model of an LLM call and its translation to OpenTelemetry.
 
-`docs/CONTRACTS/otel-genai.md §2` lo exige así y el motivo está medido en el propio
-contrato: **ningún atributo `gen_ai.*` es estable.** `gen_ai.system` pasó a
-`gen_ai.provider.name` en v1.37.0 y `usage.prompt_tokens` a `usage.input_tokens` en
-v1.27.0. Con el esquema externo metido por dentro, cada una de esas rupturas habría sido
-una migración; con un modelo propio y un traductor, es un fichero.
+Required by `docs/CONTRACTS/otel-genai.md` section 2: no `gen_ai.*` attribute is
+stable. `gen_ai.system` became `gen_ai.provider.name` in v1.37.0 and
+`usage.prompt_tokens` became `usage.input_tokens` in v1.27.0. With an internal model
+and a translator, each such break touches one file.
 
-    dominio → LlmCall (interno, estable, nuestro)
-                  └─→ traductor → atributos de la versión pineada en otel-semconv.lock
+    domain -> LlmCall (internal, stable)
+                  └─> translator -> attributes of the version pinned in otel-semconv.lock
 
-`model.py` **no conoce un solo nombre `gen_ai.*`** y eso es un test, no una intención.
-`otel.py` es el único sitio del repositorio que los escribe.
+`model.py` knows no `gen_ai.*` name (enforced by a test); `otel.py` is the only
+module that writes them.
 """
 
 from datawarden.telemetry.model import LlmCall

@@ -1,27 +1,25 @@
-"""La allowlist. **Lo que no está aquí, se rechaza.**
+"""The allowlist. Whatever is not listed here is rejected.
 
-Es la decisión de diseño que más veces se toma al revés en este dominio, y por eso
-`docs/RULES.md §7` la nombra dos veces: una denylist de palabras peligrosas se salta
-con un comentario entre tokens, con mayúsculas raras o con una codificación; y una
-denylist de funciones se queda corta **el día que DuckDB añade una extensión**, sin
-que nadie toque una línea de este repositorio.
+This is the design decision most often made the wrong way round in this domain
+(`docs/RULES.md` §7). A denylist of dangerous keywords is bypassed with an inter-token
+comment, odd casing or an encoding; a denylist of functions falls short the day DuckDB
+ships a new extension, without anyone touching this repository.
 
-Una allowlist tiene el fallo contrario, y es el que se puede vivir: se queda corta
-de más. Una consulta legítima que usa una función que no está en la lista se
-rechaza, alguien lo lee, y la función se añade **como una decisión, con su commit y
-su caso de test**. El coste es fricción; el de la denylist es una fuga.
+An allowlist fails the opposite way, which is survivable: it is too strict. A
+legitimate query using an unlisted function is rejected, someone reads the rejection,
+and the function is added as a decision, with its commit and test case. The cost of an
+allowlist is friction; the cost of a denylist is a leak.
 
-**Cómo se lee esta lista.** Son nombres de clase de `sqlglot.expressions`, no
-palabras de SQL. La diferencia es la tesis del proyecto: `exp.Count` es el nodo que
-sqlglot construyó tras parsear, así que `COUNT`, `count` y `/*x*/count` son el mismo
-nodo, y no hay nada que normalizar ni ninguna codificación que esquivar.
+Entries are `sqlglot.expressions` class names, not SQL keywords. `exp.Count` is the node
+sqlglot built after parsing, so `COUNT`, `count` and `/*x*/count` are the same node, with
+nothing to normalise and no encoding to slip through.
 """
 
 from __future__ import annotations
 
 from typing import Final
 
-#: Estructura de la consulta. Sin esto no hay SELECT posible.
+#: Query structure. Without these, no SELECT is possible.
 _ESTRUCTURA: Final = frozenset(
     {
         "Select",
@@ -54,8 +52,8 @@ _ESTRUCTURA: Final = frozenset(
     }
 )
 
-#: Literales y tipos. `Cast` está dentro a propósito: sin conversión explícita, la
-#: mitad de las consultas de fecha de este almacén no se pueden escribir.
+#: Literals and types. `Cast` is included on purpose: without explicit conversion, half
+#: of the date queries on this warehouse cannot be written.
 _LITERALES: Final = frozenset(
     {
         "Literal",
@@ -66,12 +64,11 @@ _LITERALES: Final = frozenset(
         "DataType",
         "DataTypeParam",
         "Interval",
-        # `Var` es el nodo con el que sqlglot representa un descriptor sin comillas:
-        # la unidad de `date_trunc('month', x)`, la de un `INTERVAL 1 MONTH`. Se
-        # añade como DECISIÓN, con su caso (R003-A2), porque sin él no se puede
-        # escribir ni una consulta con periodo — y todas las del banco lo llevan.
-        # No abre nada: un `Var` suelto no ejecuta nada, y los sitios donde sí
-        # significaría algo (`SET x = ...`) son nodos propios que R001 y R002 paran.
+        # `Var` is how sqlglot represents an unquoted descriptor: the unit in
+        # `date_trunc('month', x)` or in `INTERVAL 1 MONTH`. Added as a decision with its
+        # case (R003-A2), since no query over a period can be written without it. It
+        # opens nothing: a bare `Var` executes nothing, and where it would mean
+        # something (`SET x = ...`) the construct is its own node, stopped by R001/R002.
         "Var",
         "Array",
         "Struct",
@@ -79,7 +76,7 @@ _LITERALES: Final = frozenset(
     }
 )
 
-#: Operadores y predicados.
+#: Operators and predicates.
 _OPERADORES: Final = frozenset(
     {
         "And",
@@ -117,17 +114,13 @@ _OPERADORES: Final = frozenset(
         "Coalesce",
         "Nullif",
         "Exists",
-        # `Any` y `All` SALEN de la allowlist, y lo decidió la propiedad: un nombre
-        # de función generado al azar cayó en `all`, sqlglot lo parseó como el
-        # cuantificador `exp.All` —que estaba dentro— y el guard aceptó algo que ni
-        # siquiera es una consulta válida para DuckDB. Los cuantificadores solo
-        # hacen falta para `x = ANY (subconsulta)`, y para eso está `IN`, que sí
-        # está. Quitar dos entradas que nadie necesita a cambio de cerrar una
-        # coincidencia de nombres es exactamente cómo se afina una allowlist.
+        # `Any` and `All` are deliberately excluded: sqlglot parses a call to an unknown
+        # function named `all` as the quantifier `exp.All`, which would let it through.
+        # Quantifiers are only needed for `x = ANY (subquery)`, and `IN` covers that.
     }
 )
 
-#: Agregados. Son la razón de ser de un almacén analítico.
+#: Aggregates, the reason an analytical warehouse exists.
 _AGREGADOS: Final = frozenset(
     {
         "Count",
@@ -155,8 +148,8 @@ _AGREGADOS: Final = frozenset(
     }
 )
 
-#: Ventanas. El banco exige 15 preguntas con ventana o subconsulta
-#: correlacionada, así que esto no es opcional.
+#: Window functions. The benchmark requires 15 questions with a window or a correlated
+#: subquery, so these are not optional.
 _VENTANAS: Final = frozenset(
     {
         "Window",
@@ -175,7 +168,7 @@ _VENTANAS: Final = frozenset(
     }
 )
 
-#: Fechas y tiempo. Casi todas las preguntas del banco llevan un periodo.
+#: Dates and time. Nearly every benchmark question involves a period.
 _TEMPORALES: Final = frozenset(
     {
         "DateTrunc",
@@ -207,10 +200,10 @@ _TEMPORALES: Final = frozenset(
     }
 )
 
-#: Texto. `Concat` está DENTRO, y es deliberado: `concat(first_name, last_name)` es
-#: exactamente el ataque por expresión derivada que describe `PROJECT.md`, y no se
-#: para prohibiendo la función —eso rompería la mitad de las consultas legítimas—,
-#: se para en **R008**, que mira el LINAJE de lo que entra en la expresión.
+#: Text. `Concat` is included on purpose: `concat(first_name, last_name)` is the
+#: derived-expression attack described in `docs/DESIGN.md`, and it is not stopped by
+#: banning the function (that would break many legitimate queries) but by R008, which
+#: checks the lineage of the expression's inputs.
 _TEXTO: Final = frozenset(
     {
         "Concat",
@@ -234,7 +227,7 @@ _TEXTO: Final = frozenset(
     }
 )
 
-#: Números.
+#: Numbers.
 _NUMEROS: Final = frozenset(
     {
         "Round",
@@ -252,12 +245,12 @@ _NUMEROS: Final = frozenset(
     }
 )
 
-#: Nodos internos que `sqlglot` construye por su cuenta al parsear o al cualificar.
-#: Sin ellos, una consulta perfectamente normal se rechazaría por un detalle de la
-#: representación, que es la peor forma de fricción: la que nadie entiende.
+#: Internal nodes that sqlglot builds on its own while parsing or qualifying. Without
+#: them an ordinary query would be rejected over a representation detail, the worst kind
+#: of friction because nobody understands it.
 _INTERNOS: Final = frozenset(
     {
-        "Anonymous",  # se rechaza en R003, no aquí: merece su propio mensaje
+        "Anonymous",  # rejected by R003, not here: it deserves its own message
         "Condition",
         "Predicate",
         "Func",
@@ -268,7 +261,7 @@ _INTERNOS: Final = frozenset(
     }
 )
 
-#: El nodo permitido. Cualquier otro tipo de nodo se rechaza (R002).
+#: Allowed node classes. Any other node class is rejected (R002).
 ALLOWED_NODES: Final = (
     _ESTRUCTURA
     | _LITERALES
@@ -280,12 +273,12 @@ ALLOWED_NODES: Final = (
     | _NUMEROS
 ) - {"Anonymous"}
 
-#: Funciones que sqlglot NO reconoce como nodo propio y deja como `Anonymous`, pero
-#: que este almacén necesita y son inofensivas. **Es una lista corta a propósito**:
-#: cada entrada es una decisión, no una comodidad.
+#: Functions that sqlglot does not map to a dedicated node and leaves as `Anonymous`, but
+#: that this warehouse needs and that are harmless. Deliberately short: each entry is a
+#: decision, not a convenience.
 #:
-#: `any_value` está aquí porque el catálogo de este proyecto la usa en una de las
-#: tres consultas de la fase 0 y porque no lee nada de fuera de la consulta.
+#: `any_value` is listed because the catalog's smoke queries use it and it reads nothing
+#: from outside the query.
 ALLOWED_ANONYMOUS: Final = frozenset(
     {
         "any_value",
@@ -303,8 +296,8 @@ ALLOWED_ANONYMOUS: Final = frozenset(
     }
 )
 
-#: Esquemas de sistema. Consultarlos es leer el catálogo REAL por debajo del
-#: catálogo publicado, y por tanto ver las columnas que la política excluyó a propósito.
+#: System schemas. Querying them reads the engine's real catalog underneath the published
+#: one, and with it the columns the policy deliberately excluded.
 SYSTEM_SCHEMAS: Final = frozenset(
     {
         "information_schema",
@@ -325,10 +318,10 @@ SYSTEM_SCHEMAS: Final = frozenset(
     }
 )
 
-#: Funciones que leen de fuera de la consulta: ficheros, red o el propio proceso.
-#: **Están en la allowlist por ausencia**, así que esta lista NO es lo que las para:
-#: es lo que permite dar un mensaje que dice qué ha pasado en vez de «función
-#: desconocida». La diferencia entre un rechazo útil y uno mudo.
+#: Functions that read from outside the query: files, the network or the process itself.
+#: They are already rejected by their absence from the allowlist, so this list is not
+#: what stops them; it lets the rejection say what happened instead of "unknown
+#: function".
 KNOWN_DANGEROUS: Final = frozenset(
     {
         "read_csv",

@@ -1,22 +1,17 @@
-"""De qué columna base sale cada columna de cada vista. Se resuelve UNA vez.
+"""Column-level lineage of every view, resolved once at catalog build time.
 
-**El agujero que este módulo cierra.** La política firmada protege
-`dim_customer.birth_date`. El almacén tiene además una vista `v_customer` que
-reexpone exactamente esa columna con otro nombre de tabla, y una columna
-`full_name` que es `concat_ws(' ', first_name, last_name_1, last_name_2)`: es
-literalmente el ataque que `PROJECT.md` describe —«expresiones derivadas
-(`CONCAT(nombre, apellido)`) sobre columnas marcadas»— servido por el propio
-catálogo. Una política que casa por `tabla.columna` no ve nada de eso.
+The signed policy protects `dim_customer.birth_date`, but the warehouse also has a
+view `v_customer` that re-exposes that column under another table name, plus
+`full_name = concat_ws(' ', first_name, last_name_1, last_name_2)`. That is the
+derived-expression attack described in `docs/DESIGN.md`, served by the catalog
+itself; a policy matching on `table.column` sees none of it.
 
-**Por qué se resuelve en tiempo de catálogo y no en tiempo de consulta.** Porque
-el linaje de una vista no cambia entre consultas: cambia cuando cambia la vista, y
-eso ya obliga a regenerar el catálogo (`G-CATALOG-FRESH`). Hacerlo por consulta
-sería parsear 24 definiciones de vista dentro de un presupuesto de 25 ms.
+Lineage is resolved at catalog time because it only changes when a view changes,
+which already forces a catalog regeneration (`G-CATALOG-FRESH`). Per query it would
+mean parsing 24 view definitions within a 25 ms budget.
 
-**Fail-closed.** Si el linaje de una columna no se puede resolver —una vista que
-sqlglot no cualifica, una función que no sabe seguir— se marca como DESCONOCIDO, y
-una columna de linaje desconocido se trata como la más restrictiva que exista, no
-como una columna cualquiera. Un linaje que falla en silencio es una fuga.
+Fail-closed: a column whose lineage cannot be resolved is marked unknown and
+treated as the most restrictive column there is.
 """
 
 from __future__ import annotations
@@ -28,30 +23,29 @@ from sqlglot import expressions as exp
 from sqlglot.optimizer.qualify import qualify
 from sqlglot.optimizer.scope import Scope, build_scope
 
-#: Marca de linaje irresoluble. No es una cadena decorativa: el guard la trata
-#: como «puede venir de cualquier cosa» y aplica el nivel más restrictivo.
+#: Unresolvable-lineage marker. The guard treats it as "may come from anything"
+#: and applies the most restrictive level.
 UNKNOWN = "?"
 
-#: Tope de anidamiento al bajar por subconsultas y CTE. Un guardián que se cuelga
-#: es un guardián caído.
+#: Nesting cap when descending through subqueries and CTEs, so a malformed view
+#: cannot hang the build.
 _MAX_DEPTH = 12
 
 
 def dependencies(sql: str, relations: frozenset[str], dialect: str) -> frozenset[str]:
-    """Qué relaciones del catálogo usa esta definición de vista.
+    """Catalog relations referenced by this view definition.
 
-    Solo mira nombres de tabla del árbol: una función de lectura de ficheros
-    (`read_parquet`) no es una relación del catálogo y por eso no aparece, que es
-    justo lo que distingue una tabla base de una vista derivada sin depender de
-    ninguna convención de nombres.
+    Only table names count: a file reader such as `read_parquet` is not a catalog
+    relation, which is what distinguishes a base table from a derived view without
+    relying on naming conventions.
     """
     try:
         tree = sqlglot.parse_one(sql, dialect=dialect)
     except sqlglot.ParseError:
         return frozenset()
-    # La propia vista aparece como tabla en su `CREATE VIEW`. Excluirla aquí y no
-    # en quien llama evita que una vista se declare dependiente de sí misma y
-    # acabe al final del orden topológico con linaje desconocido sin motivo.
+    # The view itself appears as a table in its own `CREATE VIEW`. Excluding it
+    # here keeps it from depending on itself and ending up last in topological
+    # order with spuriously unknown lineage.
     created = {
         node.this.name.lower()
         for node in tree.find_all(exp.Create)
@@ -70,11 +64,10 @@ def dependencies(sql: str, relations: frozenset[str], dialect: str) -> frozenset
 
 
 def topological_order(graph: Mapping[str, frozenset[str]]) -> list[str]:
-    """Relaciones ordenadas de base a derivada.
+    """Relations ordered from base to derived.
 
-    Un ciclo —que en un catálogo sano no existe— no revienta: las relaciones que no
-    se pueden ordenar salen al final, y su linaje quedará DESCONOCIDO, que es la
-    respuesta segura.
+    A cycle does not raise: unorderable relations go last and their lineage ends up
+    unknown, which is the safe answer.
     """
     ordered: list[str] = []
     placed: set[str] = set()
@@ -97,13 +90,12 @@ def resolve(
     *,
     dialect: str,
 ) -> dict[str, tuple[str, ...]]:
-    """`relacion.columna` -> las `tabla_base.columna` de las que sale.
+    """`relation.column` -> the `base_table.column` refs it derives from.
 
-    Una columna de una tabla base sale de sí misma. Una columna de una vista sale
-    de la unión del linaje de todas las columnas que su expresión referencia: por
-    eso `v_customer.full_name` sale de `first_name`, `last_name_1` y `last_name_2`
-    a la vez, y basta con que UNA de las tres esté restringida para que la columna
-    derivada lo esté.
+    A base-table column derives from itself. A view column derives from the union
+    of the lineage of every column its expression references, so
+    `v_customer.full_name` derives from `first_name`, `last_name_1` and
+    `last_name_2`, and is restricted if any one of them is.
     """
     relations = frozenset(columns_by_relation)
     graph = {
@@ -121,7 +113,7 @@ def resolve(
     lineage: dict[str, tuple[str, ...]] = {}
     for relation in topological_order(graph):
         if not graph[relation] or relation not in view_sql:
-            # Tabla base: cada columna sale de sí misma.
+            # Base table: each column derives from itself.
             for column in columns_by_relation[relation]:
                 lineage[f"{relation}.{column}"] = (f"{relation}.{column}",)
             continue
@@ -130,12 +122,11 @@ def resolve(
         for column in columns_by_relation[relation]:
             sources = resolved.get(column.lower(), (UNKNOWN,))
             if UNKNOWN in sources:
-                # FAIL-CLOSED, PERO CON PUNTERÍA. Una columna cuyo linaje sqlglot no
-                # sabe seguir —el caso real es una CTE RECURSIVA— podría venir de
-                # cualquier columna de las relaciones que la vista usa, así que se le
-                # atribuyen TODAS. Es más restrictivo que la verdad y menos que un
-                # `deny` a ciegas: la vista sigue siendo consultable por quien tenga
-                # acceso a todo lo que hay debajo, y nadie más.
+                # Targeted fail-closed. A column sqlglot cannot trace (in practice
+                # a recursive CTE) may come from any column of the relations the
+                # view uses, so all of them are attributed. Stricter than the truth,
+                # looser than a blanket deny: the view stays queryable by whoever
+                # can access everything underneath.
                 sources = tuple(sorted(set(sources) - {UNKNOWN} | set(fallback)))
             lineage[f"{relation}.{column}"] = sources
     return lineage
@@ -147,10 +138,9 @@ def unresolved(
     *,
     dialect: str,
 ) -> tuple[str, ...]:
-    """Las columnas cuyo linaje NO se pudo seguir, para poder publicarlas.
+    """Columns whose lineage could not be traced.
 
-    Se publican en `JOURNAL.md` y en el modelo de amenaza: un límite contado vale
-    más que un límite escondido, y este se puede contar exactamente.
+    Reported in `docs/JOURNAL.md` and the threat model so the limitation is counted.
     """
     relations = frozenset(columns_by_relation)
     graph = {
@@ -185,7 +175,7 @@ def _closure_columns(
     graph: Mapping[str, frozenset[str]],
     columns_by_relation: Mapping[str, tuple[str, ...]],
 ) -> tuple[str, ...]:
-    """Todas las columnas de las relaciones de las que esta depende, transitivamente."""
+    """All columns of the relations this one depends on, transitively."""
     seen: set[str] = set()
     stack = list(graph.get(relation, ()))
     while stack:
@@ -206,13 +196,12 @@ def _resolve_view(
     lineage: Mapping[str, tuple[str, ...]],
     dialect: str,
 ) -> dict[str, tuple[str, ...]]:
-    """El linaje de las columnas de UNA vista. Devuelve `{}` si no se puede.
+    """Column lineage of a single view, or `{}` if it cannot be resolved.
 
-    Se apoya en el `Scope` de sqlglot y no en un mapa de alias propio, porque una
-    vista real no es «tabla con alias»: `v_attempt_dedup` proyecta desde una
-    SUBCONSULTA con `row_number()`, y ahí el alias no apunta a ninguna tabla. Con
-    el árbol de scopes, cada fuente es o una tabla o un scope hijo, y el linaje se
-    resuelve bajando hasta llegar a tablas.
+    Uses sqlglot's `Scope` instead of an alias map: `v_attempt_dedup` projects from
+    a subquery with `row_number()`, where the alias points to no table. In the scope
+    tree every source is either a table or a child scope, and lineage is resolved by
+    descending until tables are reached.
     """
     try:
         tree = qualify(
@@ -247,11 +236,10 @@ def _sources_of(
     *,
     depth: int,
 ) -> set[str]:
-    """Las columnas base de las que depende una expresión, bajando por los scopes.
+    """Base columns an expression depends on, descending through scopes.
 
-    `depth` es un tope duro y no una precaución teórica: una vista mal formada o un
-    ciclo entre CTEs haría esto infinito, y un guardián que se cuelga es un
-    guardián caído. Al agotarse, DESCONOCIDO, que es la respuesta segura.
+    `depth` is a hard cap: a malformed view or a CTE cycle would otherwise recurse
+    forever. When exhausted the result is unknown, which is the safe answer.
     """
     if depth > _MAX_DEPTH:
         return {UNKNOWN}

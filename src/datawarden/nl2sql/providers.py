@@ -1,23 +1,15 @@
-"""De dónde sale el SQL. Tres proveedores y un puerto, y ninguno decide nada.
+"""SQL providers: one port, three implementations, none of which decides anything.
 
-**Por qué hay tres y no uno.** Cada uno resuelve un problema distinto y confundirlos
-es lo que hace que una evaluación deje de ser reproducible:
+- `LocalProvider` calls Ollama on the host. Models are pinned in `models.lock` by
+  digest, not tag, because Ollama tags move and `G-RECOVERY` would change with no
+  code change.
+- `RecordedProvider` is a VCR-style cache keyed by
+  `sha256(prompt_id + version + input)`. It makes `make eval-recovery`
+  deterministic and free on any machine; `make eval-refresh` re-records.
+- `ScriptedProvider` returns canned answers in order, for testing the loop.
 
-- **`LocalProvider`** habla con Ollama en el host. Es el que genera de verdad, y el
-  único que cuesta tiempo y electricidad. Los tags salen de `models.lock`, fijados
-  **por digest y no por tag**, porque un tag de Ollama es móvil: `qwen3.5:9b-mlx`
-  puede apuntar a otro peso dentro de tres meses y `G-RECOVERY` cambiaría de valor sin
-  que nadie tocara una línea.
-- **`RecordedProvider`** es una caché estilo VCR indexada por
-  `sha256(prompt_id + version + entrada)`. Es lo que hace `make eval-recovery`
-  **determinista y gratis**: la evaluación se repite en cualquier máquina, sin modelo
-  y sin variar. `make eval-refresh` es lo que vuelve a llamar al modelo.
-- **`ScriptedProvider`** devuelve lo que se le dijo, en orden. Existe para los tests
-  del BUCLE, que es código y se prueba; el generador se mide.
-
-**Ninguno valida nada.** Un provider produce texto; quién decide si ese texto se
-ejecuta es el guard, y esa separación es la que impide que un modelo más listo se gane
-permisos que no tiene.
+No provider validates anything. A provider produces text; the guard decides whether
+it runs, so a more capable model cannot gain permissions.
 """
 
 from __future__ import annotations
@@ -33,49 +25,39 @@ from datawarden.domain.types import RejectionReason
 from datawarden.telemetry import LlmCall, emit
 from datawarden.telemetry.otel import Dropped
 
-#: Dónde vive la caché grabada. Se versiona: es lo que hace que la evaluación se pueda
-#: repetir en otra máquina sin modelo y dé el mismo número.
+#: Recorded cache location. Versioned so evals reproduce on another machine without
+#: a model.
 CASSETTE_DIR: Final = pathlib.Path("evals/cassettes")
 
 
 def cassette_dir_for(model_tag: str) -> pathlib.Path:
-    """La carpeta de casetes DE UN MODELO. Un subdirectorio por modelo, no un cajón.
+    """Cassette directory for one model; one subdirectory per model.
 
-    **Nace de un fallo real del 2026-09-10.** Al pasar el generador de `qwen3.5:9b-mlx`
-    a `gemma4:26b-mlx`, las 231 grabaciones del 9B se quedaron en la misma carpeta que
-    las 127 nuevas, y `cassette_provenance` lo cazó: «las casetes vienen de dos modelos;
-    mezclar dos modelos da un número que no es de ninguno de los dos». Tenía razón.
-
-    Se podría haber resuelto borrando las viejas, y sería peor por dos motivos. Uno:
-    `models.lock` conserva el digest del generador anterior justo para que sus informes
-    sigan siendo reproducibles, y sin sus casetes esa promesa es falsa. Dos: el problema
-    volvería el día del siguiente cambio de modelo, porque dependería de que alguien se
-    acordara de limpiar. Separados por carpeta, **mezclarlos deja de ser posible**, que
-    es la única forma de arreglo que no hay que recordar.
+    When the generator moved from `qwen3.5:9b-mlx` to `gemma4:26b-mlx`, old and new
+    recordings shared a directory and `cassette_provenance` flagged the mix: a
+    number from two models belongs to neither. Deleting the old ones would break
+    reproducibility of earlier reports (`models.lock` keeps the previous digest for
+    that reason). Per-model directories make mixing impossible.
     """
     return CASSETTE_DIR / model_tag.replace(":", "-").replace("/", "-")
 
 
-#: Los envoltorios que un modelo pone alrededor del SQL aunque se le pida que no.
+#: Wrappers models put around SQL even when asked not to.
 _FENCES: Final = ("```sql", "```duckdb", "```")
 
 
 def extract_sql(raw: str) -> str:
-    """El SQL que hay dentro de lo que contestó el modelo. Sin adivinar nada.
+    """Extract the SQL from the model's answer without guessing.
 
-    **Esto NO es tolerancia con el modelo: es no medir el envoltorio.** El prompt
-    pide una consulta y nada más, y aun así un modelo instruido devuelve a veces un
-    bloque de código o una línea de cortesía delante. Si eso llegara tal cual al
-    guard, R001 lo rechazaría por no parsear y `G-RECOVERY` estaría midiendo cuántas
-    veces el modelo obedece el formato en vez de cuántas veces se corrige, que son
-    dos cosas distintas y solo una es la tesis del proyecto.
+    Instruction-tuned models sometimes wrap the query in a code fence or a polite
+    preamble. Passed through as-is, R001 would reject it as unparseable and
+    `G-RECOVERY` would measure format compliance instead of self-correction.
 
-    Lo que NO hace, y es lo importante: no arregla el SQL, no le añade un `LIMIT`,
-    no le quita una columna. Quien decide si esa consulta se ejecuta es el guard, y
-    un limpiador que «ayudara» al modelo estaría regalando puntos a la métrica.
+    It never repairs the SQL, adds a `LIMIT` or drops a column: the guard decides,
+    and a helpful cleaner would inflate the metric.
     """
     text = raw.strip()
-    # `<think>...</think>` de los modelos con razonamiento: no es la respuesta.
+    # `<think>...</think>` from reasoning models is not the answer.
     if "</think>" in text:
         text = text.rsplit("</think>", 1)[1].strip()
     for fence in _FENCES:
@@ -83,17 +65,16 @@ def extract_sql(raw: str) -> str:
             after = text.split(fence, 1)[1]
             text = after.split("```", 1)[0].strip()
             break
-    # Un punto y coma final convierte una sentencia en dos para R001.
+    # A trailing semicolon makes one statement two for R001.
     return text.rstrip().rstrip(";").strip()
 
 
 @dataclass(frozen=True, slots=True)
 class Request:
-    """Lo que se le pide al modelo, con el rechazo anterior si lo hubo.
+    """A generation request, including the previous rejection if any.
 
-    Es un tipo y no tres argumentos sueltos porque **el rechazo es la mitad del
-    ciclo**: sin él, reintentar es reintentar a ciegas, y `G-RECOVERY` mediría una
-    tasa de reintento en vez de una de corrección.
+    Without the rejection a retry is blind, and `G-RECOVERY` would measure a retry
+    rate instead of a correction rate.
     """
 
     question: str
@@ -104,18 +85,14 @@ class Request:
     prompt_version: str = "1"
 
     def cache_key(self) -> str:
-        """`sha256(prompt_id + version + entrada)`. La clave de la caché grabada.
+        """`sha256(prompt_id + version + input)`: the recorded-cache key.
 
-        Incluye el `prompt_id` y su versión a propósito: **cambiar el prompt cambia
-        la clave**, así que una caché grabada con el prompt viejo no puede pasar por
-        una medida del nuevo. Es el mismo error que `schema_version` evita en la
-        cadena de auditoría, y se cierra igual.
+        Includes the prompt id and version so that changing the prompt changes the
+        key, and an old recording cannot pass for a measurement of the new prompt.
 
-        E incluye `previous_sql` por lo mismo. Dos intentos que corrigen consultas
-        distintas con el mismo rechazo son peticiones DISTINTAS: el modelo ve un
-        texto distinto y contesta otra cosa. Si compartieran clave, la casete del
-        primero pasaría por respuesta del segundo y la medida sería de una petición
-        que nunca se hizo.
+        Includes `previous_sql` because two attempts correcting different queries
+        with the same rejection are different requests; sharing a key would replay
+        the first answer for the second.
         """
         payload = json.dumps(
             {
@@ -142,7 +119,7 @@ class Request:
 
 @runtime_checkable
 class Provider(Protocol):
-    """Produce SQL. No lo valida, no lo ejecuta y no sabe qué es una política."""
+    """Produces SQL. Does not validate it, execute it, or know about policy."""
 
     name: str
 
@@ -151,10 +128,10 @@ class Provider(Protocol):
 
 @dataclass
 class ScriptedProvider:
-    """Devuelve lo que se le dijo, en orden. Para los tests del BUCLE.
+    """Returns canned answers in order, for loop tests.
 
-    Guarda lo que recibió, porque la mitad de lo que hay que comprobar del bucle es
-    **qué se le pasó al intento siguiente**.
+    Records the requests it received so tests can check what was passed to the next
+    attempt.
     """
 
     respuestas: list[str]
@@ -170,13 +147,11 @@ class ScriptedProvider:
 
 @dataclass
 class RecordedProvider:
-    """La caché grabada. `make eval-recovery` determinista y gratis.
+    """Recorded cache that makes `make eval-recovery` deterministic and free.
 
-    **Un fallo de caché es un error, no una llamada al modelo.** Si al no encontrar la
-    entrada se cayera al `LocalProvider`, `make eval-recovery` dejaría de ser gratis y
-    determinista sin avisar, y el número saldría de una mezcla de grabado y generado
-    que nadie podría reproducir. Para regrabar está `make eval-refresh`, que es
-    explícito.
+    A cache miss is an error, not a fallback to `LocalProvider`; silently falling
+    back would mix recorded and live answers into an irreproducible number.
+    Re-recording is explicit via `make eval-refresh`.
     """
 
     directory: pathlib.Path = CASSETTE_DIR
@@ -186,10 +161,10 @@ class RecordedProvider:
         path = self.directory / f"{request.cache_key()}.json"
         if not path.exists():
             message = (
-                f"no hay grabación para esta petición ({path.name}). "
-                "`make eval-recovery` NO llama al modelo: es determinista y gratis a "
-                "propósito. Si el corpus o el prompt han cambiado, regraba con "
-                "`make eval-refresh`, que sí exige el modelo local (Ollama)."
+                f"no recording for this request ({path.name}). "
+                "`make eval-recovery` never calls the model. If the corpus or the "
+                "prompt changed, re-record with `make eval-refresh`, which requires "
+                "the local model (Ollama)."
             )
             raise KeyError(message)
         payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
@@ -198,17 +173,11 @@ class RecordedProvider:
     def record(
         self, request: Request, sql: str, *, model: str, thinking: bool | None = None
     ) -> pathlib.Path:
-        """Graba una respuesta. **Con TODO lo que hace falta para volver a leerla.**
+        """Record an answer with everything needed to audit it later.
 
-        El modelo y el modo van en la grabación y no solo en el informe del día que
-        se grabó: una casete sin decir de dónde salió no se puede auditar, y mezclar
-        casetes de dos modelos —o del mismo modelo en dos modos— produciría un número
-        que no es de ninguno de los dos.
-
-        Y no es teórico: la reproducción publicaba el modo que traía el flag de la
-        invocación, no el que había producido las casetes. Decía `razonador=sí` sobre
-        un número medido sin razonador. Se arregló haciendo que la procedencia SALGA
-        DE LAS CASETES, que es el único sitio donde es cierta.
+        Model and thinking mode are stored in the cassette itself, because replay
+        reports provenance from the cassettes rather than from invocation flags (which
+        once reported a reasoning mode the recordings did not use).
         """
         self.directory.mkdir(parents=True, exist_ok=True)
         path = self.directory / f"{request.cache_key()}.json"
@@ -239,61 +208,41 @@ class RecordedProvider:
 
 @dataclass
 class LocalProvider:
-    """Ollama en el HOST, nunca en compose.
+    """Ollama on the host, never in compose.
 
-    Es una decisión medida: Docker en macOS no pasa la GPU, y meter
-    Ollama dentro destruye la latencia. El modelo se fija por digest desde
-    `models.lock`, no por tag.
+    Docker on macOS does not pass through the GPU, so containerized Ollama ruins
+    latency. The model is pinned by digest from `models.lock`, not by tag.
     """
 
     model: str
     name: str = "local"
     endpoint: str = "http://localhost:11434/api/generate"
-    #: **1200 s, y el mismo argumento que llevó de 120 a 600.** Medido el 2026-09-03:
-    #: `qwen3.5:9b-mlx` en modo razonador tarda ~70 s por llamada, y una punta por
-    #: encima del tope se convierte en un rechazo `INTERNAL` que la evaluación contaría
-    #: como «no se recuperó». Estaría midiendo el reloj y publicándolo como si fuera el
-    #: modelo.
-    #:
-    #: Se sube el 2026-09-10 al pasar el generador a `gemma4:26b-mlx`, que es el doble
-    #: de grande: con 600 s, `REC-R002-3` murió con `TimeoutError` y la medida lo tuvo
-    #: que descartar como fallo de MEDIDA. Subirlo no ablanda nada —un modelo lento
-    #: sigue siendo lento y se ve en el informe—; lo que evita es publicar un cero que
-    #: es del reloj y no del modelo.
+    #: `qwen3.5:9b-mlx` in reasoning mode takes ~70 s per call, and `gemma4:26b-mlx`
+    #: is twice the size (`REC-R002-3` timed out at 600 s). A timeout becomes an
+    #: `INTERNAL` rejection that evals would count as a failed recovery, measuring
+    #: the clock instead of the model. Latency is still visible in the report.
     timeout_s: float = 1200.0
-    #: Modo razonador. `None` deja el del modelo; `False` lo apaga. Va al informe
-    #: porque cambia el número: la misma consulta salía en 0,3 s sin razonar y en
-    #: 71 s razonando, y dos medidas con modos distintos no son comparables.
+    #: Reasoning mode. `None` keeps the model default; `False` disables it. Reported
+    #: because it changes results: the same query took 0.3 s without reasoning and
+    #: 71 s with it.
     think: bool | None = None
-    #: **Temperatura CERO y semilla fija, y no es un detalle.** Con la temperatura
-    #: por defecto, dos `make eval-refresh` seguidos con la MISMA configuración
-    #: dieron 0,8214 y 0,9286 el 2026-09-03. Las casetes hacen determinista la
-    #: reproducción, pero si la grabación no lo es, el número no se puede volver a
-    #: obtener: sería un número sin comando que lo reproduzca, que es justo lo que
-    #: este proyecto no admite. La semilla va al informe con todo lo demás.
+    #: Zero temperature and a fixed seed. With default temperature, two consecutive
+    #: `make eval-refresh` runs with the same configuration gave 0.8214 and 0.9286.
+    #: Cassettes make replay deterministic, but recording must be too. The seed is
+    #: reported.
     temperature: float = 0.0
     seed: int = 20260903
-    #: **Tope de tokens de salida. Sin él, un prompt puede colgar la evaluación entera.**
-    #:
-    #: Medido el 2026-09-10 con `gemma4:26b-mlx` y el caso `REC-R002-3` —reescribir un
-    #: `LIKE ... ESCAPE` que R002 rechaza—: sin `num_predict`, Ollama se queda generando
-    #: y no vuelve. Reproducido tres veces con el modelo ya cargado, a 240 s, 200 s y
-    #: 300 s. Con `num_predict=1500` vuelve en 29 s y `done_reason: "length"`.
-    #:
-    #: Subir el `timeout_s` NO lo arreglaba, y ese fue el primer intento: con 1200 s
-    #: seguía muriendo. El problema no es que el modelo sea lento, es que no para.
-    #:
-    #: Y la diferencia importa para lo que se publica: sin tope, el caso salía como
-    #: `INTERNAL` y la evaluación tenía que DESCARTARLO como fallo de medida; con tope,
-    #: sale una respuesta truncada que el guard rechaza, o sea **una recuperación
-    #: fallida de verdad**, que es lo que hay que contar. Un tope no ablanda la medida:
-    #: convierte un agujero en un dato.
+    #: Output token cap. Without `num_predict`, `gemma4:26b-mlx` on `REC-R002-3`
+    #: (rewriting a `LIKE ... ESCAPE` that R002 rejects) kept generating and never
+    #: returned, even with a 1200 s timeout. With `num_predict=1500` it returns in
+    #: 29 s with `done_reason: "length"`, and the truncated answer is rejected by the
+    #: guard: a genuine failed recovery instead of a discarded measurement.
     max_tokens: int = 1500
-    #: A dónde van los atributos OTel de cada llamada. `None` los tira, y es el valor
-    #: por defecto a propósito: medir no puede ser obligatorio para poder generar.
+    #: Sink for per-call OTel attributes. `None` (the default) discards them;
+    #: generation must not depend on telemetry.
     telemetry: Callable[[dict[str, Any]], None] | None = None
-    #: `app.spans.dropped` de `docs/CONTRACTS/otel-genai.md §4`. Va aquí y no en un
-    #: global para que dos proveedores no se pisen el contador.
+    #: `app.spans.dropped` from `docs/CONTRACTS/otel-genai.md` section 4. Per instance,
+    #: not global, so two providers do not share the counter.
     dropped: Dropped = field(default_factory=Dropped)
 
     def generate(self, request: Request) -> str:
@@ -314,29 +263,26 @@ class LocalProvider:
         if self.think is not None:
             payload_out["think"] = self.think
         body = json.dumps(payload_out).encode("utf-8")
-        req = urllib.request.Request(  # noqa: S310  — endpoint fijo y local
+        req = urllib.request.Request(  # noqa: S310  (fixed local endpoint)
             self.endpoint, data=body, headers={"Content-Type": "application/json"}
         )
         with urllib.request.urlopen(req, timeout=self.timeout_s) as response:  # noqa: S310
             payload = json.loads(response.read().decode("utf-8"))
-        # **La emisión va DESPUÉS de leer y no envuelve la llamada**: §6 del contrato
-        # OTel dice que un fallo de observabilidad nunca tumba la aplicación, y `emit`
-        # ya no lanza — pero además así queda claro que generar no depende de medir.
+        # Emitted after reading, not wrapping the call: per section 6 of the OTel
+        # contract an observability failure never breaks the application.
         if self.telemetry is not None:
             emit(self.llm_call(payload), self.telemetry, dropped=self.dropped)
         return extract_sql(str(payload.get("response", "")))
 
     def llm_call(self, payload: dict[str, Any]) -> LlmCall:
-        """La respuesta de Ollama, en el modelo INTERNO. Ni un nombre del estándar.
+        """Map an Ollama response to the internal model, with no OTel names.
 
-        Los nombres de la izquierda son de Ollama (`prompt_eval_count`, `eval_count`,
-        `done_reason`) y los de la derecha son nuestros. La traducción al estándar pasa
-        después, en `telemetry/otel.py`, y es la única que conoce `gen_ai.*`. Son dos
-        traducciones seguidas a propósito: así una ruptura de la spec no llega hasta
-        aquí, y un cambio de Ollama no llega hasta el estándar.
+        Ollama field names (`prompt_eval_count`, `eval_count`, `done_reason`) map to
+        internal ones here; only `telemetry/otel.py` knows `gen_ai.*`. Two separate
+        translations keep spec changes and Ollama changes from leaking into each other.
 
-        `gen_ai.response.model` sale de `payload["model"]` y no de `self.model`: es el
-        modelo que respondió DE VERDAD, que es justo lo que el contrato pide distinguir.
+        `gen_ai.response.model` comes from `payload["model"]`, not `self.model`: the
+        contract distinguishes the model that actually answered.
         """
         from urllib.parse import urlparse
 
@@ -351,16 +297,15 @@ class LocalProvider:
             finish_reasons=(str(payload.get("done_reason") or "stop"),),
             server_address=servidor.netloc or servidor.path,
             temperature=self.temperature,
-            # Ahora `gen_ai.request.max_tokens` lleva un valor de verdad: es un
-            # parámetro que se envía, no un campo decorativo del modelo interno.
+            # `gen_ai.request.max_tokens` reflects the parameter actually sent.
             max_tokens=self.max_tokens,
-            # Ollama da la latencia en NANOsegundos; `app.ttft_ms` va en milisegundos.
+            # Ollama reports nanoseconds; `app.ttft_ms` is in milliseconds.
             ttft_ms=_ns_a_ms(payload.get("prompt_eval_duration")),
         )
 
 
 def _ns_a_ms(nanosegundos: object) -> float | None:
-    """Nanosegundos de Ollama a milisegundos. `None` si no vino, que no es lo mismo que 0."""
+    """Ollama nanoseconds to milliseconds. `None` if absent, which is not the same as 0."""
     if not isinstance(nanosegundos, int):
         return None
     return round(nanosegundos / 1_000_000, 3)

@@ -1,19 +1,14 @@
-"""Construye el ejecutor auditado. **`audit/` es el único sitio donde puede vivir.**
+"""Builds the audited executor. `audit/` is the only place where it can live.
 
-`datawarden.engines` solo se importa desde aquí y desde `audit/executor.py`, y no es
-una convención: el contrato de import-linter «Al motor solo se llega por la auditoría
-(I-06)» lo prohíbe a los diez módulos restantes. `mcp/`, `http/` y el CLI necesitan
-un ejecutor, y si cada uno construyera su propio `DuckDBEngine` tendríamos tres
-sitios desde los que se puede llegar al motor sin pasar por la auditoría — que es
-exactamente el atajo que I-06 existe para impedir.
+`datawarden.engines` is imported only from here and from `audit/executor.py`; the
+import-linter contract "the engine is reachable only through the audit (I-06)"
+forbids it everywhere else. `mcp/`, `http/` and the CLI all need an executor, and if
+each built its own `DuckDBEngine` there would be three paths to the engine that skip
+the audit.
 
-Lo dejó anotado el propio CLI antes de que hiciera falta: *«el día que exista
-`warden query`, su motor lo construirá una factoría de `audit/`, no este fichero»*.
-Esto es esa factoría.
-
-**Todo lo que hace falta para los cinco anillos se resuelve aquí, y falla pronto si
-falta algo.** Un servidor MCP que arranca y revienta en la primera consulta es peor
-que uno que no arranca: el cliente ya ha dicho que está conectado.
+Everything the rings need is resolved here, and missing pieces fail at startup. An
+MCP server that starts and then fails on the first query is worse than one that does
+not start: the client already believes it is connected.
 """
 
 from __future__ import annotations
@@ -25,19 +20,17 @@ from datawarden.audit.executor import AuditedExecutor
 from datawarden.audit.store import AuditStore
 from datawarden.mask.config import MaskConfig
 
-#: Dónde vive la cadena de auditoría por defecto. Se crea si no existe; lo que NO se
-#: crea sola es la base de datos del almacén, porque inventarla vacía convertiría
-#: «no encuentro los datos» en «no hay filas», que son cosas muy distintas.
+#: Default location of the audit chain, created if missing. The warehouse database
+#: is never created: an empty one would turn "data not found" into "no rows".
 #:
-#: Relativa al PAQUETE y no al directorio de trabajo: cuando el servidor lo lanza una
-#: aplicación de escritorio, el directorio de trabajo lo elige ella. Con una ruta
-#: relativa, la cadena de auditoría aparecería en un sitio distinto cada vez — y una
-#: cadena que cambia de sitio no es una cadena.
+#: Relative to the package, not the working directory: when a desktop app launches
+#: the server it picks the working directory, and a chain that moves between runs is
+#: not a chain.
 DEFAULT_AUDIT_DB: Final = pathlib.Path(__file__).resolve().parents[3] / "var" / "audit.sqlite3"
 
 
 class MissingDatasetError(RuntimeError):
-    """El almacén no está donde se dijo. Se distingue de un fallo del motor."""
+    """The warehouse is not where it was said to be. Distinct from an engine failure."""
 
 
 def build_executor(
@@ -46,12 +39,12 @@ def build_executor(
     audit_db: pathlib.Path = DEFAULT_AUDIT_DB,
     mask: MaskConfig,
 ) -> AuditedExecutor:
-    """El ejecutor con sus cinco anillos montados, o un error que dice qué falta.
+    """The executor with all rings wired, or an error that says what is missing.
 
-    El `setup_sql` del motor instala la macro `warden_hash` con la MISMA pimienta que
-    recibe el enmascarador. Que sean la misma no es economía: si difirieran, el árbol
-    reescrito llamaría a una macro que hashea con otra clave y los valores dejarían
-    de ser estables entre ejecuciones — justo lo que el contrato firmado prohíbe.
+    The engine's `setup_sql` installs the `warden_hash` macro with the same pepper the
+    masker receives. If they differed, the rewritten tree would call a macro keyed
+    with a different secret and masked values would stop being stable across runs,
+    which the signed contract forbids.
     """
     from datawarden.catalog import SCHEMA_PATH, load_generated
     from datawarden.catalog.statistics import load as load_stats
@@ -63,18 +56,16 @@ def build_executor(
     from datawarden.principal.policy import load_policy
 
     if not database.exists():
-        # **El perfil que se sugiere es el que FALTA, no uno fijo.** Este mensaje decía
-        # siempre `PROFILE=dev`, y desde que el servidor arranca contra `full` seguir la
-        # instrucción no arreglaba nada: se generaba `dev` y el servidor seguía buscando
-        # `full`. Un mensaje accionable que manda hacer algo inútil no es accionable.
+        # Suggest the profile that is actually missing. A fixed `PROFILE=dev` hint
+        # was useless once the server defaulted to `full`.
         perfil = "dev" if "cierzo-dev" in database.name else "full"
         message = (
-            f"no existe {database}. El almacén no se inventa vacío: un servidor que "
-            "arranca sin datos convierte «no encuentro el almacén» en «no hay filas», "
-            "y quien pregunta no puede distinguirlas. Genéralo con "
+            f"{database} does not exist. The warehouse is never created empty: a "
+            "server without data turns 'warehouse not found' into 'no rows', and the "
+            "caller cannot tell them apart. Generate it with "
             f"`make dataset PROFILE={perfil}`"
             + (
-                ", o apunta al perfil pequeño con `make dataset PROFILE=dev` y "
+                ", or use the small profile with `make dataset PROFILE=dev` and "
                 "`--database datagen/out/cierzo-dev.duckdb`."
                 if perfil == "full"
                 else "."
@@ -83,8 +74,8 @@ def build_executor(
         raise MissingDatasetError(message)
     if not SCHEMA_PATH.exists():
         message = (
-            "no hay catálogo generado. El catálogo NO se escribe a mano (I-07): "
-            "ejecuta `warden catalog build`."
+            "no generated catalog found. The catalog is never written by hand (I-07): "
+            "run `warden catalog build`."
         )
         raise MissingDatasetError(message)
 

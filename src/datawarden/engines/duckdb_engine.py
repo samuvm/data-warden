@@ -1,12 +1,11 @@
-"""El motor local. Ejecuta el ÁRBOL re-serializado, jamás la cadena de entrada.
+"""Local engine. Executes the re-serialized tree, never the input string.
 
-`execute()` recibe un `ValidatedQuery` y llama a `query.sql()`, que es
-`ast.sql(dialect, comments=False)`. La consecuencia práctica es la que da sentido a
-todo el anillo 3: **si sqlglot entendió mal la consulta, lo que llega a DuckDB es lo
-que sqlglot entendió, no lo que el atacante escribió.** Eso elimina por construcción
-la clase entera de ataques por diferencia de parser.
+`execute()` takes a `ValidatedQuery` and calls `query.sql()`, i.e.
+`ast.sql(dialect, comments=False)`. If sqlglot misreads a query, DuckDB receives what
+sqlglot understood, not what the attacker wrote, which removes parser-differential
+attacks by construction.
 
-Régimen: **contrato y snapshot, no cobertura de línea** (`docs/RULES.md §2`).
+Tested by contract and snapshot, not line coverage (`docs/RULES.md` section 2).
 """
 
 from __future__ import annotations
@@ -20,32 +19,27 @@ from datawarden.engines.base import count_execution
 
 
 class DuckDBEngine:
-    """DuckDB embebido, en solo lectura."""
+    """Embedded DuckDB, read-only."""
 
     name = "duckdb"
 
     def __init__(self, database: pathlib.Path, setup_sql: tuple[str, ...] = ()) -> None:
         self._database = database
-        # DDL que se ejecuta UNA VEZ al abrir la conexión. Hoy sirve para instalar la
-        # macro de enmascarado (`mask/macro.py`), y el motor NO sabe qué es: recibe cadenas y
-        # las ejecuta. Saberlo exigiría que `engines` importara `mask`, y el contrato
-        # de capas lo prohíbe —con razón: un adaptador que conoce la política deja de
-        # ser un adaptador—. Quien decide qué va aquí es `audit/`, que puede ver los
-        # dos lados.
+        # DDL run once when the connection opens; currently it installs the masking
+        # macro (`mask/macro.py`). The engine does not know what it is: knowing would
+        # require `engines` to import `mask`, which the layer contract forbids. `audit/`
+        # decides what goes here.
         #
-        # **Estas cadenas NO se auditan y no deben registrarse.** No son consultas de
-        # un usuario: son la instalación de una clave, y llevan la pimienta dentro.
+        # These strings are not audited and must not be logged: they install a key
+        # and contain the pepper.
         self._setup_sql = setup_sql
         self._connection: Any = None
-        # UN CERROJO, y una sola conexión. No es paranoia de concurrencia: el
-        # servidor MCP ejecuta las tools en un hilo de trabajo y una conexión de
-        # DuckDB usada desde dos hilos a la vez es comportamiento indefinido.
+        # One lock and one connection. The MCP server runs tools in a worker thread,
+        # and a DuckDB connection used from two threads at once is undefined behavior.
         #
-        # **Y no vale `.cursor()` por llamada, que sería lo idiomático.** Un cursor
-        # de DuckDB abre una sesión nueva, y la macro `warden_hash` que instala
-        # `setup_sql` es TEMPORAL: vive en el esquema de sesión. Con un cursor por
-        # llamada, la macro no existiría y toda columna hasheada fallaría — o peor,
-        # dejaría de enmascararse. Una conexión, serializada.
+        # A per-call `.cursor()` would not work: a DuckDB cursor opens a new session,
+        # and the `warden_hash` macro installed by `setup_sql` is temporary and
+        # session-scoped, so hashed columns would fail or go unmasked.
         self._lock = threading.Lock()
 
     def _connect(self) -> Any:
@@ -54,24 +48,22 @@ class DuckDBEngine:
 
             self._connection = duckdb.connect(str(self._database), read_only=True)
             for statement in self._setup_sql:
-                # Macros TEMPORALES: viven en el esquema de sesión y no tocan el
-                # fichero, así que la conexión sigue siendo de SOLO LECTURA, que es
-                # innegociable.
+                # Temporary macros live in the session schema and do not touch the
+                # file, so the connection stays read-only.
                 self._connection.execute(statement)
         return self._connection
 
     def execute(self, query: ValidatedQuery) -> ResultSet:
-        """Ejecuta y recorta. **El recorte lo hace el DOMINIO** (I-12).
+        """Execute and truncate to the domain's `max_rows` (I-12).
 
-        `max_rows` viaja dentro del árbol como `LIMIT` —lo inyecta R006— y además se
-        aplica aquí sobre las filas devueltas. No es redundancia: es que el motor no
-        puede ser la última palabra sobre cuántas filas ve un rol, porque entonces
-        DuckDB y Athena darían resultados distintos para la misma pregunta.
+        `max_rows` travels inside the tree as a `LIMIT` (injected by R006) and is also
+        applied here to the returned rows, so the engine never has the last word on
+        how many rows a role sees and DuckDB and Athena agree.
         """
         count_execution()
         with self._lock:
-            # Conectar y consumir el cursor van juntos bajo el cerrojo: un cursor
-            # leído fuera vuelve a tocar la conexión, que es lo que se serializa.
+            # Connect and fetch under the lock: reading the cursor outside it would
+            # touch the connection again.
             cursor = self._connect().execute(query.sql())
             columns = tuple(d[0] for d in (cursor.description or []))
             rows = cursor.fetchall()

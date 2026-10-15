@@ -1,19 +1,14 @@
-"""El puerto del motor. **Acepta un `ValidatedQuery`, jamás un `str`** (I-02).
+"""Engine port. Accepts a `ValidatedQuery`, never a `str` (I-02).
 
-Es el invariante I-01 de `docs/RULES.md` y lo comprueba `scripts/check_no_raw_sql.py`
-sobre el AST de este paquete. La diferencia no es estilística: si el motor aceptara
-texto, existiría un camino por el que una consulta llega a la base de datos sin
-haber pasado por el guard, y entonces los cinco anillos serían decorativos.
+Checked by `scripts/check_no_raw_sql.py` over this package's AST. If the engine
+accepted text, a query could reach the database without passing the guard.
 
-**El contador de ejecuciones es lo que hace comprobable `G-BUDGET-ESCAPE`.** La
-meta dice «ninguna consulta por encima del presupuesto llega al motor», y eso no se
-puede probar mirando el veredicto: hay que mirar si el motor se movió. Con un
-contador de proceso, la propiedad es exacta —`delta == 0` cuando el coste estimado
-supera el presupuesto— en vez de una promesa sobre el flujo de control.
+The execution counter makes `G-BUDGET-ESCAPE` checkable: "no over-budget query
+reaches the engine" cannot be proven from the verdict, only by observing whether
+the engine was entered. With a process counter the property is exact (`delta == 0`
+when the estimated cost exceeds the budget).
 
-Régimen de este paquete: **contrato y snapshot, NO cobertura de línea**
-(`docs/RULES.md §2`). Perseguir el 100 % en un adaptador premia envolverlo en tests
-que no prueban nada.
+Tested by contract and snapshot, not line coverage (`docs/RULES.md` section 2).
 """
 
 from __future__ import annotations
@@ -22,41 +17,39 @@ from typing import Protocol, runtime_checkable
 
 from datawarden.domain.types import ResultSet, ValidatedQuery
 
-#: Ejecuciones que han llegado al motor en este proceso. Lo lee la propiedad de
-#: `G-BUDGET-ESCAPE`; lo incrementa **toda** implementación de `Engine`, en su
-#: primera línea y antes de cualquier trabajo.
+#: Executions that reached an engine in this process. Read by the `G-BUDGET-ESCAPE`
+#: property; every `Engine` implementation increments it first, before any work.
 _EXECUTIONS = 0
 
 
 def executions() -> int:
-    """Cuántas veces ha entrado algo en un motor en este proceso."""
+    """How many times an engine has been entered in this process."""
     return _EXECUTIONS
 
 
 def count_execution() -> None:
-    """Lo llama cada motor al entrar. No hay motor exento: ese es el punto."""
+    """Called by every engine on entry. No engine is exempt."""
     global _EXECUTIONS
     _EXECUTIONS += 1
 
 
 @runtime_checkable
 class Engine(Protocol):
-    """Lo que un motor tiene que saber hacer. Nada más, y con este tipo de entrada."""
+    """What an engine must implement, with exactly this input type."""
 
     name: str
 
     def execute(self, query: ValidatedQuery) -> ResultSet:
-        """Ejecuta el ÁRBOL re-serializado. Nunca una cadena."""
+        """Execute the re-serialized tree. Never a raw string."""
         ...
 
 
 class RecordingEngine:
-    """Un motor de mentira que no ejecuta nada y se acuerda de todo.
+    """Fake engine that executes nothing and records everything.
 
-    Existe para la propiedad de `G-BUDGET-ESCAPE` y para la de I-12: con un motor
-    real no se puede afirmar «esta consulta NO llegó», solo «no dio resultados», que
-    son cosas distintas. Y devuelve 10.000 filas a propósito, para comprobar que el
-    recorte a `max_rows` lo hace el DOMINIO y no el motor.
+    Backs the `G-BUDGET-ESCAPE` and I-12 properties: with a real engine one can only
+    say a query returned nothing, not that it never arrived. It can return many rows
+    (e.g. 10,000) to check that the domain, not the engine, applies `max_rows`.
     """
 
     name = "recording"

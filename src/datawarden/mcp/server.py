@@ -1,31 +1,27 @@
-"""El servidor MCP · spec 2026-07-28. **Adaptador: contrato y snapshot, no cobertura.**
+"""MCP server, spec 2026-07-28. Adapter: tested by contract and snapshot, not coverage.
 
-`docs/RULES.md` clasifica `mcp/` como adaptador, y eso decide cómo se prueba: por
-CONTRATO —los esquemas, el orden, los tipos de resultado— y no por cobertura de
-línea. Aquí no se decide nada de política; se traduce un protocolo a llamadas de
-dominio que ya están probadas.
+No policy is decided here; the protocol is translated into domain calls that are
+tested elsewhere.
 
-**La spec de julio de 2026 es una ruptura de generación** y el código de ejemplo de
-2025 no compila: se fueron las sesiones, el handshake `initialize`, `ping` y la
-resumibilidad SSE; `FastMCP` pasó a `MCPServer`; `sampling`, `roots` y `logging`
-están deprecados. Lo que este servidor implementa de esa spec:
+The July 2026 spec is a breaking generation: sessions, the `initialize` handshake,
+`ping` and SSE resumability are gone; `FastMCP` became `MCPServer`; `sampling`,
+`roots` and `logging` are deprecated. Implemented here:
 
-- `server/discover` con `ttlMs` y `cacheScope`, obligatorios en los `list`.
-- `tools/list` con **orden determinista**, tomado del contrato y no de un diccionario.
-- `resultType` en toda respuesta.
-- `inputSchema` y `outputSchema` en JSON Schema 2020-12, con `oneOf` entre `rows` y
-  `rejected`: **un rechazo no es un error del protocolo, es una respuesta legítima**,
-  y marcarlo como error haría que el cliente lo reintentara en vez de leerlo.
-- stdio y Streamable HTTP. **HTTP+SSE no**: la spec lo reclasificó a *Deprecated*.
+- `server/discover` with `ttlMs` and `cacheScope`, required on `list` results.
+- `tools/list` in deterministic order, taken from the contract.
+- `resultType` on every response.
+- `inputSchema` and `outputSchema` in JSON Schema 2020-12, with `oneOf` between
+  `rows` and `rejected`. A rejection is a legitimate answer, not a protocol error;
+  flagging it as an error would make clients retry instead of reading it.
+- stdio and Streamable HTTP. HTTP+SSE is not supported (deprecated by the spec).
 
-**Y lo que NO hace, que es igual de importante:**
+Not done here:
 
-- **No decide el rol.** Viene de `mcp/principal.py`, nunca de `_meta` ni de
-  `arguments`. `G-ROLE-SPOOF` es un axioma.
-- **No llega al motor.** Todo pasa por `AuditedExecutor`, que es el único camino
-  (I-06) y el único que atraviesa los cuatro anillos. El contrato de import-linter lo
-  impone; no es disciplina.
-- **No compone SQL.** Lo que se ejecuta es `ast.sql()` del árbol validado.
+- Deciding the role. It comes from `service/principal.py`, never from `_meta` or
+  `arguments` (`G-ROLE-SPOOF`).
+- Reaching the engine. Everything goes through `AuditedExecutor`, the only path
+  (I-06), enforced by an import-linter contract.
+- Composing SQL. What runs is `ast.sql()` of the validated tree.
 """
 
 from __future__ import annotations
@@ -38,25 +34,23 @@ from datawarden.service.principal import SPOOF_KEYS
 from datawarden.service.tools import WardenTools
 from datawarden.service.tracing import trace_id_from
 
-#: El TTL de los `list`. Una hora porque el catálogo se REGENERA (I-07) y
-#: `G-CATALOG-FRESH` ya vigila que no envejezca; el ámbito es `public` porque el
-#: catálogo publicado es el mismo para todos los roles — lo que cambia por rol es la
-#: POLÍTICA sobre las columnas, no la lista de tablas.
+#: TTL of `list` results. One hour because the catalog is regenerated (I-07) and
+#: `G-CATALOG-FRESH` watches its freshness. Scope is `public` because the published
+#: catalog is the same for every role; what varies by role is column policy.
 TTL_MS: Final = 3_600_000
 CACHE_SCOPE: Final = "public"
 
-#: El orden de `tools/list`. **Determinista y explícito.** Un orden que sale de un
-#: diccionario cambia entre ejecuciones y convierte cualquier snapshot en ruido.
+#: `tools/list` order, explicit so snapshots are stable.
 TOOL_ORDER: Final = ("run_query", "describe_table", "sample_table", "explain_cost")
 
-#: JSON Schema 2020-12. El `oneOf` es el punto: `rows` o `rejected`, y las dos son
-#: respuestas correctas del sistema.
+#: JSON Schema 2020-12. Results are `oneOf` `rows` or `rejected`; both are valid
+#: answers.
 SCHEMA_DIALECT: Final = "https://json-schema.org/draft/2020-12/schema"
 
 
 @dataclass(frozen=True, slots=True)
 class ToolSpec:
-    """Una herramienta publicada: su descripción y sus dos esquemas."""
+    """A published tool: its description and both schemas."""
 
     name: str
     title: str
@@ -66,12 +60,11 @@ class ToolSpec:
 
 
 def rejection_schema() -> dict[str, Any]:
-    """La forma de un rechazo. Conforme a `docs/spec/rejection.schema.json`.
+    """Shape of a rejection, per `docs/spec/rejection.schema.json`.
 
-    Va en el `outputSchema` y no en un error del protocolo porque **el rechazo es la
-    respuesta más valiosa que da este sistema**: lleva la regla que saltó, qué pasó y
-    qué hacer en su lugar. Un cliente que lo reciba como error lo reintenta a ciegas;
-    uno que lo reciba como dato se lo enseña a quien preguntó.
+    Part of `outputSchema` rather than a protocol error: it carries the rule, what
+    happened and what to do instead. A client treating it as an error retries blind;
+    one treating it as data shows it to the user.
     """
     return {
         "type": "object",
@@ -111,10 +104,8 @@ def rows_schema() -> dict[str, Any]:
                 "items": {"type": "string"},
                 "description": "Las columnas que el anillo 4 reescribió. Evidencia, no promesa",
             },
-            # OPCIONAL, y solo aparece cuando el presupuesto BLANDO se cruzó sin
-            # poder preguntar. Un umbral blando que se cruza en silencio es
-            # decorativo; si el cliente no sabe contestar a MRTR, al menos que la
-            # respuesta lleve escrito lo que costó.
+            # Optional; present only when the soft budget was crossed and the client
+            # cannot answer an MRTR confirmation, so the cost is at least reported.
             "budget_warning": {
                 "type": "string",
                 "description": "Cruzó el presupuesto blando y el cliente no sabe confirmar",
@@ -125,7 +116,7 @@ def rows_schema() -> dict[str, Any]:
 
 
 def result_schema() -> dict[str, Any]:
-    """`oneOf` entre filas y rechazo. Las dos son respuestas, no una de ellas un fallo."""
+    """`oneOf` rows or rejection. Both are answers; neither is a failure."""
     return {
         "$schema": SCHEMA_DIALECT,
         "type": "object",
@@ -150,12 +141,11 @@ def result_schema() -> dict[str, Any]:
 
 
 def tool_specs(contract: dict[str, Any]) -> tuple[ToolSpec, ...]:
-    """Las cuatro herramientas, **en el orden del contrato**.
+    """The four tools, in contract order.
 
-    El orden sale de `docs/spec/tools.yaml` y no de recorrer un diccionario: la spec
-    exige `tools/list` determinista, y además es lo que hace que un snapshot signifique
-    algo. Si el contrato nombra una herramienta que este módulo no sabe construir, se
-    LEVANTA: publicar tres cuando el contrato dice cuatro sería mentir en el discover.
+    Order comes from `docs/spec/tools.yaml`: the spec requires a deterministic
+    `tools/list`. Raises if the contract names a tool this module cannot build, since
+    publishing fewer tools than declared would misreport `server/discover`.
     """
     inputs: dict[str, dict[str, Any]] = {
         "run_query": {
@@ -172,9 +162,9 @@ def tool_specs(contract: dict[str, Any]) -> tuple[ToolSpec, ...]:
         },
         "describe_table": {
             "type": "object",
-            # `table` NO es obligatorio: sin él se devuelve la LISTA de tablas, que es
-            # el único camino de descubrimiento que funciona en cualquier cliente.
-            # Los recursos MCP son opcionales para un cliente; las herramientas no.
+            # `table` is optional: without it the table list is returned, the only
+            # discovery path that works in every client (resources are optional for
+            # MCP clients; tools are not).
             "properties": {
                 "table": {
                     "type": "string",
@@ -208,9 +198,9 @@ def tool_specs(contract: dict[str, Any]) -> tuple[ToolSpec, ...]:
         tool = by_name.get(str(name))
         if tool is None or str(name) not in inputs:
             message = (
-                f"el contrato `docs/spec/tools.yaml` nombra {name!r} y este servidor no "
-                "sabe construirla. Publicar menos herramientas de las que el contrato "
-                "declara sería mentir en `server/discover`."
+                f"the contract `docs/spec/tools.yaml` names {name!r} and this server "
+                "cannot build it. Publishing fewer tools than the contract declares "
+                "would misreport `server/discover`."
             )
             raise KeyError(message)
         specs.append(
@@ -226,11 +216,10 @@ def tool_specs(contract: dict[str, Any]) -> tuple[ToolSpec, ...]:
 
 
 def discover_payload(specs: tuple[ToolSpec, ...], version: str) -> dict[str, Any]:
-    """`server/discover`, obligatorio desde la spec 2026-07-28.
+    """`server/discover`, required since spec 2026-07-28.
 
-    Lleva `ttlMs` y `cacheScope` porque la spec los exige en los `list`: sin TTL, un
-    cliente no sabe si puede cachear el catálogo de herramientas ni por cuánto, y
-    acaba pidiéndolo en cada vuelta o cacheándolo para siempre.
+    Carries `ttlMs` and `cacheScope`, which the spec requires on `list` results so
+    clients know whether and for how long to cache the tool list.
     """
     return {
         "resultType": "complete",
@@ -257,23 +246,17 @@ def discover_payload(specs: tuple[ToolSpec, ...], version: str) -> dict[str, Any
 def dispatch(
     tools: WardenTools, name: str, arguments: dict[str, Any], meta: Any = None
 ) -> dict[str, Any]:
-    """`tools/call`: el punto por el que entra TODO lo que manda un cliente.
+    """`tools/call`: the entry point for everything a client sends.
 
-    **Aquí está el sitio exacto donde `G-ROLE-SPOOF` se gana o se pierde.** Un
-    despachador escrito con prisa hace `getattr(tools, name)(**arguments)` y da por
-    bueno lo que venga; el día que alguien añada un `role=` a una firma —o que un
-    cliente mande `arguments = {"role": "admin"}` contra una firma que lo acepte por
-    `**kwargs`— la política se decide con un dato del cliente.
+    This is where `G-ROLE-SPOOF` is won or lost. A naive
+    `getattr(tools, name)(**arguments)` would let `arguments = {"role": "admin"}`
+    decide policy as soon as some signature accepted it.
 
-    Tres decisiones, y ninguna es paranoia:
-
-    1. **`meta` NO SE PASA.** Se recibe para poder registrarlo y se queda aquí. El
-       `traceparent` que trae encadena trazas; no concede nada.
-    2. **Los argumentos se FILTRAN contra la firma real**, y cualquier clave
-       sospechosa se descarta antes. Sobra con lo primero mientras nadie ponga un
-       `role=` en una firma; lo segundo es para el día en que alguien lo haga.
-    3. Una herramienta desconocida se rechaza nombrando las que hay, en vez de
-       levantar: el cliente es un modelo y un mensaje accionable le sirve.
+    1. `meta` is not forwarded. Its `traceparent` links traces and grants nothing.
+    2. Arguments are filtered against the real signature, and spoofing keys are
+       dropped first, in case a `role=` parameter is ever added.
+    3. An unknown tool is rejected with the list of valid ones instead of raising:
+       the client is a model and an actionable message helps it.
     """
     import inspect
 
@@ -300,10 +283,9 @@ def dispatch(
         for key, value in (arguments or {}).items()
         if key in accepted and key.lower() not in SPOOF_KEYS
     }
-    # EL `traceparent` SALE DE `_meta` Y NUNCA DE `arguments`. Es la única cosa del
-    # sobre que se usa, y se usa como DATO: encadena la traza y no concede nada.
-    # Tomarlo de `arguments` dejaría que el modelo se inventara la correlación de una
-    # petición con otra, que es justo lo que la auditoría no puede permitirse.
+    # `traceparent` comes from `_meta`, never from `arguments`, and is used only as
+    # data to link traces. Taking it from `arguments` would let the model forge
+    # correlation between requests in the audit trail.
     if "trace_id" in accepted:
         safe["trace_id"] = trace_id_from(meta)
     result: dict[str, Any] = method(**safe)
@@ -311,10 +293,9 @@ def dispatch(
 
 
 def catalog_resource(schema_json: dict[str, Any]) -> str:
-    """El catálogo COMPLETO como recurso, no dentro del prompt.
+    """The full catalog as a resource rather than inside the prompt.
 
-    32 tablas y 428 columnas no caben cómodas en un prompt, y meterlas obligaría a
-    recortarlas justo cuando el modelo necesita el esquema entero. Como recurso, el
-    cliente lo pide una vez y lo cachea el `ttlMs` que declara el discover.
+    32 tables and 428 columns do not fit comfortably in a prompt. As a resource the
+    client fetches it once and caches it for the `ttlMs` declared by discover.
     """
     return json.dumps(schema_json, indent=2, sort_keys=True, ensure_ascii=False)

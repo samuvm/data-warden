@@ -1,14 +1,14 @@
-"""Data Warden · acceso conversacional a un lakehouse con cinco anillos de control.
+"""Data Warden: conversational access to a lakehouse behind five control rings.
 
-El mapa de zonas está en `docs/RULES.md` §2 y no es decorativo: cada paquete tiene una
-regla de test distinta porque se prueba de forma distinta.
+Each package has its own testing rule because it is verified differently
+(see `docs/RULES.md` section 2):
 
-  domain/                       tipos congelados y puros. TDD obligatorio, 90 %
-  guard/ (+ rules/)             el corazón. TDD PURO, 95 %, mutación 85 %
-  mask/ · audit/ · principal/   deterministas. TDD obligatorio, 95 %
-  cost/ · catalog/ · evalsupport/   deterministas, 90 %
-  engines/ · mcp/ · http/       adaptadores: contrato y snapshot, NO cobertura
-  nl2sql/ · agent/ · prompts/   se MIDEN, no se testean. TDD PROHIBIDO
+  domain/                           frozen, pure types. TDD required, 90 %
+  guard/ (+ rules/)                 the core. Strict TDD, 95 %, mutation 85 %
+  mask/ · audit/ · principal/       deterministic. TDD required, 95 %
+  cost/ · catalog/ · evalsupport/   deterministic, 90 %
+  engines/ · mcp/ · http/           adapters: contract and snapshot tests, no line coverage
+  nl2sql/ · agent/ · prompts/       measured by evals, not unit-tested
 """
 
 __version__ = "0.1.0"

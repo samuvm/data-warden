@@ -1,19 +1,18 @@
-"""Los cuatro anillos encadenados: **valida, cuesta, presupuesta y ENMASCARA.**
+"""The control rings chained: validate, cost, budget and mask.
 
-`cost/screen.py` encadena los tres primeros y se detiene ahí a propósito: el contrato
-de capas pone `datawarden.mask` POR ENCIMA de `datawarden.cost`, así que `screen()` no
-puede importar el enmascarador ni ahora ni nunca. Este módulo es la costura que falta,
-y vive aquí porque `mask` sí puede mirar hacia abajo.
+`cost/screen.py` chains the first three and stops there on purpose: the layer
+contract places `datawarden.mask` above `datawarden.cost`, so `screen()` can never
+import the masker. This module is the seam, and it lives here because `mask` may
+depend downward.
 
-**Sin esto, `mask/` sería código muerto.** Nadie lo invocaría, `G-PII-LEAK` no tendría
-cómo medirse y las diecisiete columnas `mask` seguirían saliendo en claro con el guard
-en verde. Es la clase de agujero que no da error: cada pieza funciona y nadie las une.
+Without it, `mask/` would be dead code: nothing would call it, `G-PII-LEAK` could
+not be measured, and the seventeen `mask` columns would leak in clear with the guard
+green. Every piece works and nothing connects them, which raises no error.
 
-**Qué NO hace: ejecutar.** Igual que `screen()`. Devuelve el árbol listo —validado,
-presupuestado y enmascarado— y quien lo lleva al motor es el `AuditedExecutor` del
-anillo 5, que es el único camino a `Engine.execute()`. Mantenerlo así es lo que permite
-que `G-BUDGET-ESCAPE` se pruebe por contador: si el veredicto es un rechazo y el motor
-no se movió, la consulta no llegó.
+It does not execute, just like `screen()`. It returns the validated, budgeted and
+masked tree; `AuditedExecutor`, the only path to `Engine.execute()`, runs it. This
+keeps `G-BUDGET-ESCAPE` testable by counter: if the verdict is a rejection and the
+engine counter did not move, the query never reached the engine.
 """
 
 from __future__ import annotations
@@ -38,7 +37,7 @@ from datawarden.principal.policy import AccessPolicy
 
 @dataclass(frozen=True, slots=True)
 class MaskedResult:
-    """El veredicto de los cuatro anillos, con todo lo que la auditoría necesita."""
+    """Verdict of the chained rings, with everything the audit record needs."""
 
     query: ValidatedQuery | None
     rejection: RejectionReason | None
@@ -52,7 +51,7 @@ class MaskedResult:
 
     @property
     def masked_columns(self) -> tuple[str, ...]:
-        """Las columnas que el anillo 4 reescribió. Evidencia, no promesa."""
+        """Columns the masker rewrote. Evidence, not a promise."""
         return () if self.query is None else self.query.masked_columns
 
 
@@ -68,13 +67,12 @@ def screen_and_mask(
     dialect: str = "duckdb",
     timeout_ms: float = DEFAULT_TIMEOUT_MS,
 ) -> MaskedResult:
-    """Anillos 2, 3, 4 y 5 del mapa. Nunca lanza, nunca ejecuta.
+    """Guard, cost, budget and masking. Never raises, never executes.
 
-    El orden no es negociable y cada paso depende del anterior. Enmascarar antes de
-    validar sería enmascarar un árbol sin cualificar, donde los alias no están
-    resueltos y `SELECT *` no está expandido: la mitad de las columnas sensibles no se
-    encontrarían. Y enmascarar antes de presupuestar cambiaría el árbol que el
-    estimador tarifó, con lo que el coste publicado dejaría de ser el de lo ejecutado.
+    Order is fixed. Masking before validation would operate on an unqualified tree,
+    with unresolved aliases and unexpanded `SELECT *`, missing half the sensitive
+    columns. Masking before budgeting would change the tree the estimator priced, so
+    the published cost would not match what ran.
     """
     result: ScreenResult = screen(
         sql,
@@ -96,9 +94,9 @@ def screen_and_mask(
 
     masked = mask_query(result.query, policy=policy, config=config)
     if isinstance(masked, RejectionReason):
-        # El enmascarador solo rechaza cuando encuentra algo que el guard no debería
-        # haber dejado pasar. Se propaga tal cual: convertirlo en «aceptado sin
-        # máscara» sería exactamente la fuga que el anillo existe para cerrar.
+        # The masker only rejects shapes the guard should not have let through.
+        # Propagate as-is: downgrading to "accepted without masking" is the very
+        # leak this step exists to prevent.
         return MaskedResult(
             query=None,
             rejection=masked,

@@ -1,15 +1,13 @@
-"""R007 · profundidad máxima de anidamiento.
+"""R007: maximum nesting depth.
 
-`PROJECT.md` la pide en la lista del anillo 3. Su valor no es tanto parar un ataque
-—R013 ya acota el tamaño total— como parar una CLASE de consulta cuyo coste no se
-puede estimar: cada nivel de subconsulta correlacionada multiplica el trabajo del
-motor por el número de filas del nivel de arriba, y el estimador de la fase 3 mira
-bytes escaneados, que en una correlacionada no capturan nada de eso.
+Its value is less about stopping an attack (R013 already bounds total size) than about
+stopping a class of query whose cost cannot be estimated: each level of correlated
+subquery multiplies engine work by the row count of the level above, and the cost
+estimator looks at bytes scanned, which capture none of that.
 
-**Ocho niveles no es una cifra redonda elegida al azar.** Las quince preguntas del
-banco con «ventana o subconsulta correlacionada» que exige la fase 8 llegan
-como mucho a cuatro: dos de CTE, una de subconsulta y una de ventana. Ocho deja el
-doble de margen y sigue acotando el peor caso.
+Eight is not arbitrary. The benchmark questions that use a window or a correlated
+subquery reach at most four levels (two CTEs, one subquery, one window). Eight doubles
+that headroom and still bounds the worst case.
 """
 
 from __future__ import annotations
@@ -24,18 +22,18 @@ from datawarden.guard.rules import messages
 
 MAX_DEPTH: Final = 8
 
-#: Lo que cuenta como un nivel. Un `Paren` no lo es: agrupar una expresión
-#: aritmética no anida nada, y contarlo haría que `((a+b)*c)` gastara niveles.
+#: What counts as one level. `Paren` does not: grouping an arithmetic expression nests
+#: nothing, and counting it would make `((a+b)*c)` consume levels.
 NESTING_NODES: Final = (exp.Select, exp.Subquery, exp.CTE)
 
 
 class NestingDepthRule:
-    """El anidamiento de consultas no pasa de `MAX_DEPTH`."""
+    """Query nesting does not exceed `MAX_DEPTH`."""
 
     rule_id = "R007"
     code = "nesting_too_deep"
     severity = Severity.POLICY
-    summary = "La profundidad de subconsultas y CTE no supera el máximo"
+    summary = "Subquery and CTE depth does not exceed the maximum"
     families: tuple[str, ...] = ("anidamiento_excesivo",)
     phase = POST_QUALIFY
 
@@ -62,12 +60,11 @@ class NestingDepthRule:
 
 
 def _ancestors(node: exp.Expression) -> list[exp.Expression]:
-    """El nodo y toda su ascendencia, de dentro afuera.
+    """The node and all its ancestors, innermost first.
 
-    Se devuelve una lista en vez de subir con un bucle sobre `.parent` porque
-    sqlglot tipa `.parent` con un self-type y el verificador estricto no deja
-    reasignarlo a una variable de tipo `Expression`. Recorrerlo aquí, una vez,
-    evita repetir el mismo apaño en cada regla que necesite ascendencia.
+    Returns a list instead of looping over `.parent` because sqlglot types `.parent` with
+    a self-type that strict type checking will not reassign to an `Expression` variable.
+    Doing it once here avoids repeating the workaround in every rule that needs ancestry.
     """
     chain: list[exp.Expression] = []
     current: exp.Expression | None = node

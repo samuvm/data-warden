@@ -1,29 +1,20 @@
-"""La pimienta del enmascarado, y la comprobación de que el contrato sigue diciendo
-lo que decía cuando se firmó.
+"""Masking pepper, and the startup check that the signed contract still says what it said.
 
-**Este módulo puede negarse a arrancar, y es su razón de ser.**
-`docs/spec/policy.yaml` —firmado el 2026-09-01— declara
-`determinista: true` y `pimienta_desde: config`, con el comentario *«nunca sal por
-sesión ni por día»*. El plan original decía lo contrario en la fila de la fase 4
-—«hash truncado con sal por sesión»—.
+This module refuses to start if the contract changed. `docs/spec/policy.yaml`,
+signed on 2026-09-01, declares `determinista: true` and `pimienta_desde: config`
+("never a per-session or per-day salt").
 
-Manda el contrato firmado, y no por antigüedad: porque trae escrito su motivo y el
-motivo es verificable. Con sal por sesión, el resultset de toda consulta con una
-columna `mask` deja de ser comparable entre ejecuciones, y **las preguntas del banco
-de 60 que toquen una columna enmascarada no podrían tener respuesta de referencia**.
-Se descubriría en la fase 8, con el banco ya escrito y con 10-20 horas
-gastadas en escribirlo.
+With a per-session salt, the resultset of any query touching a `mask` column would
+not be comparable across runs, and evaluation questions involving a masked column
+could not have a reference answer. Checking the contract at load time keeps that
+decision from regressing silently: if the YAML changes or a future compiler stops
+emitting the field, loading stops instead of continuing with different behaviour.
 
-Comprobar el contrato aquí, al cargar, es lo que impide que esa decisión vuelva por
-la puerta de atrás: si alguien cambia el YAML o una versión futura del compilador
-deja de emitir el campo, esto **para** en vez de seguir con otro comportamiento.
-
-**Qué se gana y qué se pierde con una pimienta fija, dicho aquí.** Se gana poder
-agrupar y contar sin revelar, y respuestas de referencia estables. Se pierde
-resistencia a la correlación: el mismo valor produce siempre el mismo hash, así que
-quien conozca un valor lo reconoce en el resultset, y quien tenga la pimienta puede
-construir un diccionario y revertir cualquier columna de cardinalidad baja. Está en
-`docs/threat-model.md §4.2` en vez de disimulado.
+Trade-off of a fixed pepper (documented in `docs/threat-model.md §4.2`): it enables
+grouping and counting without revealing values, and stable reference answers. It
+gives up correlation resistance: the same value always yields the same hash, so
+anyone who knows a value recognizes it in a resultset, and anyone holding the pepper
+can build a dictionary and reverse any low-cardinality column.
 """
 
 from __future__ import annotations
@@ -34,68 +25,65 @@ from typing import Final
 
 from datawarden.principal.policy import AccessPolicy
 
-#: De dónde sale la pimienta en un despliegue. No hay valor por defecto y no lo va a
-#: haber: una pimienta por defecto es una pimienta pública, y `check_secrets.py`
-#: marcaría con razón cualquier literal que se pareciera a un secreto en el código.
+#: Environment variable holding the pepper in a deployment. There is no default: a
+#: default pepper is a public pepper, and `check_secrets.py` would rightly flag any
+#: secret-looking literal in the code.
 PEPPER_ENV: Final = "DATAWARDEN_MASK_PEPPER"
 
-#: Longitud mínima. 32 caracteres no es un número mágico: es lo que hace que la
-#: pimienta no se pueda forzar por fuerza bruta cuando el atacante ya conoce el
-#: algoritmo —que lo conoce, está publicado en `docs/spec/policy.yaml`— y tiene un
-#: par (valor, hash) de una columna de cardinalidad baja.
+#: Minimum length. 32 characters keeps the pepper out of brute-force reach when the
+#: attacker knows the algorithm (it is published in `docs/spec/policy.yaml`) and holds
+#: a (value, hash) pair from a low-cardinality column.
 MIN_PEPPER_LENGTH: Final = 32
 
 
 @dataclass(frozen=True, slots=True)
 class MaskConfig:
-    """La configuración del enmascarado. Hoy es la pimienta y nada más."""
+    """Masking configuration. Currently just the pepper."""
 
     pepper: str
 
     def __post_init__(self) -> None:
         if not self.pepper.strip():
             message = (
-                "la pimienta del enmascarado está vacía. Sin ella, `sha256(valor)` "
-                "es un diccionario público: las columnas que este sistema hashea "
-                "son de cardinalidad acotada —una IP, una huella de dispositivo— y "
-                "cualquiera con la tabla de hashes las revierte. Una pimienta vacía "
-                f"no es menos seguridad, es ninguna. Define {PEPPER_ENV}."
+                "the masking pepper (`pimienta_desde` in docs/spec/policy.yaml) is "
+                "empty. Without it, `sha256(value)` is a public dictionary: the hashed "
+                "columns have bounded cardinality (an IP, a device fingerprint) and "
+                "anyone with a hash table can reverse them. An empty pepper is not "
+                f"weaker security, it is none. Set {PEPPER_ENV}."
             )
             raise ValueError(message)
         if len(self.pepper) < MIN_PEPPER_LENGTH:
             message = (
-                f"la pimienta tiene {len(self.pepper)} caracteres y el mínimo es "
-                f"{MIN_PEPPER_LENGTH}. El algoritmo está publicado en "
-                "docs/spec/policy.yaml, así que lo único que separa el hash del "
-                "valor original es esto."
+                f"the pepper has {len(self.pepper)} characters and the minimum is "
+                f"{MIN_PEPPER_LENGTH}. The algorithm is published in "
+                "docs/spec/policy.yaml, so the pepper is the only thing between the "
+                "hash and the original value."
             )
             raise ValueError(message)
 
 
 def load_mask_config(policy: AccessPolicy, *, pepper: str | None = None) -> MaskConfig:
-    """La configuración, COMPROBANDO antes que el contrato dice lo que decía.
+    """Build the configuration after checking the contract still says what was signed.
 
-    Se pasa `pepper` explícitamente en los tests y en el gate; en un despliegue sale
-    de la variable de entorno. No hay valor por defecto a propósito: enmascarar con
-    una pimienta que todo el mundo conoce es peor que no enmascarar, porque produce
-    la apariencia de protección sin la protección.
+    Tests and the gate pass `pepper` explicitly; a deployment reads it from the
+    environment. There is no default on purpose: masking with a well-known pepper is
+    worse than not masking, because it looks like protection without being one.
     """
     if not policy.deterministic_masking:
         message = (
-            "docs/spec/policy.yaml declara `determinista: false` y este enmascarador "
-            "no funciona así. El contrato FIRMADO el 2026-09-01 dice `determinista: "
-            "true` y `pimienta_desde: config`, con su motivo escrito: con sal por "
-            "sesión, las preguntas del banco de 60 que tocan una columna enmascarada "
-            "no pueden tener respuesta de referencia, y eso se descubre en la fase 8 "
-            "con el banco ya escrito. Cambiar esta decisión exige una política "
-            "firmada de nuevo, no se hereda de un valor por defecto."
+            "docs/spec/policy.yaml declares `determinista: false`, which this masker "
+            "does not support. The policy as signed (`firmado_el: 2026-09-01`) says "
+            "`determinista: true` and `pimienta_desde: config`, with its reason: "
+            "with a per-session salt, evaluation questions touching a masked column "
+            "cannot have a reference answer. Changing this requires a newly signed "
+            "policy, not a default value."
         )
         raise ValueError(message)
     if policy.pepper_from != "config":
         message = (
-            f"docs/spec/policy.yaml declara `pimienta_desde: {policy.pepper_from!r}` "
-            "y este enmascarador solo admite `config`. El contrato firmado dice "
-            "literalmente «nunca sal por sesión ni por día»."
+            f"docs/spec/policy.yaml declares `pimienta_desde: {policy.pepper_from!r}` "
+            "and this masker only supports `config`. The signed contract says "
+            "literally: never a per-session or per-day salt."
         )
         raise ValueError(message)
     return MaskConfig(pepper=pepper if pepper is not None else os.environ.get(PEPPER_ENV, ""))

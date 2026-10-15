@@ -1,16 +1,15 @@
-"""Presupuestos por rol: el blando avisa, el duro no ejecuta, `max_rows` recorta.
+"""Per-role budgets: the soft limit warns, the hard limit refuses, `max_rows` truncates.
 
-Son TRES decisiones distintas y llamarlas «el presupuesto» a las tres es como se
-acaba con un solo número que no sirve para ninguna de las tres cosas.
+These are three separate decisions; collapsing them into one "budget" number serves
+none of them.
 
-- **`hard_bytes`** hace verdadera `G-BUDGET-ESCAPE`, que es un axioma: cero
-  consultas por encima del presupuesto llegan al motor. No se negocia en caliente.
-- **`soft_bytes`** pide confirmación en vez de rechazar. Existe porque un guardián
-  que solo sabe decir «no» se desactiva en tres semanas. En la fase 7 es un
-  `InputRequiredResult` de MRTR.
-- **`max_rows`** recorta en el dominio y nunca en el motor (I-12): si cada engine
-  aplicara el suyo, DuckDB y Athena devolverían resultados distintos para el mismo
-  rol, y el criterio de aceptación nº 5 de `PROJECT.md` fallaría por eso.
+- `hard_bytes` backs `G-BUDGET-ESCAPE`, an axiom: zero queries above budget reach
+  the engine. It is not negotiable at runtime.
+- `soft_bytes` asks for confirmation instead of refusing, because a guard that can
+  only say no gets disabled. Over MCP it becomes an MRTR `InputRequiredResult`.
+- `max_rows` truncates in the domain, never in the engine (I-12): per-engine caps
+  would make DuckDB and Athena return different results for the same role, breaking
+  acceptance criterion 5 of `docs/DESIGN.md`.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ from datawarden.domain.types import Role
 
 
 class Decision(StrEnum):
-    """Qué hacer con una consulta según lo que el estimador dijo que costaría."""
+    """What to do with a query given its estimated cost."""
 
     EXECUTE = "execute"
     CONFIRM = "confirm"
@@ -36,21 +35,20 @@ class Decision(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Budget:
-    """El presupuesto de un rol, en bytes ya convertidos."""
+    """One role's budget, in bytes."""
 
     role: Role
     soft_bytes: int
     hard_bytes: int
     max_rows: int
-    #: `False` mientras `soft_bytes` sea una hipótesis de diseño y no una medida de
-    #: `make cost-calibration`. Publicarlo como si estuviera medido sería una
-    #: mentira silenciosa, que es la clase de error que este proyecto persigue.
+    #: `False` while `soft_bytes` is a design assumption rather than a value measured
+    #: by `make cost-calibration`, so it is never published as measured.
     soft_is_calibrated: bool
 
 
 @dataclass(frozen=True, slots=True)
 class BudgetBook:
-    """Los cuatro presupuestos, cargados una vez."""
+    """The four role budgets, loaded once."""
 
     budgets: Mapping[Role, Budget]
     source_sha256: str = ""
@@ -62,18 +60,17 @@ class BudgetBook:
         return self.budgets[role].max_rows
 
     def decide(self, role: Role, *, estimated_bytes: int) -> Decision:
-        """El veredicto de coste.
+        """The cost verdict.
 
-        El límite duro es INCLUSIVO: el axioma dice «ninguna consulta POR ENCIMA del
-        presupuesto llega al motor», así que gastar exactamente el presupuesto está
-        dentro. Fijarlo aquí evita que dos capas lo interpreten de dos maneras y que
-        la diferencia aparezca como un fallo de `G-BUDGET-ESCAPE` de un byte.
+        The hard limit is inclusive: the axiom forbids queries above budget, so
+        spending exactly the budget is allowed. Fixing it here keeps layers from
+        disagreeing and producing an off-by-one-byte `G-BUDGET-ESCAPE` failure.
         """
         if estimated_bytes < 0:
             msg = (
-                f"estimated_bytes={estimated_bytes}. Un coste negativo no significa "
-                "nada, y aceptarlo dejaría pasar cualquier consulta cuyo estimador "
-                "se equivocara de signo."
+                f"estimated_bytes={estimated_bytes}. A negative cost is meaningless, "
+                "and accepting it would let through any query whose estimator got "
+                "the sign wrong."
             )
             raise ValueError(msg)
         budget = self.budgets[role]
@@ -85,15 +82,15 @@ class BudgetBook:
 
 
 def budgets_from_dict(payload: dict[str, Any]) -> BudgetBook:
-    """Construye el libro de presupuestos desde el JSON compilado. Puro."""
+    """Build the budget book from the compiled JSON. Pure."""
     rows = payload["roles"]
     budgets: dict[Role, Budget] = {}
     for role in Role:
         if role.value not in rows:
             msg = (
-                f"falta el presupuesto del rol {role.value!r}. Un rol sin presupuesto "
-                "ejecutaría sin límite: sería exactamente el agujero que "
-                "G-BUDGET-ESCAPE existe para cerrar, y sin nada que lo delate."
+                f"missing budget for role {role.value!r}. A role without a budget would "
+                "run unbounded, which is exactly the hole G-BUDGET-ESCAPE exists to "
+                "close, and nothing would flag it."
             )
             raise ValueError(msg)
         row = rows[role.value]
@@ -101,8 +98,8 @@ def budgets_from_dict(payload: dict[str, Any]) -> BudgetBook:
         hard = int(row["hard_bytes"])
         if soft > hard:
             msg = (
-                f"{role.value}: soft_bytes ({soft}) por encima de hard_bytes ({hard}). "
-                "Un aviso que salta después del rechazo no avisa de nada."
+                f"{role.value}: soft_bytes ({soft}) above hard_bytes ({hard}). A "
+                "warning that fires after the rejection warns of nothing."
             )
             raise ValueError(msg)
         budgets[role] = Budget(
@@ -119,5 +116,5 @@ def budgets_from_dict(payload: dict[str, Any]) -> BudgetBook:
 
 
 def load_budgets(path: pathlib.Path) -> BudgetBook:
-    """Carga los presupuestos compilados. La única función que toca disco."""
+    """Load the compiled budgets. The only function that touches disk."""
     return budgets_from_dict(json.loads(path.read_text(encoding="utf-8")))

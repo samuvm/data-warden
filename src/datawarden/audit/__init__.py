@@ -1,1 +1,1 @@
-"""Ver el mapa de zonas en `docs/RULES.md` §2: cada paquete tiene su regla de test."""
+"""See the zone map in `docs/RULES.md` §2: each package has its own test regime."""

@@ -1,18 +1,16 @@
-"""R001 · una sola sentencia, y de lectura.
+"""R001: a single statement, and a read.
 
-Dos comprobaciones que parecen una:
+Two checks that look like one.
 
-**Una sola.** `sqlglot.parse` devuelve una lista. `parse_one` habría devuelto la
-primera y descartado el resto EN SILENCIO, que es exactamente cómo
-`SELECT 1; DROP TABLE dim_customer` pasa por un validador escrito con prisa: la
-validación mira el `SELECT` y el motor ejecuta las dos. El validador de este
-proyecto llama a `parse`, no a `parse_one`, y esta regla es donde eso se comprueba.
+Single: `sqlglot.parse` returns a list. `parse_one` would return the first statement and
+silently drop the rest, which is how `SELECT 1; DROP TABLE dim_customer` gets past a
+hasty validator: validation sees the `SELECT` and the engine runs both. The guard calls
+`parse`, not `parse_one`, and reports a multi-statement input under this rule.
 
-**Y de lectura.** El nodo de arriba tiene que ser una consulta. `PRAGMA`, `SET`,
-`EXPLAIN`, `INSTALL`, `ATTACH` y compañía no escriben datos —de eso se ocupa R010—
-pero tampoco preguntan nada: cambian el estado del motor, cargan extensiones o
-revelan su configuración. Un almacén que se consulta en lenguaje natural no
-necesita ninguna de las tres cosas.
+Read: the root must be a query. `PRAGMA`, `SET`, `EXPLAIN`, `INSTALL`, `ATTACH` and
+similar do not write data (that is R010's job), but they do not ask anything either:
+they change engine state, load extensions or reveal configuration. A warehouse queried
+in natural language needs none of that.
 """
 
 from __future__ import annotations
@@ -25,21 +23,21 @@ from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
 from datawarden.guard.rules import messages
 
-#: Lo único que puede estar en la raíz. `Subquery` entra porque `(SELECT 1)` con
-#: paréntesis es una consulta legítima y no un caso raro.
+#: The only node classes allowed at the root. `Subquery` is included because a
+#: parenthesised `(SELECT 1)` is a legitimate query.
 READ_ROOTS: Final = (exp.Select, exp.Union, exp.Except, exp.Intersect, exp.Subquery)
 
-#: Operaciones de conjunto, cuyas RAMAS también tienen que ser consultas.
+#: Set operations, whose branches must also be queries.
 SET_OPERATIONS: Final = (exp.Union, exp.Except, exp.Intersect)
 
 
 class SingleReadStatementRule:
-    """La raíz del árbol es una consulta, y solo hay una."""
+    """The tree root is a query, and there is only one."""
 
     rule_id = "R001"
     code = "not_a_read_statement"
     severity = Severity.SECURITY
-    summary = "Una única sentencia, y su raíz es una consulta de lectura"
+    summary = "A single statement whose root is a read query"
     families: tuple[str, ...] = (
         "sentencia_no_consulta",
         "sentencia_multiple",
@@ -63,22 +61,18 @@ class SingleReadStatementRule:
         )
 
     def _check_branches(self, ctx: GuardContext) -> RuleResult | None:
-        """Cada rama de un UNION es, también ella, una consulta.
+        """Every branch of a set operation is itself a query.
 
-        **ESTO NO ES PEDANTERÍA SINTÁCTICA: cierra un SIGSEGV.** Lo encontró la
-        propiedad de fail-closed con 5.000 entradas casi-SQL. `x UNION SELECT 1`
-        parsea sin error —la raíz es un `Union` perfectamente legal— y al llegar a
-        `qualify()` **mata el proceso**: el `sqlglot[c]` compilado con mypyc revienta
-        con una rama izquierda que no es una consulta.
+        This also prevents a segfault. `x UNION SELECT 1` parses without error (the root
+        is a valid `Union`), but `qualify()` in the mypyc-compiled `sqlglot[c]` crashes
+        the process when a branch is not a query.
 
-        Y un segfault es la peor forma posible de romper el fail-closed, porque **no
-        lo atrapa ningún `except`**: el guard no rechaza, el proceso muere. El único
-        sitio donde se puede parar es AQUÍ, antes de cualificar, comprobando lo que
-        de todos modos es verdad: una rama de un UNION tiene que ser una consulta.
-
-        El límite honesto va al modelo de amenaza: una caída nativa dentro de una
-        extensión compilada no se puede capturar en proceso, así que la defensa es
-        no llegar a ella y, en un servidor de verdad, aislar el proceso.
+        A segfault is the worst way to break fail-closed because no `except` catches it:
+        the guard does not reject, the process dies. The only place to stop it is here,
+        before qualification, by checking what has to hold anyway. The residual risk is
+        recorded in the threat model: a native crash inside a compiled extension cannot
+        be caught in-process, so the defence is never to reach it and, in production, to
+        isolate the process.
         """
         for node in ctx.tree.walk():
             if not isinstance(node, SET_OPERATIONS):

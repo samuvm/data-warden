@@ -1,13 +1,12 @@
-"""Genera `catalog/generated/schema.json` desde el esquema vivo.
+"""Generate `catalog/generated/schema.json` from the live schema.
 
-Es la única forma de escribir ese fichero, y por eso mismo es un módulo y no un
-script suelto: `warden catalog build` y `scripts/check_catalog_fresh.py` tienen que
-producir EXACTAMENTE el mismo texto, porque el segundo comprueba el sha del
-primero. Dos rutas de código que generan «lo mismo» acaban generando dos cosas.
+This is the only writer of that file. It is a module rather than a script so that
+`warden catalog build` and `scripts/check_catalog_fresh.py` produce byte-identical
+text; the latter checks the former's sha.
 
-Las anotaciones que el motor no puede dar —columnas excluidas de la publicación y
-columnas obsoletas— llegan ya compiladas a JSON por `scripts/compile_contracts.py`.
-El dominio no parsea YAML: ver el encabezado de ese script.
+Annotations the engine cannot provide (columns excluded from publication and
+deprecated columns) arrive precompiled to JSON by `scripts/compile_contracts.py`;
+the domain does not parse YAML.
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ def _load_json(path: pathlib.Path) -> dict[str, Any]:
 
 
 def generate(database: pathlib.Path) -> CatalogSchema:
-    """El esquema vivo más las dos anotaciones que el motor no conoce."""
+    """Live schema plus the two annotations the engine does not know about."""
     policy = _load_json(POLICY_PATH)
     overlay = _load_json(OVERLAY_PATH)
     return introspect_duckdb(
@@ -39,7 +38,7 @@ def generate(database: pathlib.Path) -> CatalogSchema:
 
 
 def write(schema: CatalogSchema, path: pathlib.Path = SCHEMA_PATH) -> str:
-    """Escribe el catálogo y devuelve el texto exacto que quedó en disco."""
+    """Write the catalog and return the exact text written to disk."""
     rendered = to_json(schema)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(rendered, encoding="utf-8")

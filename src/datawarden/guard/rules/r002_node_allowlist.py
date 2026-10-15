@@ -1,15 +1,14 @@
-"""R002 · el guard es una ALLOWLIST. Nodo desconocido, rechazo.
+"""R002: the guard is an allowlist; an unknown node is rejected.
 
-Es la regla que sostiene a las otras trece. Una denylist de construcciones
-peligrosas se queda corta el día que DuckDB añade una extensión, **sin que nadie
-toque una línea de este repositorio**; una allowlist se queda corta de más, y esa es
-la clase de fallo con la que se puede vivir: alguien lee el rechazo, y la
-construcción se añade como una decisión con su commit y su caso.
+This rule underpins the other thirteen. A denylist of dangerous constructs falls short
+the day DuckDB ships a new extension, without anyone touching this repository. An
+allowlist errs the other way, which is the failure mode one can live with: someone
+reads the rejection and the construct is added deliberately, with its commit and its
+test case.
 
-Y se compara por CLASE DE NODO, no por texto. `TABLESAMPLE`, `tablesample` y
-`/*x*/TABLESAMPLE` son el mismo `exp.TableSample` después de parsear, así que no hay
-mayúsculas raras que normalizar ni comentarios entre tokens que esquivar. Ahí está
-la diferencia entera entre validar un árbol y buscar palabras.
+Matching is by node class, not by text. `TABLESAMPLE`, `tablesample` and
+`/*x*/TABLESAMPLE` all parse to the same `exp.TableSample`, so there is no casing to
+normalise and no inter-token comment to slip through.
 """
 
 from __future__ import annotations
@@ -21,12 +20,12 @@ from datawarden.guard.rules import messages
 
 
 class NodeAllowlistRule:
-    """Todo nodo del árbol está en la allowlist."""
+    """Every node in the tree is on the allowlist."""
 
     rule_id = "R002"
     code = "node_not_allowed"
     severity = Severity.SECURITY
-    summary = "Todo tipo de nodo del árbol está en la allowlist"
+    summary = "Every node type in the tree is on the allowlist"
     families: tuple[str, ...] = ("nodo_desconocido", "construccion_no_analitica")
     phase = PRE_QUALIFY
 
@@ -34,9 +33,8 @@ class NodeAllowlistRule:
         for node in ctx.tree.walk():
             name = node.__class__.__name__
             if name in ALLOWED_NODES or name == "Anonymous":
-                # `Anonymous` tiene su propia regla y su propio mensaje: R003. Que
-                # cayera aquí sería un rechazo por la regla equivocada, y eso es un
-                # acierto por casualidad.
+                # `Anonymous` has its own rule and message (R003). Rejecting it here
+                # would attribute the rejection to the wrong rule.
                 continue
             message, suggestion = messages.node_not_allowed(name)
             return reject(

@@ -1,19 +1,17 @@
-"""La política de acceso: rol, columna y POSICIÓN EN EL ÁRBOL.
+"""Access policy: role, column and position in the tree.
 
-**No es una escala de confianza, es una escala de posición**, y esa es la idea
-entera del proyecto. Enmascarar la salida es teatro: si puedes FILTRAR por una
-columna, la reconstruyes a base de preguntas aunque nunca veas su valor —el rango
-de fechas de nacimiento entre 1930 y 2010 son 29.220 días, así que quince consultas
-con distinto literal fijan la fecha exacta de una persona—. Por eso `mask` admite
-la columna en proyección directa y la RECHAZA en `WHERE`, `JOIN ON`, `GROUP BY`,
-`ORDER BY`, `HAVING`, `QUALIFY`, dentro de una función y como clave de partición de
-ventana.
+The policy is a scale of position, not of trust. Masking the output alone is not
+enough: if a column can be filtered on, it can be reconstructed by asking questions
+without ever seeing its value. Birth dates between 1930 and 2010 span 29,220 days,
+so about fifteen queries with different literals pin down a person's exact date.
+Hence `mask` allows the column in a direct projection and rejects it in `WHERE`,
+`JOIN ON`, `GROUP BY`, `ORDER BY`, `HAVING`, `QUALIFY`, inside a function and as a
+window partition key.
 
-Se carga desde `principal/generated/policy.json`, que compila
-`scripts/compile_contracts.py` desde el YAML firmado. El dominio no parsea YAML
-—`PyYAML` no está declarada— y además el guard está en el camino crítico de cada
-consulta: `G-GUARD-P95` exige p95 <= 25 ms y parsear YAML por consulta es tiempo
-tirado en el peor sitio posible.
+Loaded from `principal/generated/policy.json`, compiled by
+`scripts/compile_contracts.py` from the signed YAML. The domain does not parse YAML
+(PyYAML is not a dependency), and the guard is on every query's critical path:
+`G-GUARD-P95` requires p95 <= 25 ms.
 """
 
 from __future__ import annotations
@@ -30,16 +28,15 @@ from datawarden.domain.types import Position, Role
 
 
 class Level(StrEnum):
-    """Los tres niveles. `mask` es el interesante y el que hace serio al proyecto."""
+    """Access level of a column for a role."""
 
     ALLOW = "allow"
     MASK = "mask"
     DENY = "deny"
 
 
-#: El YAML firmado nombra las posiciones en español porque lo lee un humano de
-#: negocio; el dominio las nombra con el vocabulario de `Position`. La traducción
-#: vive aquí, en un sitio, y no repartida por el guard.
+#: The signed YAML names positions in Spanish because business owners read it; the
+#: domain uses `Position`. The mapping lives here, in one place, not across the guard.
 _POSITION_ALIASES: Final[dict[str, Position]] = {
     "where": Position.WHERE,
     "join_on": Position.JOIN_ON,
@@ -56,13 +53,12 @@ _POSITION_ALIASES: Final[dict[str, Position]] = {
 
 @dataclass(frozen=True, slots=True)
 class ColumnPolicy:
-    """La fila de una columna en la matriz."""
+    """One column's row in the matrix."""
 
     column: str
     levels: Mapping[Role, Level]
-    #: La clasificación de negocio de la columna, tal cual la firmó la política.
-    #: R012 razona sobre ESTO y no sobre una lista escrita en el código: si negocio
-    #: reclasifica una columna, la regla cambia con ella y sin tocar Python.
+    #: Business classification as signed in the policy. R012 reasons over this, not
+    #: over a hardcoded list, so reclassifying a column needs no Python change.
     data_type: str | None = None
     generalized: str | None = None
     transformation: str | None = None
@@ -74,11 +70,11 @@ class ColumnPolicy:
 
 @dataclass(frozen=True, slots=True)
 class DerivationViolation:
-    """Una columna `allow` que deriva de otra que no lo es. Regla de composición de la política.
+    """An `allow` column derived from a column that is not `allow` for the same role.
 
-    `segment_code` contiene `age_band` literalmente: si algún día se restringe
-    `age_band`, `segment_code` es un puente que lo rodea. Hoy no hay contradicción;
-    esto existe para que siga sin haberla dentro de seis semanas.
+    `segment_code` embeds `age_band` verbatim: if `age_band` were ever restricted,
+    `segment_code` would be a bypass. There is no conflict today; this check keeps
+    it that way.
     """
 
     derived: str
@@ -88,7 +84,7 @@ class DerivationViolation:
 
 @dataclass(frozen=True, slots=True)
 class AccessPolicy:
-    """La matriz completa, indexada y lista para consultar en microsegundos."""
+    """The full matrix, indexed for microsecond lookups."""
 
     columns: Mapping[str, ColumnPolicy]
     default_level: Level = Level.ALLOW
@@ -101,12 +97,10 @@ class AccessPolicy:
     _restricted: Mapping[Role, frozenset[str]] = field(default_factory=dict, repr=False)
 
     def column(self, name: str) -> ColumnPolicy:
-        """La fila de esa columna, o una fila por defecto si no está en la matriz.
+        """The column's row, or a default row if it is not in the matrix.
 
-        Devolver una fila y no `None` es deliberado: el que pregunta quiere saber
-        qué puede hacer, y obligar a cada llamante a tratar el `None` es obligarle a
-        reimplementar el valor por defecto, que es como dos sitios acaban teniendo
-        dos valores por defecto distintos.
+        Returning a row instead of `None` keeps the default in one place; otherwise
+        every caller re-implements it and the defaults drift.
         """
         found = self.columns.get(name.lower())
         if found is not None:
@@ -120,10 +114,10 @@ class AccessPolicy:
         return self.column(name).levels[role]
 
     def is_position_allowed(self, name: str, role: Role, position: Position) -> bool:
-        """Si esa columna puede aparecer AHÍ para ese rol.
+        """Whether the column may appear at this position for this role.
 
-        `allow` en cualquier posición; `deny` en ninguna, ni siquiera la proyección;
-        `mask` solo donde no cierre el canal lateral.
+        `allow` anywhere; `deny` nowhere, not even the projection; `mask` only where
+        it does not open the side channel.
         """
         level = self.level_for(name, role)
         if level is Level.ALLOW:
@@ -133,22 +127,22 @@ class AccessPolicy:
         return position not in self.forbidden_positions_in_mask
 
     def generalized_for(self, name: str) -> str | None:
-        """La columna publicada como salida, si la política declara alguna."""
+        """The column published in its place, if the policy declares one."""
         return self.column(name).generalized
 
     def restricted_columns(self, role: Role) -> frozenset[str]:
-        """Las columnas que NO son `allow` para ese rol.
+        """Columns that are not `allow` for the role.
 
-        Precalculado al cargar: el guard no puede recorrer 300 columnas por
-        consulta y caber en los 25 ms de `G-GUARD-P95`.
+        Precomputed at load time: scanning 300 columns per query would not fit the
+        25 ms budget of `G-GUARD-P95`.
         """
         return self._restricted.get(role, frozenset())
 
     def derivation_violations(self) -> tuple[DerivationViolation, ...]:
-        """Regla de composición: toda columna `allow` cuya fuente no lo es para el mismo rol.
+        """Every `allow` column whose source is not `allow` for the same role.
 
-        Una columna que no está en la matriz es `allow` por defecto, así que derivar
-        de ella no es una violación: no hay nada que rodear.
+        A column absent from the matrix defaults to `allow`, so deriving from it is
+        not a violation.
         """
         violations: list[DerivationViolation] = []
         for name, spec in sorted(self.columns.items()):
@@ -163,12 +157,11 @@ class AccessPolicy:
         return tuple(violations)
 
     def undeclared_admin_denials(self) -> tuple[str, ...]:
-        """Excepción de admin: columnas que admin no ve y no lo declaran con `excepcion_admin`.
+        """Columns hidden from admin without a declared `excepcion_admin`.
 
-        El invariante del contrato es «admin lo ve todo» y tiene exactamente una
-        excepción firmada. Si la excepción viviera solo en la prosa, esta
-        comprobación la marcaría como error y alguien la «arreglaría»
-        concediéndosela a admin, que es justo lo contrario de lo que se firmó.
+        The contract states that admin sees everything, with exactly one signed
+        exception. Declaring it in data keeps this check from flagging it, and keeps
+        anyone from "fixing" it by granting the column to admin.
         """
         return tuple(
             name
@@ -178,7 +171,7 @@ class AccessPolicy:
 
 
 def policy_from_dict(payload: dict[str, Any]) -> AccessPolicy:
-    """Construye la política desde el JSON compilado. Puro: ni disco ni YAML."""
+    """Build the policy from the compiled JSON. Pure: no disk, no YAML."""
     default = Level(payload.get("default_level", "allow"))
     columns: dict[str, ColumnPolicy] = {}
     for name, spec in payload["columns"].items():
@@ -219,5 +212,5 @@ def policy_from_dict(payload: dict[str, Any]) -> AccessPolicy:
 
 
 def load_policy(path: pathlib.Path) -> AccessPolicy:
-    """Carga la política compilada. La única función de este módulo que toca disco."""
+    """Load the compiled policy. The only function in this module that touches disk."""
     return policy_from_dict(json.loads(path.read_text(encoding="utf-8")))

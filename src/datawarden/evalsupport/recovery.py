@@ -1,37 +1,34 @@
-"""La expansión de las semillas del corpus de `G-RECOVERY`. Pura y determinista.
+"""Expansion of the `G-RECOVERY` corpus seeds. Pure and deterministic.
 
-**Aquí vive SOLO la expansión, y el reparto no es estético: lo impuso I-05.** La
-lectura del corpus —que incluye con qué ROL se valida cada caso— vive en
-`scripts/recoverylib.py`, porque `scripts/check_role_source.py` prohíbe que ningún
-módulo publicado saque un rol de un diccionario, y tenía razón: «es solo una fixture
-de evaluación» es exactamente la excusa que alguien daría el día que la violación
-fuese de verdad. `G-ROLE-SPOOF` es un axioma y no se negocia por comodidad.
+Only the expansion lives here, because of I-05. Reading the corpus, including the
+role each case is validated with, lives in `scripts/recoverylib.py`:
+`scripts/check_role_source.py` forbids any published module from taking a role out
+of a dict, with no exemption for evaluation fixtures. `G-ROLE-SPOOF` is an axiom.
 
-Lo que queda aquí es lo que no tiene rol ninguno y sí decide algo: **qué cadena de
-SQL acaba delante del guard.** Eso se prueba y se cubre.
+What remains has no role and still matters: which SQL string reaches the guard. That
+is tested and covered.
 
-**Por qué existe la repetición.** Tres semillas de R013 tienen que superar los 4.000
-nodos del árbol para que la regla dispare, y escribirlas literales serían treinta
-kilobytes de `+ 1` dentro de un fichero que alguien tiene que poder leer y revisar.
-La expansión es declarativa, y el check revalida el SQL YA EXPANDIDO contra el
-guard: lo que se comprueba es lo que se manda, no la plantilla.
+Repetition exists because three R013 seeds must exceed 4,000 tree nodes to trigger
+the rule, and writing them out would be thirty kilobytes of `+ 1` in a reviewable
+file. Expansion is declarative, and the check re-validates the expanded SQL against
+the guard: what is checked is what is sent, not the template.
 """
 
 from __future__ import annotations
 
 from typing import Any, Final
 
-#: El corpus firmado, relativo a la raíz del repositorio. Lo lee `scripts/`.
+#: Signed corpus, relative to the repository root. Read by `scripts/`.
 CORPUS_PATH: Final = "evals/golden/recovery.yaml"
 
-#: Los dos marcadores que la expansión sustituye. Dos formas y ninguna más: cada
-#: forma nueva es una manera más de que el SQL medido no sea el SQL leído.
+#: The two placeholders expansion substitutes. Each extra form would be one more way
+#: for the measured SQL to differ from the SQL read.
 REPEAT_MARK: Final = "{repeticion}"
 BRANCH_MARK: Final = "{union_de_ramas}"
 
 
 def expand(seed: str, repetition: dict[str, Any] | None) -> str:
-    """Aplica la repetición declarada, si la hay. Determinista y sin sorpresas."""
+    """Apply the declared repetition, if any. Deterministic."""
     if repetition is None:
         return " ".join(seed.split())
     times = int(repetition["veces"])

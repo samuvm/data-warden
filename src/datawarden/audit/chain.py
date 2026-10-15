@@ -1,22 +1,17 @@
-"""La cadena de auditoría: canonicalizar, encadenar y verificar. PURO.
+"""Audit chain: canonicalize, link and verify. Pure.
 
-Ni disco, ni SQLite, ni reloj. Esta separación no es aseo: es lo que permite que
-la propiedad de manipulación de `G-AUDIT-TAMPER` corra mil ejemplos de Hypothesis
-sobre una cadena en memoria en vez de abrir mil bases de datos, y una propiedad que
-no cabe en el gate acaba con alguien bajándole el número de ejemplos.
+No disk, no SQLite, no clock. This lets the `G-AUDIT-TAMPER` property run a thousand
+Hypothesis examples on an in-memory chain instead of opening a thousand databases.
 
-**Por qué el hash encadenado, y hasta dónde llega.** `h_n = sha256(h_{n-1} ‖
-jcs(registro_n))` hace que reescribir un registro obligue a reescribir todos los
-posteriores. Eso detecta a quien manipula el almacén sin poder rehacerlo entero.
-**No detecta a quien SÍ puede**, y ese límite es obligatorio en
-`docs/threat-model.md` con las palabras del contrato: *quien tiene escritura sobre
-el almacén puede recalcular la cadena entera*. Por eso existe `warden audit anchor`.
+Scope of the hash chain: `h_n = sha256(h_{n-1} || jcs(record_n))` forces anyone who
+rewrites a record to rewrite every later one. That detects tampering by someone who
+cannot rebuild the whole store, and not by someone who can; `docs/threat-model.md`
+states this limit, and `warden audit anchor` exists for it.
 
-**El campo `hash` no está en `AuditRecord`, y es deliberado.** El contrato define el
-hash como el de «el registro SIN el campo hash», así que el tipo ES el registro sin
-él y `link()` lo devuelve. Guardarlo dentro obligaría a construir el objeto con un
-campo vacío para luego rellenarlo, que es la clase de estado a medias donde se cuela
-un registro sin hashear. De paso evita sombrear el builtin `hash`, que ruff vigila.
+`AuditRecord` has no `hash` field on purpose. The contract defines the hash over the
+record without that field, so the type is that record and `link()` returns the hash.
+Storing it inside would require a half-built object with an empty field, which is
+where an unhashed record slips through. It also avoids shadowing the `hash` builtin.
 """
 
 from __future__ import annotations
@@ -28,47 +23,35 @@ from typing import Any, Final
 
 from datawarden.domain.types import Role, RoleSource, Status
 
-#: El `prev_hash` del primer registro. 64 ceros y no `null`: «un valor legal y
-#: distinguible, para que el verificador no necesite un caso especial»
+#: `prev_hash` of the first record: 64 zeros rather than `null`, a legal and
+#: distinguishable value so the verifier needs no special case
 #: (`docs/spec/audit-record.schema.json`).
 #:
-#: **OJO: este relleno se usa DOS veces con dos significados distintos.** Aquí quiere
-#: decir «primero de la cadena»; en `executor.NO_VALIDATED_TREE` quiere decir «no hubo
-#: árbol validado que hashear». Hoy no colisionan porque son campos distintos y un
-#: verificador los lee por NOMBRE, pero el primer registro de una cadena que además
-#: sea un rechazo pre-parseo llevará los mismos 64 ceros en `prev_hash` y en
-#: `sql_digest` a la vez. Quedó fijado al aprobar este centinela: los valores son
-#: correctos y no se cambian, pero nadie debe escribir jamás un ayudante genérico
-#: del tipo «¿esto es un centinela?». Se leen por campo, nunca por valor.
+#: The same padding has a second meaning in `executor.NO_VALIDATED_TREE` ("no
+#: validated tree to hash"). They live in different fields, so they do not collide,
+#: but the first record of a chain that is also a pre-parse rejection carries 64
+#: zeros in both `prev_hash` and `sql_digest`. Read them by field, never by value;
+#: do not write a generic "is this a sentinel?" helper.
 GENESIS: Final = "0" * 64
 
-#: Versión de `docs/spec/audit-record.schema.json` con la que se escriben los
-#: registros NUEVOS. Es el valor por defecto del campo homónimo, **no una constante
-#: que se inyecte al canonicalizar**, y la diferencia es la razón de que el campo
-#: exista.
+#: Schema version written on new records. It is the field's default, not a constant
+#: injected at canonicalization time.
 #:
-#: Lo destapó la propiedad de `G-AUDIT-TAMPER` recorriendo el registro byte a byte:
-#: mientras la versión se inyectaba desde aquí, alterarla en un registro guardado no
-#: cambiaba nada —se reconstruía con la constante— y la mutación pasaba sin
-#: detectarse. Peor que el hueco era su causa: **el día que esto subiera a 2, todo
-#: registro escrito bajo la 1 habría dejado de verificar**, porque se le habría
-#: inyectado una versión que no era la suya. El contrato mete `schema_version` en el
-#: hash para que una cadena que mezcla versiones SE PUEDA verificar, y eso solo
-#: funciona si cada registro recuerda la suya.
+#: Injecting it would mean a tampered `schema_version` in a stored record goes
+#: undetected (it would be rebuilt from the constant), and bumping to 2 would make
+#: every version-1 record fail verification. The contract hashes `schema_version` so
+#: that mixed-version chains remain verifiable, which only works if each record keeps
+#: its own.
 SCHEMA_VERSION: Final = 1
 
-#: Campos que se emiten SIEMPRE, valgan lo que valgan. El resto es opcional y solo
-#: aparece cuando tiene algo que decir: el contrato tiene `additionalProperties:
-#: false` y declara nullable a casi todo, y emitir `null` en trece campos por
-#: registro engorda la cadena sin añadir información.
+#: Fields always emitted. Everything else is optional and omitted when empty: the
+#: contract has `additionalProperties: false` and most fields are nullable, so
+#: emitting thirteen `null`s per record adds size without information.
 #:
-#: **`tables` y `columns_masked` están aquí aunque vayan vacíos, y es una decisión.**
-#: En un registro de auditoría `"columns_masked": []` es EVIDENCIA —dice que no se
-#: enmascaró nada— mientras que el campo ausente es AMBIGÜEDAD: no distingue «no
-#: había nada que enmascarar» de «lo escribió una versión que aún no llevaba el
-#: campo». El contrato define `columns_masked` como «la evidencia de que el
-#: enmascarado ocurrió, no la promesa de que ocurrió», y una evidencia que a veces
-#: no está no es evidencia.
+#: `tables` and `columns_masked` are always emitted even when empty. An empty
+#: `columns_masked` is evidence that nothing was masked, while a missing field is
+#: ambiguous (nothing to mask, or written by a version without the field). The
+#: contract defines it as evidence that masking happened, not a promise.
 _ALWAYS: Final = (
     "seq",
     "recorded_at",
@@ -87,10 +70,10 @@ _ALWAYS: Final = (
 
 @dataclass(frozen=True, slots=True)
 class AuditRecord:
-    """Un registro de auditoría, SIN su hash. Conforme al contrato de la fase 1.
+    """An audit record without its hash, conforming to `audit-record.schema.json`.
 
-    Los diez primeros campos son los `required` del schema. El resto es opcional y
-    solo se emite cuando tiene algo que decir.
+    The first ten fields are the schema's `required` ones; the rest are optional and
+    emitted only when set.
     """
 
     seq: int
@@ -102,8 +85,8 @@ class AuditRecord:
     question_digest: str
     sql_digest: str
     prev_hash: str = GENESIS
-    #: La versión del contrato con la que se escribió ESTE registro, no la que corre
-    #: hoy. Por defecto la actual; se restaura tal cual al leer de disco.
+    #: Contract version this record was written with, not the current one. Defaults
+    #: to the current version and is restored as stored when read from disk.
     schema_version: int = SCHEMA_VERSION
 
     question_preview: str | None = None
@@ -122,14 +105,11 @@ class AuditRecord:
     trace_id: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
-        """El registro como diccionario, listo para canonicalizar.
+        """The record as a dict, ready for canonicalization.
 
-        **`tables` y `columns_masked` se ordenan AQUÍ, y es obligatorio.** JCS
-        ordena las claves de un objeto y jamás los elementos de un array, así que
-        el orden de estas dos listas lo tiene que garantizar el emisor. Sin esto,
-        la misma consulta con el mismo rol produce dos hashes distintos según en
-        qué orden recorriera sqlglot el árbol, y la cadena deja de ser comparable
-        consigo misma.
+        `tables` and `columns_masked` must be sorted here. JCS sorts object keys but
+        never array elements, so the emitter owns array order; otherwise the same
+        query and role would hash differently depending on sqlglot's traversal order.
         """
         payload: dict[str, Any] = {
             "seq": self.seq,
@@ -165,23 +145,18 @@ class AuditRecord:
 
 
 def canonicalize(record: AuditRecord) -> str:
-    """JCS (RFC 8785) del registro SIN su hash.
+    """JCS (RFC 8785) of the record without its hash.
 
-    Sin canonicalización el hash depende del orden de un diccionario y no vale
-    nada; lo dice el propio contrato, y decirlo ahí es lo que impide que dos
-    implementaciones produzcan dos cadenas que no se verifican entre sí.
+    Without canonicalization the hash depends on dict ordering, and two
+    implementations would produce chains that do not verify against each other.
 
-    **El límite honesto de esta implementación, declarado en vez de descubierto.**
-    JCS son tres reglas: claves ordenadas por unidades de código UTF-16, cero
-    espacio en blanco, y números con el formato de ECMAScript. Las dos primeras las
-    da `json.dumps` exactamente —todas las claves de este contrato son ASCII, donde
-    el orden por punto de código y el orden por UTF-16 coinciden—. La tercera solo
-    coincide para enteros, que es todo lo que este contrato guarda salvo
-    `duration_ms`; por eso `duration_ms` se redondea a microsegundos al construir el
-    registro, donde `repr` de Python y ECMAScript ya no difieren. Un flotante
-    arbitrario aquí sería el único sitio donde otra implementación podría discrepar,
-    y el `VECTOR DORADO` de los tests es lo que convierte esto en un acuerdo
-    comprobable en vez de una promesa.
+    Known limit of this implementation. JCS has three rules: keys sorted by UTF-16
+    code units, no whitespace, and ECMAScript number formatting. `json.dumps` gives
+    the first two exactly (all keys here are ASCII, where code point and UTF-16 order
+    agree). The third matches only for integers, which is everything in this contract
+    except `duration_ms`; that field is rounded to microseconds at construction, where
+    Python's `repr` and ECMAScript agree. The golden vector in the tests makes this a
+    checkable agreement.
     """
     return json.dumps(
         record.to_payload(),
@@ -193,13 +168,12 @@ def canonicalize(record: AuditRecord) -> str:
 
 
 def link(record: AuditRecord) -> str:
-    """`sha256(prev_hash_bytes ‖ jcs(registro_sin_hash))`, en hex.
+    """`sha256(prev_hash_bytes || jcs(record_without_hash))`, hex-encoded.
 
-    `prev_hash_bytes` son los **32 bytes crudos**, no los 64 caracteres de su
-    representación hexadecimal: el contrato nombra los bytes DEL hash, no los de su
-    texto. Para la seguridad da igual —`prev_hash` viaja además dentro del JCS— pero
-    para la interoperabilidad no, que es justo el miedo que el contrato declara. La
-    decisión se fija con un vector dorado en `tests/unit/audit/test_chain.py`.
+    `prev_hash_bytes` are the 32 raw bytes, not the 64 hex characters: the contract
+    names the bytes of the hash, not of its text. Security-wise it makes no
+    difference (`prev_hash` is also inside the JCS), but interoperability depends on
+    it. Pinned by a golden vector in `tests/unit/audit/test_chain.py`.
     """
     return hashlib.sha256(
         bytes.fromhex(record.prev_hash) + canonicalize(record).encode("utf-8")
@@ -207,41 +181,39 @@ def link(record: AuditRecord) -> str:
 
 
 def verify(rows: list[tuple[AuditRecord, str]]) -> tuple[bool, str | None]:
-    """Recorre la cadena y dice si está intacta, y si no, DÓNDE se rompió.
+    """Walk the chain and report whether it is intact and, if not, where it breaks.
 
-    Devuelve `(True, None)` o `(False, motivo)`. El motivo nombra el `seq`, porque
-    «la cadena está rota» sin decir dónde obliga a bisecar a mano un almacén de un
-    millón de filas.
+    Returns `(True, None)` or `(False, reason)`. The reason names the `seq` so nobody
+    has to bisect a million-row store by hand.
 
-    Se comprueban cuatro cosas, y las cuatro son formas distintas de manipular:
+    Four checks, one per tampering mode:
 
-    1. **El hash de cada registro cuadra con su contenido** — alguien editó un campo.
-    2. **El `prev_hash` de cada uno es el `hash` del anterior** — alguien reescribió
-       un registro Y su hash, pero no pudo con el siguiente. Este es el ataque real
-       y el que la cadena existe para atrapar.
-    3. **La cadena empieza en el génesis** — alguien borró historia por delante.
-    4. **`seq` es consecutivo** — alguien borró un registro de en medio.
+    1. Each record's hash matches its content: a field was edited.
+    2. Each `prev_hash` equals the previous record's hash: a record and its hash were
+       rewritten but the next one was not. This is the attack the chain exists for.
+    3. The chain starts at genesis: history was deleted from the front.
+    4. `seq` is consecutive: a record was deleted from the middle.
 
-    Una cadena vacía se verifica: un almacén recién creado no está corrupto.
+    An empty chain verifies: a freshly created store is not corrupt.
     """
     previous = GENESIS
     expected_seq = 1
     for record, stored_hash in rows:
         if record.seq != expected_seq:
             return False, (
-                f"seq {record.seq} donde se esperaba {expected_seq}: hay un hueco en "
-                "la numeración, o sea un registro borrado."
+                f"seq {record.seq} where {expected_seq} was expected: a gap in the "
+                "numbering, i.e. a deleted record."
             )
         if record.prev_hash != previous:
             return False, (
-                f"seq {record.seq}: su prev_hash no es el hash del registro anterior. "
-                "Alguien reescribió un registro y su hash, pero no los posteriores."
+                f"seq {record.seq}: its prev_hash is not the previous record's hash. "
+                "A record and its hash were rewritten, but not the later ones."
             )
         recomputed = link(record)
         if recomputed != stored_hash:
             return False, (
-                f"seq {record.seq}: el hash guardado no corresponde al contenido. "
-                "El registro se editó después de escribirse."
+                f"seq {record.seq}: the stored hash does not match the content. "
+                "The record was edited after being written."
             )
         previous = stored_hash
         expected_seq += 1

@@ -1,19 +1,17 @@
-"""R014 · nada de esquemas de sistema.
+"""R014: no system schemas.
 
-Parece una regla menor y es de las que más cierran. `docs/spec/policy.yaml` excluye
-`dim_merchant.traffic_weight` del catálogo publicado, y el
-catálogo del anillo 1 no la enseña. Pero el motor sí sabe que existe:
+`docs/spec/policy.yaml` excludes `dim_merchant.traffic_weight` from the published
+catalog, but the engine still knows about it:
 
     SELECT column_name FROM information_schema.columns WHERE table_name = 'dim_merchant'
 
-Eso devuelve la columna excluida, y con ella el nombre de todo lo que el catálogo
-decidió no publicar. **Leer el catálogo real por debajo del catálogo publicado
-convierte una decisión de negocio en una sugerencia.**
+returns the excluded column, and with it the name of everything the catalog chose not
+to publish. Reading the engine's catalog underneath the published one turns a policy
+decision into a suggestion.
 
-Corre antes que R004 —que también rechazaría por «tabla que no está en el
-catálogo»— porque el mensaje importa: un rechazo que dice «esa tabla no existe»
-sobre una tabla que sí existe enseña a insistir. Este dice lo que pasa y dónde
-mirar en su lugar.
+Runs before R004, which would also reject ("table not in catalog"), because the message
+matters: telling the caller that an existing table does not exist invites retries.
+This rule states what happened and where to look instead.
 """
 
 from __future__ import annotations
@@ -27,12 +25,12 @@ from datawarden.guard.rules import messages
 
 
 class SystemSchemaRule:
-    """Ni el esquema de sistema, ni sus tablas, ni cualificadas ni sueltas."""
+    """No system schema or system table, qualified or bare."""
 
     rule_id = "R014"
     code = "system_schema_access"
     severity = Severity.SECURITY
-    summary = "No se consultan los metadatos del motor, solo el catálogo publicado"
+    summary = "Engine metadata is never queried, only the published catalog"
     families: tuple[str, ...] = ("esquema_de_sistema", "enumeracion_de_catalogo")
     phase = PRE_QUALIFY
 

@@ -1,18 +1,16 @@
-"""Cuándo dos resultsets son «el mismo». Especificación: docs/spec/resultset-equality.md.
+"""When two resultsets are "the same". Specification: docs/spec/resultset-equality.md.
 
-Esta función es la que convierte `G-EXEC-ACC` en un número reproducible. Sin ella,
-«exactitud de ejecución >= 0,80» significa lo que cada uno entienda, y dos personas
-publican dos cifras distintas con el mismo nombre.
+This function turns `G-EXEC-ACC` into a reproducible number; without it, "execution
+accuracy >= 0.80" means whatever each reader assumes.
 
-Tres cosas que NO hace, y son deliberadas:
+Three deliberate non-goals:
 
-- **No compara SQL.** Ni una sola línea de este módulo mira una cadena de consulta.
-  Dos consultas escritas de forma completamente distinta pueden dar el mismo
-  resultado, y eso es exactamente lo que se quiere medir.
-- **No inventa la forma de un resultset vacío.** Una lista de filas vacía no lleva
-  aridad; cuando hace falta compararla se pasa una `Table`, que sí la lleva (P-2).
-- **No trata un timeout ni un rechazo como «cero filas».** Son respuestas distintas
-  con consecuencias distintas en el numerador y en el denominador.
+- It never compares SQL. Two very different queries may produce the same result, and
+  that is precisely what is being measured.
+- It does not invent the shape of an empty resultset. An empty row list has no
+  arity; when one must be compared, pass a `Table`, which does (spec P-2).
+- It does not treat a timeout or a rejection as "zero rows". They affect the
+  numerator and denominator differently.
 """
 
 from __future__ import annotations
@@ -26,14 +24,13 @@ from typing import Any, Final
 
 Row = tuple[Any, ...]
 
-#: Tolerancias de la decisión 4. Un `sum()` sobre 66 M de filas acumula redondeo
-#: distinto según el orden de agregación, y ese orden lo decide el plan, no la
-#: corrección de la consulta.
+#: Tolerances from decision 4. A `sum()` over 66 M rows accumulates different
+#: rounding depending on aggregation order, which the plan decides, not the query's
+#: correctness.
 REL_TOL: Final = 1e-9
 ABS_TOL: Final = 1e-12
 
-# Clases de tipo de la precisión P-1. Lo que no se puede confundir es TEXTO con
-# NÚMERO, no INTEGER con DOUBLE.
+# Type classes from spec P-1. Text must not match number; INTEGER may match DOUBLE.
 _NUMBER: Final = "number"
 _BOOL: Final = "bool"
 _TEXT: Final = "text"
@@ -46,13 +43,11 @@ _OTHER: Final = "other"
 
 
 class _Outcome:
-    """Un resultado que NO es un conjunto de filas.
+    """An outcome that is not a set of rows.
 
-    Un timeout y un rechazo del guard son respuestas legítimas de este sistema, y
-    representarlos como «lista vacía» los haría indistinguibles entre sí y de una
-    consulta que simplemente no devolvió nada. La especificación los trata de
-    forma distinta en el numerador y en el denominador, así que tienen que ser
-    distinguibles en el tipo.
+    Timeouts and guard rejections are legitimate responses. Representing them as an
+    empty list would make them indistinguishable from each other and from a query
+    that returned nothing, yet the spec scores them differently.
     """
 
     __slots__ = ("_name",)
@@ -64,19 +59,19 @@ class _Outcome:
         return f"<{self._name}>"
 
 
-#: La consulta no terminó. Cuenta como fallo Y entra en el denominador.
+#: The query did not finish. Counts as a failure and stays in the denominator.
 TIMEOUT = _Outcome("timeout")
-#: El guard rechazó la consulta. Acierto o fallo según lo que esperase el caso.
+#: The guard rejected the query. Pass or fail depending on what the case expected.
 REJECTED = _Outcome("rejected")
 
 
 @dataclass(frozen=True, slots=True)
 class Table:
-    """Un resultset que además lleva su forma.
+    """A resultset that also carries its shape.
 
-    Existe por dos motivos que una `list[tuple]` no puede cubrir: la decisión 8
-    exige comparar el número de columnas de dos vacíos, y `strict_names` exige los
-    nombres. Cuando la forma no está en duda, una lista pelada sigue valiendo.
+    Needed where a `list[tuple]` falls short: decision 8 compares the column count of
+    two empty results, and `strict_names` needs the names. When shape is not in
+    question, a plain list still works.
     """
 
     columns: tuple[str, ...]
@@ -88,10 +83,9 @@ ResultSet = Sequence[Row] | Table | _Outcome
 
 @dataclass(frozen=True, slots=True)
 class Comparison:
-    """El veredicto y POR QUÉ.
+    """The verdict and its reason.
 
-    `reason` no es un extra: sin él, sesenta casos en rojo no dicen en qué se
-    diferencian, y depurar la métrica cuesta más que calcularla.
+    Without `reason`, sixty failing cases say nothing about how they differ.
     """
 
     equal: bool
@@ -100,7 +94,7 @@ class Comparison:
 
 @dataclass(frozen=True, slots=True)
 class _Shape:
-    """Forma normalizada de un lado de la comparación."""
+    """Normalized shape of one side of the comparison."""
 
     names: tuple[str, ...] | None
     n_cols: int | None
@@ -114,19 +108,19 @@ def compare(
     ordered: bool = False,
     strict_names: bool = False,
 ) -> Comparison:
-    """Compara dos resultsets según `docs/spec/resultset-equality.md`.
+    """Compare two resultsets per `docs/spec/resultset-equality.md`.
 
     Args:
-        actual: Lo que devolvió la consulta generada.
-        expected: Lo que devuelve el SQL de referencia.
-        ordered: La referencia lleva `ORDER BY`, así que el orden de filas cuenta.
-        strict_names: La pregunta pedía un nombre de columna concreto.
+        actual: Result of the generated query.
+        expected: Result of the reference SQL.
+        ordered: The reference has `ORDER BY`, so row order matters.
+        strict_names: The question asked for a specific column name.
 
     Returns:
-        El veredicto, con uno de los motivos declarados en la especificación.
+        The verdict, with one of the reasons declared in the spec.
     """
-    # Dos `if` separados y no un `or`: es lo que deja que el verificador de tipos
-    # estreche `actual` y `expected` a resultsets de filas en todo lo que sigue.
+    # Two separate `if`s instead of an `or` so the type checker narrows `actual` and
+    # `expected` to row resultsets below.
     if isinstance(expected, _Outcome):
         return _outcome_verdict(actual, expected)
     if isinstance(actual, _Outcome):
@@ -157,26 +151,26 @@ def compare(
     verdict = _compare_rows(left.rows, right.rows)
     if verdict.equal:
         return verdict
-    # Un fallo con `ordered` puede ser «las mismas filas en otro orden», que es un
-    # diagnóstico muy distinto de «hay una celda mal». Merece motivo propio.
+    # An ordered mismatch may be "same rows, different order", a very different
+    # diagnosis from "a wrong cell", so it gets its own reason.
     if _compare_rows(_sorted_rows(left.rows), _sorted_rows(right.rows)).equal:
         return Comparison(equal=False, reason="row_order")
     return verdict
 
 
 def _outcome_verdict(actual: ResultSet, expected: ResultSet) -> Comparison:
-    """Veredicto cuando alguno de los dos lados no es un conjunto de filas."""
-    # P-4: el timeout gana a todo. Una consulta que no termina no es una respuesta.
+    """Verdict when either side is not a set of rows."""
+    # P-4: timeout wins over everything; a query that does not finish is no answer.
     if actual is TIMEOUT or expected is TIMEOUT:
         return Comparison(equal=False, reason="timeout")
-    # P-5: `expected_rejection` es el motivo del CASO; `equal` dice si ocurrió.
+    # P-5: `expected_rejection` is the case's reason; `equal` says whether it happened.
     if expected is REJECTED:
         return Comparison(equal=actual is REJECTED, reason="expected_rejection")
     return Comparison(equal=False, reason="rejected")
 
 
 def _shape_of(rs: Sequence[Row] | Table) -> _Shape | None:
-    """Normaliza cualquier forma de resultset. `None` si las filas son irregulares."""
+    """Normalize any resultset form. `None` if rows are ragged."""
     if isinstance(rs, Table):
         rows = [tuple(r) for r in rs.rows]
         names: tuple[str, ...] | None = tuple(rs.columns)
@@ -191,7 +185,7 @@ def _shape_of(rs: Sequence[Row] | Table) -> _Shape | None:
 
 
 def _align_by_name(left: _Shape, right: _Shape) -> tuple[_Shape, _Shape] | None:
-    """Empareja columnas por nombre. `None` si no se puede verificar el nombre."""
+    """Pair columns by name. `None` if names cannot be verified."""
     if left.names is None or right.names is None:
         return None
     if sorted(left.names) != sorted(right.names):
@@ -204,11 +198,10 @@ def _order_by(names: tuple[str, ...]) -> list[int]:
 
 
 def _align_by_content(shape: _Shape) -> _Shape:
-    """Canonicaliza el orden de columnas por su contenido (P-3).
+    """Canonicalize column order by content (spec P-3).
 
-    La clave de cada columna es su MULTICONJUNTO de valores, luego no depende del
-    orden de filas; y la reordenación permuta columnas enteras, así que ninguna
-    fila se desempareja.
+    Each column's key is its multiset of values, so it is independent of row order,
+    and reordering permutes whole columns, so no row is split.
     """
     if shape.n_cols is None or shape.n_cols <= 1:
         return shape
@@ -239,12 +232,12 @@ def _compare_rows(left: list[Row], right: list[Row]) -> Comparison:
 
 
 def _cell_mismatch(left: Any, right: Any) -> str | None:
-    """Motivo por el que dos celdas difieren, o `None` si son iguales."""
+    """Reason two cells differ, or `None` if they are equal."""
     lclass = _cell_class(left)
     rclass = _cell_class(right)
     if lclass != rclass:
-        # P-6: NULL frente a cadena vacía tiene motivo propio porque es un error de
-        # significado; NULL frente a un número es sencillamente otra clase.
+        # P-6: NULL vs empty string gets its own reason (a semantic error); NULL vs
+        # a number is simply a different class.
         if {lclass, rclass} == {_NULL, _TEXT} and "" in (left, right):
             return "null_vs_empty"
         return "cell_type"
@@ -280,31 +273,29 @@ def _cell_class(value: Any) -> str:
 
 
 def _numbers_close(left: Any, right: Any) -> bool:
-    """Decisión 4, con el borde que la tolerancia sola no cubre.
+    """Decision 4, plus the edge case tolerance alone misses.
 
-    `float(Decimal("1e400"))` NO lanza: devuelve `inf`. Y `isclose(inf, inf)` es
-    cierto, así que dos importes distintos y ambos fuera del rango de `float`
-    saldrían iguales. Lo encontró un test, no una revisión: por eso lo no finito
-    se compara en su tipo original y no por tolerancia.
+    `float(Decimal("1e400"))` does not raise; it returns `inf`, and
+    `isclose(inf, inf)` is true, so two different amounts beyond `float` range would
+    compare equal. Non-finite values are therefore compared in their original type.
     """
     lf = _as_float(left)
     rf = _as_float(right)
     if lf is None or rf is None or not (math.isfinite(lf) and math.isfinite(rf)):
         if _is_nan(left) and _is_nan(right):
-            # Dos NaN son la misma respuesta aunque SQL diga que no son iguales:
-            # aquí se compara estructura, no se evalúa un predicado.
+            # Two NaNs are the same answer even though SQL says NaN != NaN: this
+            # compares structure, it does not evaluate a predicate.
             return True
         return _safe_eq(left, right)
     return math.isclose(lf, rf, rel_tol=REL_TOL, abs_tol=ABS_TOL)
 
 
 def _safe_eq(left: Any, right: Any) -> bool:
-    """Igualdad que no puede reventar la comparación de sesenta casos.
+    """Equality that cannot crash the whole comparison.
 
-    `Decimal("sNaN") == 1` LANZA `InvalidOperation`: un NaN señalizador está
-    diseñado para gritar en cuanto alguien lo mira. Que la métrica de exactitud se
-    caiga entera por una celda es peor que declararla distinta, así que lo que no
-    se puede comparar se declara distinto.
+    `Decimal("sNaN") == 1` raises `InvalidOperation`. Losing the accuracy metric to a
+    single cell is worse than declaring it different, so incomparable values are
+    declared different.
     """
     try:
         return bool(left == right)
@@ -325,11 +316,10 @@ def _is_nan(value: Any) -> bool:
 
 
 def _normalize_temporal(value: dt.datetime) -> dt.datetime:
-    """Decisión 10: un `TIMESTAMP` sin zona ES UTC; con zona, se convierte a UTC.
+    """Decision 10: a naive `TIMESTAMP` is UTC; an aware one is converted to UTC.
 
-    Solo recibe `datetime`: un `DATE` es fecha civil y no se convierte, y un `TIME`
-    se compara tal cual. Estrechar el tipo aquí es lo que evita una rama que nadie
-    ejecuta nunca y que la cobertura señalaría para siempre.
+    Takes only `datetime`: a `DATE` is a civil date and is not converted, and a
+    `TIME` is compared as-is.
     """
     if value.tzinfo is None:
         return value.replace(tzinfo=dt.UTC)
@@ -337,12 +327,11 @@ def _normalize_temporal(value: dt.datetime) -> dt.datetime:
 
 
 def _cell_key(value: Any) -> tuple[str, str]:
-    """Clave total y determinista para ordenar filas y columnas.
+    """Total, deterministic sort key for rows and columns.
 
-    Los números se redondean a 12 cifras significativas ANTES de formar la clave:
-    si no, `0.1 + 0.2` y `0.3` se ordenarían en sitios distintos y la comparación
-    de multiconjuntos emparejaría filas equivocadas justo en el caso que la
-    tolerancia de la decisión 4 existe para tapar.
+    Numbers are rounded to 12 significant digits before forming the key; otherwise
+    `0.1 + 0.2` and `0.3` would sort apart and the multiset comparison would pair the
+    wrong rows in exactly the case decision 4's tolerance exists for.
     """
     cls = _cell_class(value)
     if cls == _NULL:

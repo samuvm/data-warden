@@ -1,16 +1,14 @@
-"""R011 · las ramas de un UNION son consultas, y no son muchas.
+"""R011: set-operation branches are queries, and there are few of them.
 
-**El ataque que esta regla para** está en el cuaderno de evasiones de `PROJECT.md`:
-«`UNION` contra una tabla fuera de ámbito». R004 ya recorre TODO el árbol, así que
-la tabla fuera de ámbito la caza igual; lo que R011 añade es lo que R004 no ve:
+R004 already walks the whole tree, so a branch reading an out-of-scope table is caught
+there. R011 adds what R004 cannot see:
 
-1. **Que cada rama sea una consulta**, y no un `VALUES` con datos inyectados. Un
-   `SELECT a FROM t UNION ALL VALUES ('...')` mete filas que no salen del almacén y
-   que luego aparecen en la respuesta como si fueran datos: es inyección de
-   contenido con forma de consulta legítima.
-2. **Que las ramas sean pocas.** Cien ramas unidas son cien escaneos, y el
-   estimador de coste de la fase 3 suma por rama: el número crece rápido y sin que
-   ninguna rama parezca cara por separado.
+1. Every branch is a query, not a `VALUES` list. `SELECT a FROM t UNION ALL VALUES
+   ('...')` injects rows that do not come from the warehouse and then appear in the
+   answer as if they were data: content injection shaped like a legitimate query.
+2. Branches are few. A hundred unioned branches are a hundred scans, and the cost
+   estimator sums per branch: the total grows fast while no single branch looks
+   expensive.
 """
 
 from __future__ import annotations
@@ -29,12 +27,12 @@ SET_OPERATIONS: Final = (exp.Union, exp.Except, exp.Intersect)
 
 
 class SetOperationScopeRule:
-    """Toda rama de una operación de conjunto es una consulta del catálogo."""
+    """Every branch of a set operation is a catalog query."""
 
     rule_id = "R011"
     code = "set_operation_branch"
     severity = Severity.SECURITY
-    summary = "Las ramas de UNION/EXCEPT/INTERSECT son consultas, y son pocas"
+    summary = "UNION/EXCEPT/INTERSECT branches are queries, and there are few of them"
     families: tuple[str, ...] = ("union_con_datos_inyectados", "demasiadas_ramas")
     phase = POST_QUALIFY
 

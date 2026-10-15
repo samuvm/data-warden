@@ -1,22 +1,21 @@
-"""Tipos congelados del dominio. Puros, inmutables y sin motor ni transporte.
+"""Frozen domain types: pure, immutable, with no knowledge of engine or transport.
 
-Son la frontera del proyecto: todo lo que cruza de un anillo al siguiente es uno de
-estos, y por eso las garantías viven **en el tipo** y no en quien lo construye.
+Everything that crosses from one ring to the next is one of these types, so the
+guarantees live in the type rather than in whoever constructs it:
 
-- Un `RejectionReason` sin sugerencia accionable **no se puede construir** (I-09).
-  Si la validación viviera en el sitio que lo crea, el primer camino que se
-  olvidara de llamarla produciría un rechazo mudo, y nadie lo notaría hasta que
-  `G-RECOVERY` saliera bajo por «culpa del modelo».
-- `RoleSource` no tiene ningún valor que signifique «lo dijo el cliente» (I-05).
-  El rol viene del proceso servidor, de un `PrincipalToken` acuñado por el
-  servidor o de una bandera del CLI. `_meta` y los argumentos de tool son dato.
-- `ValidatedQuery` guarda el **árbol**, no la cadena de entrada, y `sql()`
-  re-serializa (I-02). Ahí vive la clase entera de ataques por diferencia de
-  parser: lo que sqlglot entendió es lo que el motor ejecuta.
+- A `RejectionReason` without an actionable suggestion cannot be constructed (I-09).
+  Validating at the call site would let the first forgotten path emit a silent
+  rejection.
+- `RoleSource` has no value meaning "the client said so" (I-05). The role comes from
+  the server process, a server-minted `PrincipalToken` or a CLI flag; `_meta` and
+  tool arguments are data.
+- `ValidatedQuery` holds the tree, not the input string, and `sql()` re-serializes
+  it (I-02). This removes parser-differential attacks: the engine runs what sqlglot
+  understood.
 
-`import-linter` impone que este paquete no conozca ni motor, ni transporte, ni
-modelo. `sqlglot` sí está permitido y es deliberado: el árbol validado ES el tipo
-del dominio, y guardarlo como texto sería exactamente el error que I-02 prohíbe.
+import-linter keeps this package free of engine, transport and model imports.
+`sqlglot` is allowed on purpose: the validated tree is the domain type, and storing
+it as text is exactly what I-02 forbids.
 """
 
 from __future__ import annotations
@@ -29,8 +28,6 @@ from typing import Any, Final
 
 import sqlglot.expressions as exp
 
-#: Los mismos cuatro roles que `docs/spec/policy.yaml`. Un rol de más aquí sería un
-#: rol sin matriz de acceso, es decir, un rol sin política que aplicar.
 __all__ = [
     "CostEstimate",
     "Position",
@@ -50,14 +47,13 @@ _CODE_RE: Final = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
 _MIN_TEXT: Final = 10
 _MAX_TEXT: Final = 500
 
-#: De dónde puede salir un coste. Un número sin método no es auditable: los
-#: metadatos de Iceberg y un `EXPLAIN` no valen lo mismo y no se pueden mezclar en
-#: la misma métrica de calibración sin decir cuál produjo cada dato.
+#: Allowed provenance of a cost figure. Iceberg metadata and `EXPLAIN` are not
+#: equivalent, so cost calibration must know which one produced each estimate.
 COST_METHODS: Final = frozenset({"iceberg", "explain", "hybrid", "fixture"})
 
 
 class Role(StrEnum):
-    """Los cuatro roles de la política firmada."""
+    """The four roles of `docs/spec/policy.yaml`; an extra role would have no access matrix."""
 
     ANALYST = "analyst"
     OPS = "ops"
@@ -66,32 +62,26 @@ class Role(StrEnum):
 
 
 class RoleSource(StrEnum):
-    """De dónde salió el rol. **Aquí NO hay un valor para «lo dijo el cliente».**
+    """Where the role came from. There is deliberately no "client-asserted" value.
 
-    Es I-05 hecho tipo. La spec MCP 2026-07-28 eliminó las sesiones, así que el rol
-    no puede venir de la sesión de protocolo; y si pudiera venir de `_meta` o de un
-    argumento de tool, cualquiera se autoconcedería `admin`. Un enum sin esos
-    valores convierte la promesa en algo que ni siquiera se puede escribir.
+    I-05 as a type. MCP 2026-07-28 removed protocol sessions, so the role cannot come
+    from the session; if it could come from `_meta` or a tool argument, any caller
+    could grant itself `admin`.
     """
 
     SERVER_PROCESS = "server_process"
-    # No es una credencial: es el NOMBRE de una fuente de autoridad. El secreto
-    # que firma el handle vive en configuración y no en el dominio.
+    # The name of an authority source, not a credential. The signing secret lives
+    # in configuration, not in the domain.
     PRINCIPAL_TOKEN = "principal_token"  # noqa: S105
     CLI_FLAG = "cli_flag"
 
 
 class Status(StrEnum):
-    """Los cuatro finales posibles de una invocación. Vocabulario del contrato.
+    """The four possible outcomes of an invocation, as named in `audit-record.schema.json`.
 
-    Sale literal de `docs/spec/audit-record.schema.json`, y son CUATRO y no dos
-    porque **se audita toda invocación, no solo la que se ejecuta**: un rechazo del
-    guard es un evento de seguridad, y no registrarlo sería el peor fallo posible
-    de este sistema. `G-AUDIT-COV` es un axioma justamente por eso.
-
-    Los dos rechazos están separados porque responden a preguntas distintas: uno
-    dice que la consulta era ILEGAL y el otro que era CARA. Mezclarlos haría
-    imposible contestar «¿cuántas veces intentaron leer una columna prohibida?».
+    Every invocation is audited, not only executed ones: a guard rejection is a
+    security event (`G-AUDIT-COV`). The two rejections are kept apart because one
+    means the query was illegal and the other that it was expensive.
     """
 
     REJECTED_BY_GUARD = "rejected_by_guard"
@@ -101,12 +91,7 @@ class Status(StrEnum):
 
 
 class Severity(StrEnum):
-    """Qué clase de rechazo es. Distinguirlos cambia qué hay que hacer al respecto.
-
-    Una tasa alta de `POLICY` dice que hay que revisar la matriz con negocio. Una
-    tasa alta de `SECURITY` dice algo muy distinto. Meterlos en el mismo contador
-    hace que ninguno de los dos se pueda leer.
-    """
+    """Rejection class. High `POLICY` and high `SECURITY` rates call for different action."""
 
     SECURITY = "security"
     POLICY = "policy"
@@ -116,11 +101,10 @@ class Severity(StrEnum):
 
 
 class Position(StrEnum):
-    """Dónde en el árbol, con vocabulario de SQL y no de sqlglot.
+    """Location in the tree, in SQL vocabulary rather than sqlglot's.
 
-    Es lo que convierte «no puedes usar esa columna» en «no puedes usarla AHÍ», que
-    es la diferencia entre la mitad de los rechazos de este proyecto: una columna
-    `mask` es legal en la proyección y prohibida en el `WHERE`.
+    Position is what most rejections hinge on: a `mask` column is legal in the
+    projection and forbidden in `WHERE`.
     """
 
     PROJECTION = "projection"
@@ -140,7 +124,7 @@ class Position(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Principal:
-    """Quién pregunta y con qué autoridad."""
+    """Who is asking, and with what authority."""
 
     id: str
     role: Role
@@ -149,21 +133,20 @@ class Principal:
     def __post_init__(self) -> None:
         if not self.id.strip():
             message = (
-                "principal_id vacío. Sin identificador no hay auditoría, y sin "
-                "auditoría no hay no repudio: es el único control que este sistema "
-                "tiene sobre el rol admin, que no lleva máscara ninguna."
+                "empty principal_id. Without an identifier there is no audit trail and "
+                "no non-repudiation, which is the only control over the admin role "
+                "since admin has no masking."
             )
             raise ValueError(message)
 
 
 @dataclass(frozen=True, slots=True)
 class RejectionReason:
-    """Un rechazo accionable. Conforme a `docs/spec/rejection.schema.json`.
+    """An actionable rejection, conforming to `docs/spec/rejection.schema.json`.
 
-    No es un error: es una respuesta del sistema, y es la que más veces va a leer
-    un modelo. Por eso las restricciones del contrato se comprueban al construirlo
-    y no al serializarlo — un rechazo mudo que solo falla al escribirse en la
-    auditoría ya ha llegado al cliente.
+    Contract constraints are checked at construction, not at serialization: a
+    malformed rejection that only fails when written to the audit log has already
+    reached the client.
     """
 
     rule_id: str
@@ -180,18 +163,18 @@ class RejectionReason:
     def __post_init__(self) -> None:
         if not _RULE_ID_RE.match(self.rule_id):
             msg = (
-                f"rule_id {self.rule_id!r} no es un identificador del registro. Los "
-                "rule_id son un registro cerrado (I-01): RNNN para las reglas del "
-                "guard, y BUDGET / POLICY / INTERNAL para los rechazos que no "
-                "vienen de una regla. Una cadena libre haría imposible comprobar "
-                "que ninguna regla desaparece."
+                f"rule_id {self.rule_id!r} is not a registered identifier. rule_ids "
+                "are a closed registry (I-01): RNNN for guard rules and BUDGET / "
+                "POLICY / INTERNAL for rejections that do not come from a rule. A "
+                "free-form string would make it impossible to check that no rule "
+                "disappears."
             )
             raise ValueError(msg)
         if not _CODE_RE.match(self.code):
             msg = (
-                f"code {self.code!r} no es un identificador estable en minúsculas. "
-                "El code agrupa métricas: si 'DeniedColumn' y 'denied_column' "
-                "fueran dos códigos distintos, no agruparía nada."
+                f"code {self.code!r} is not a stable lowercase identifier. code is "
+                "the metrics grouping key: 'DeniedColumn' and 'denied_column' must "
+                "not be two different codes."
             )
             raise ValueError(msg)
         _require_text("message", self.message)
@@ -199,17 +182,16 @@ class RejectionReason:
             "suggestion",
             self.suggestion,
             extra=(
-                "Un rechazo sin salida no redirige el trabajo: lo bloquea, y un "
-                "guard que bloquea el trabajo se desactiva en tres semanas (I-09)."
+                "A rejection with no way forward blocks the work instead of "
+                "redirecting it, and a guard that blocks work gets disabled (I-09)."
             ),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """La forma del contrato. Los campos ausentes NO se escriben como `null`.
+        """Contract shape. Absent optional fields are omitted, never written as `null`.
 
-        `additionalProperties: false` y campos opcionales: emitir `null` en vez de
-        omitir haría que dos rechazos idénticos tuvieran dos representaciones, y
-        estos objetos entran en el hash de la auditoría.
+        These objects are hashed into the audit chain; emitting `null` for some and
+        omitting for others would give identical rejections two representations.
         """
         payload: dict[str, Any] = {
             "rule_id": self.rule_id,
@@ -231,13 +213,11 @@ class RejectionReason:
 
 @dataclass(frozen=True, slots=True)
 class ValidatedQuery:
-    """Lo único que un motor acepta. Lleva el ÁRBOL, nunca la cadena de entrada.
+    """The only thing an engine accepts. Carries the tree, never the input string.
 
-    `Engine.execute()` recibe esto y jamás un `str`, y lo comprueba
-    `scripts/check_no_raw_sql.py` sobre el AST de `engines/`. La consecuencia
-    práctica: si sqlglot entendió mal la consulta, lo que llega a la base de datos
-    es lo que sqlglot entendió, no lo que el atacante escribió. Eso elimina por
-    construcción la clase entera de ataques por diferencia de parser.
+    `Engine.execute()` takes this and never a `str`, enforced by
+    `scripts/check_no_raw_sql.py`. If sqlglot misreads a query, the database receives
+    what sqlglot understood, not what the attacker wrote.
     """
 
     ast: exp.Expression
@@ -252,42 +232,38 @@ class ValidatedQuery:
     def __post_init__(self) -> None:
         if self.max_rows <= 0:
             msg = (
-                f"max_rows={self.max_rows}. El tope de filas es del DOMINIO y no del "
-                "motor (I-12): sin él, cada engine aplicaría el suyo y DuckDB y "
-                "Athena devolverían resultados distintos para el mismo rol."
+                f"max_rows={self.max_rows}. The row cap belongs to the domain, not the "
+                "engine (I-12): otherwise each engine would apply its own and DuckDB "
+                "and Athena would return different results for the same role."
             )
             raise ValueError(msg)
 
     def sql(self) -> str:
-        """El SQL que se ejecuta: el árbol re-serializado, SIN COMENTARIOS. I-02.
+        """The SQL that runs: the tree re-serialized without comments (I-02).
 
-        `comments=False` no es cosmético y lo encontró un test, no una revisión.
-        **sqlglot conserva los comentarios en el árbol y los vuelve a emitir**, así
-        que `SELECT /*+ hint */ a FROM t` re-serializado sigue llevando el
-        comentario del atacante hasta el motor. Un comentario no es estructura: el
-        guard valida la estructura, luego lo que se ejecuta tiene que ser
-        exactamente la estructura validada y nada más. Además:
+        sqlglot keeps comments in the tree and re-emits them, so
+        `SELECT /*+ hint */ a FROM t` would carry the attacker's comment to the
+        engine. The guard validates structure, so only structure may execute. Also:
 
-        - algunos motores leen HINTS de optimización dentro de un comentario, que
-          es texto que nadie ha validado influyendo en el plan;
-        - `sql_digest()` cambiaría con el comentario, y entonces dos consultas
-          idénticas producirían dos registros de auditoría distintos.
+        - some engines read optimizer hints from comments, i.e. unvalidated text
+          influencing the plan;
+        - `sql_digest()` would vary with comments, giving identical queries two
+          different audit records.
         """
         return self.ast.sql(dialect=self.dialect, comments=False)
 
     def sql_digest(self) -> str:
-        """sha256 de lo que de verdad corre, para la cadena de auditoría.
+        """sha256 of the SQL that actually runs, for the audit chain.
 
-        Del SQL re-serializado y nunca de la entrada: si se hasheara la entrada, la
-        auditoría certificaría algo distinto de lo que se ejecutó, que es la única
-        forma de que un registro de auditoría sea peor que no tenerlo.
+        Hashing the input instead would make the audit log certify something other
+        than what executed.
         """
         return hashlib.sha256(self.sql().encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
 class CostEstimate:
-    """Lo que costaría, calculado ANTES de ejecutar."""
+    """What the query would cost, computed before execution."""
 
     estimated_bytes: int
     estimated_rows: int
@@ -302,20 +278,20 @@ class CostEstimate:
             ("files_scanned", self.files_scanned),
         ):
             if value < 0:
-                msg = f"{name}={value}: una estimación negativa no significa nada"
+                msg = f"{name}={value}: a negative estimate is meaningless"
                 raise ValueError(msg)
         if self.method not in COST_METHODS:
             msg = (
-                f"method={self.method!r} no está en {sorted(COST_METHODS)}. Un coste "
-                "sin método declarado no es auditable: los metadatos de Iceberg y un "
-                "EXPLAIN no valen lo mismo y G-COST-CALIB tiene que poder separarlos."
+                f"method={self.method!r} is not one of {sorted(COST_METHODS)}. A cost "
+                "without a declared method is not auditable: Iceberg metadata and "
+                "EXPLAIN are not equivalent and G-COST-CALIB must tell them apart."
             )
             raise ValueError(msg)
 
 
 @dataclass(frozen=True, slots=True)
 class ResultSet:
-    """Filas devueltas, con su forma y con la verdad sobre el recorte."""
+    """Returned rows, with their shape and an honest truncation flag."""
 
     columns: tuple[str, ...]
     rows: tuple[tuple[Any, ...], ...]
@@ -325,10 +301,9 @@ class ResultSet:
         width = len(self.columns)
         if any(len(row) != width for row in self.rows):
             msg = (
-                f"hay filas que no tienen {width} celdas, una por cada nombre de "
-                "columns. Un resultset con filas de anchura variable rompe la "
-                "comparación de docs/spec/resultset-equality.md por el sitio más "
-                "difícil de depurar."
+                f"some rows do not have {width} cells, one per name in columns. "
+                "Ragged rows break the comparison in docs/spec/resultset-equality.md "
+                "in the hardest place to debug."
             )
             raise ValueError(msg)
 
@@ -338,13 +313,12 @@ class ResultSet:
 
     @property
     def column_count(self) -> int:
-        """La forma se conoce aunque no haya filas (decisión 8 de resultset-equality)."""
+        """Shape is known even with no rows (resultset-equality, decision 8)."""
         return len(self.columns)
 
 
-#: Lo que devuelve el guard: o una consulta validada, o el motivo por el que no.
-#: Un `Optional[ValidatedQuery]` habría perdido el motivo, y el motivo es la mitad
-#: del valor del sistema.
+#: Guard output: a validated query or the reason it was refused. An
+#: `Optional[ValidatedQuery]` would lose the reason.
 Verdict = ValidatedQuery | RejectionReason
 
 
@@ -352,7 +326,7 @@ def _require_text(name: str, value: str, *, extra: str = "") -> None:
     stripped = value.strip()
     if len(stripped) < _MIN_TEXT or len(stripped) > _MAX_TEXT:
         msg = (
-            f"{name} tiene {len(stripped)} caracteres y el contrato exige entre "
-            f"{_MIN_TEXT} y {_MAX_TEXT}. {extra}"
+            f"{name} has {len(stripped)} characters and the contract requires between "
+            f"{_MIN_TEXT} and {_MAX_TEXT}. {extra}"
         ).strip()
         raise ValueError(msg)

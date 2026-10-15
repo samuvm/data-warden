@@ -1,16 +1,14 @@
-"""Los dos primeros anillos encadenados: **valida y luego cuesta**.
+"""Guard and cost chained: validate first, then estimate.
 
-El orden no es negociable y es la mitad del valor del sistema. Estimar antes de
-validar sería estimar el coste de una consulta que quizá ni siquiera se puede
-ejecutar —y peor: obligaría al estimador a razonar sobre un árbol sin cualificar,
-donde los alias no están resueltos y `SELECT *` no está expandido, así que la poda
-por proyección contaría columnas que no son—.
+Order matters. Estimating before validating would price a query that may not even be
+executable, and would force the estimator to reason over an unqualified tree with
+unresolved aliases and unexpanded `SELECT *`, so projection pruning would count the
+wrong columns.
 
-**Qué NO hace este módulo: ejecutar.** Devuelve una `ValidatedQuery` o un rechazo, y
-quien la lleva al motor es el `AuditedExecutor` de la fase 5, que es el único camino
-a `Engine.execute()`. Separarlo así es lo que permite que `G-BUDGET-ESCAPE` se pruebe
-por CONTADOR: si el veredicto es un rechazo y el contador del motor no se movió, la
-consulta cara no llegó, y eso es una propiedad y no una promesa.
+This module does not execute. It returns a `ValidatedQuery` or a rejection, and
+`AuditedExecutor`, the only path to `Engine.execute()`, runs it. That separation
+makes `G-BUDGET-ESCAPE` testable by counter: if the verdict is a rejection and the
+engine counter did not move, the expensive query never reached the engine.
 """
 
 from __future__ import annotations
@@ -35,11 +33,11 @@ from datawarden.principal.policy import AccessPolicy
 
 @dataclass(frozen=True, slots=True)
 class ScreenResult:
-    """El veredicto de los dos anillos, con todo lo que la auditoría necesita.
+    """Verdict of guard and cost, with everything the audit record needs.
 
-    Lleva el coste ESTIMADO incluso cuando rechaza, y es deliberado: `G-COST-CALIB`
-    compara estimado contra real, y sin guardar el estimado de las rechazadas la
-    calibración solo vería las baratas — justo la mitad que no importa.
+    Carries the estimated cost even on rejection: `G-COST-CALIB` compares estimated
+    against actual, and without the rejected estimates calibration would only see
+    cheap queries.
     """
 
     query: ValidatedQuery | None
@@ -64,7 +62,7 @@ def screen(
     dialect: str = "duckdb",
     timeout_ms: float = DEFAULT_TIMEOUT_MS,
 ) -> ScreenResult:
-    """Anillo 3 y anillo 4. Nunca lanza, nunca ejecuta."""
+    """Guard ring and cost ring. Never raises, never executes."""
     verdict = validate(
         sql,
         principal=principal,

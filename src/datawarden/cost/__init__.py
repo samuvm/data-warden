@@ -1,9 +1,8 @@
-"""Anillo 4 · el coste. Se estima ANTES de ejecutar, nunca después.
+"""Cost ring: estimated before execution, never after.
 
-`EXPLAIN ANALYZE` ejecuta la consulta y Athena solo reporta `DataScannedInBytes`
-cuando ya ha cobrado: los dos son inútiles para un guardián preventivo. Aquí el coste
-sale de los metadatos de Iceberg, sin leer una sola fila, y por eso mismo sirve igual
-para DuckDB y para Athena.
+`EXPLAIN ANALYZE` runs the query and Athena reports `DataScannedInBytes` only after
+billing, so neither works for a preventive guard. Cost is derived from Iceberg
+metadata without reading a row, which makes it engine-independent (DuckDB and Athena).
 """
 
 from __future__ import annotations

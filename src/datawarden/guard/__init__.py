@@ -1,1 +1,1 @@
-"""Ver el mapa de zonas en `docs/RULES.md` §2: cada paquete tiene su regla de test."""
+"""SQL guard: validates a query against rules R001-R014 before it can reach an engine."""

@@ -1,38 +1,25 @@
-"""De dónde sale el rol. **`G-ROLE-SPOOF`, axioma.**
+"""Where the role comes from (`G-ROLE-SPOOF`).
 
-Vive en `service/` y no en `mcp/` porque **no es una cuestión de protocolo**: por HTTP
-una cabecera la elige quien llama exactamente igual que `_meta` en MCP, así que los dos
-transportes necesitan la misma respuesta. Que el motivo original venga de la spec MCP no
-lo convierte en algo de MCP.
+Lives in `service/`, not `mcp/`, because it is not a protocol concern: an HTTP header
+is caller-chosen exactly like MCP `_meta`, so both transports need the same answer.
 
-La spec MCP 2026-07-28 eliminó las sesiones (`Mcp-Session-Id`), el handshake
-`initialize` y `ping`. Eso tiene una consecuencia directa que este fichero existe
-para no dejar en prosa:
+MCP spec 2026-07-28 removed sessions (`Mcp-Session-Id`), the `initialize` handshake
+and `ping`, so the caller's role cannot come from a protocol session, and everything
+the client says about itself is transported data. `_meta`, `arguments` and
+caller-chosen HTTP headers are all data. If any of them could set the role, ring 4
+(masking) would be moot: one JSON field would grant `admin` and expose names, emails
+and national IDs. `RoleSource` has no value meaning "the client said so"; this module
+is the other half.
 
-> **El rol de quien pregunta ya no puede venir de la sesión de protocolo, porque no
-> hay ninguna. Y todo lo que el cliente diga sobre sí mismo es DATO TRANSPORTADO.**
+Accepted sources, none chosen by the client:
 
-`_meta` es dato. `arguments` es dato. Una cabecera HTTP que el cliente elige es dato.
-Si cualquiera de los tres pudiera fijar el rol, el anillo 4 —el enmascarado— sería
-ficción: bastaría un campo en el JSON para autoconcederse `admin` y leer nombres,
-correos y DNI. `RoleSource` ya impide escribirlo —no tiene ningún valor que
-signifique «lo dijo el cliente»—; esto es la otra mitad.
-
-**El argumento del proyecto sale REFORZADO, no debilitado.** «Da igual qué cliente se
-conecte, no puede saltarse las reglas» es *más* cierto sin sesiones, porque el
-servidor es aún más claramente el único guardián. Cambia el mecanismo, no la tesis.
-
-**Las tres procedencias admitidas, y ninguna la elige el cliente:**
-
-- `SERVER_PROCESS` — el rol lo fija quien arranca el proceso. Es el caso de stdio:
-  un cliente de escritorio lanza el servidor y hereda el rol de la configuración del
-  usuario, igual que un `psql` hereda el usuario del sistema.
-- `PRINCIPAL_TOKEN` — un token verificado por el servidor. Bajo Streamable HTTP es
-  el único camino honesto: la identidad la acuña y la comprueba el servidor, y el
-  SDK la expone por `authenticated_principal`, que sale del verificador de tokens y
-  no del cuerpo de la petición.
-- `CLI_FLAG` — una bandera de la línea de órdenes. Es de desarrollo y va etiquetada
-  como tal en cada registro de auditoría.
+- `SERVER_PROCESS`: set by whoever starts the process. The stdio case: a desktop
+  client spawns the server, which inherits the role from the user's configuration,
+  as `psql` inherits the OS user.
+- `PRINCIPAL_TOKEN`: a server-verified token. Under Streamable HTTP the SDK exposes
+  it via `authenticated_principal`, from the token verifier, not the request body.
+- `CLI_FLAG`: a command-line flag for development, labelled as such in every audit
+  record.
 """
 
 from __future__ import annotations
@@ -42,23 +29,22 @@ from typing import Any, Final
 
 from datawarden.domain.types import Principal, Role, RoleSource
 
-#: Las claves que un cliente podría intentar usar para colarse un rol. **No es una
-#: lista negra que decida nada**: el rol no se lee NUNCA de los datos de la petición,
-#: así que esta lista no protege — sirve para DETECTAR el intento y dejarlo en la
-#: auditoría, que es lo que convierte un ataque en una señal.
+#: Keys a client might use to smuggle a role. Not a denylist that decides anything:
+#: the role is never read from request data. The list only detects the attempt so it
+#: is recorded in the audit trail.
 SPOOF_KEYS: Final = frozenset(
     {"role", "rol", "roles", "principal", "principal_id", "scope", "scopes", "as_role"}
 )
 
-#: La variable de entorno con la que se arranca el servidor en modo stdio.
+#: Environment variable that sets the role for the stdio server.
 ROLE_ENV: Final = "WARDEN_ROLE"
 
 
 def from_server_process(default: Role = Role.ANALYST) -> Principal:
-    """El rol del PROCESO. Lo fija quien arranca el servidor, nunca quien pregunta.
+    """The process role, set by whoever starts the server, never by the caller.
 
-    Un valor desconocido en la variable no escala a `admin` ni revienta: cae al rol
-    por defecto, que es el más restringido de los cuatro. Fail-closed también aquí.
+    An unknown value neither escalates nor raises: it falls back to the default,
+    the most restricted of the four roles.
     """
     raw = os.environ.get(ROLE_ENV, "").strip().lower()
     try:
@@ -73,18 +59,15 @@ def from_server_process(default: Role = Role.ANALYST) -> Principal:
 
 
 def from_verified_token(subject: str, role: Role) -> Principal:
-    """Una identidad que el SERVIDOR verificó. No lo que la petición afirmaba ser."""
+    """An identity the server verified, not what the request claimed."""
     return Principal(id=subject, role=role, source=RoleSource.PRINCIPAL_TOKEN)
 
 
 def spoof_attempts(*payloads: Any) -> tuple[str, ...]:
-    """Las claves sospechosas que traía la petición. **Para auditar, no para decidir.**
+    """Suspicious keys present in the request; for auditing, not for deciding.
 
-    Devolver esto y registrarlo es lo que convierte «el rol no se lee de aquí» en una
-    afirmación comprobable: si un cliente manda `_meta.role="admin"`, el registro de
-    auditoría dice que lo intentó Y dice con qué rol se le respondió de verdad. Sin
-    esto, un intento de suplantación y una petición normal serían indistinguibles a
-    posteriori.
+    If a client sends `_meta.role="admin"`, the audit record shows the attempt and
+    the role actually used, so spoofing attempts are distinguishable after the fact.
     """
     found: list[str] = []
     for payload in payloads:

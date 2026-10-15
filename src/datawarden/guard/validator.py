@@ -1,20 +1,17 @@
-"""`validate()`. **No propaga una excepción NUNCA** (I-04) y no ejecuta nada.
+"""Entry point of the guard.
 
-El único `except Exception` de todo el guard vive aquí, y siempre termina en un
-rechazo. La razón está en `docs/RULES.md`: *fail-closed*. Un guard que revienta con una
-entrada rara no está «fallando»: está devolviendo el control a quien llamó, y quien
-llamó no sabe si la consulta era segura. Que un fallo interno sea un RECHAZO y no
-una excepción es lo que hace que la propiedad de `G-FAILCLOSED` —cinco mil entradas
-arbitrarias, cero excepciones— signifique algo.
+`validate()` never raises: any internal failure, including a timeout, ends in a
+`RejectionReason` verdict (fail-closed, invariant I-04). The guard's only
+`except Exception` lives here. A guard that crashes on odd input hands control back to a
+caller that cannot know whether the query was safe; turning internal failures into
+rejections is what gives the `G-FAILCLOSED` property (arbitrary inputs, zero
+exceptions) its meaning. The time budget is 250 ms per query, both the hard ceiling of
+`G-GUARD-P95` and the fail-closed timeout.
 
-**Y un timeout es un rechazo, no un paso.** El guard tiene 250 ms por consulta, que
-son a la vez el máximo absoluto de `G-GUARD-P95` y su límite de fail-closed.
-
-Lo que devuelve en verde es una `ValidatedQuery` que lleva el ÁRBOL, no la cadena.
-Lo que se ejecuta después es `ast.sql(dialect)` de ese árbol (I-02): si sqlglot
-entendió mal la consulta, lo que llega al motor es lo que sqlglot entendió, no lo
-que el atacante escribió, y eso elimina por construcción la clase entera de ataques
-por diferencia de parser.
+On success it returns a `ValidatedQuery` carrying the AST; what reaches the engine is
+`ast.sql(dialect)`, never the input string (I-02). If sqlglot misreads a query, the
+engine runs what sqlglot understood rather than what the attacker wrote, which removes
+parser-differential attacks by construction.
 """
 
 from __future__ import annotations
@@ -54,7 +51,7 @@ def validate(
     dialect: str = "duckdb",
     timeout_ms: float = DEFAULT_TIMEOUT_MS,
 ) -> Verdict:
-    """Valida una consulta contra las catorce reglas. Devuelve un veredicto, siempre."""
+    """Validate a query against the fourteen rules. Always returns a verdict."""
     try:
         return _validate(
             sql,
@@ -66,8 +63,8 @@ def validate(
             timeout_ms=timeout_ms,
         )
     except Exception as exc:
-        # Ni el tipo de la excepción ni su mensaje van al cliente: pueden citar el
-        # fragmento de entrada, y el contrato de rechazo prohíbe revelar valores.
+        # The exception message never reaches the client: it may quote input fragments,
+        # and the rejection contract forbids revealing values. Only the type is named.
         return RejectionReason(
             rule_id="INTERNAL",
             code="guard_internal_error",
@@ -142,10 +139,9 @@ def _validate(
     if verdict is not None:
         return verdict
 
-    # Cinturón y tirantes. Las reglas de la fase previa miraron el árbol CRUDO;
-    # `qualify()` y R006 lo han reescrito desde entonces. Comprobar la allowlist
-    # sobre el árbol FINAL es lo que garantiza que lo que se ejecuta es lo que se
-    # validó, y no un pariente suyo.
+    # Belt and braces. Pre-qualify rules saw the raw tree; `qualify()` and R006 have
+    # rewritten it since. Checking the allowlist on the final tree guarantees that what
+    # runs is what was validated, not a relative of it.
     final = _final_allowlist(ctx.tree)
     if final is not None:
         return final
@@ -162,7 +158,7 @@ def _validate(
 
 
 def _run(rules: tuple[Rule, ...], ctx: GuardContext) -> tuple[GuardContext, Verdict | None]:
-    """Pasa el contexto por las reglas, propagando reescrituras."""
+    """Run the context through the rules, propagating rewrites."""
     for rule in rules:
         if ctx.deadline is not None and time.monotonic() > ctx.deadline:
             return ctx, _timeout(rule.rule_id)
@@ -194,11 +190,10 @@ def _timeout(rule_id: str) -> RejectionReason:
 
 
 def _parse_rejection(problem: ParseProblem) -> RejectionReason:
-    """Y nombra el OBJETO del que habla, como todo rechazo de este sistema.
+    """Rejection for unparseable input, naming its subject like every rejection.
 
-    Lo pidió la mutación: `subject=None` sobrevivía en los rechazos que no vienen de
-    una regla, porque el corpus solo miraba el `rule_id`. Un rechazo que no nombra
-    su objeto no se puede agrupar por causa ni corregir en el reintento.
+    A rejection that does not name its subject cannot be grouped by cause or corrected
+    on retry.
     """
     return RejectionReason(
         rule_id="R001",
@@ -234,13 +229,12 @@ def _qualify_rejection(problem: ParseProblem) -> RejectionReason:
 
 
 def _subject_of(problem: ParseProblem) -> str | None:
-    """El nombre que sqlglot cita entre comillas, si cita alguno.
+    """The name sqlglot quotes in its error message, if any.
 
-    `Column 'decimals' could not be resolved` lleva dentro el dato accionable, y
-    sacarlo al campo `subject` es lo que permite que el ciclo de la fase 6 sustituya
-    esa columna en el reintento en vez de volver a adivinar. Se coge SOLO el nombre
-    entre comillas —nunca la frase entera— porque los errores de sqlglot citan el
-    fragmento de entrada, y la entrada puede llevar un literal con datos (I-09).
+    `Column 'decimals' could not be resolved` contains the actionable detail; moving it
+    to `subject` lets the NL-to-SQL retry loop substitute that column instead of
+    guessing again. Only the quoted name is taken, never the whole sentence, because
+    sqlglot errors quote input fragments that may contain literals with data (I-09).
     """
     match = re.search(r"'([A-Za-z_][A-Za-z0-9_.]{0,63})'", problem.message)
     return match.group(1) if match else None

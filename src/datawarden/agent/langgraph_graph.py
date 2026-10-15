@@ -1,30 +1,22 @@
-"""LangGraph como MÁQUINA DE ESTADOS, y nada más. Adaptador delgado.
+"""LangGraph used strictly as a state machine. Thin adapter.
 
-**Qué hace este módulo y qué no.** No decide nada. Envuelve `run_loop` —que ya es
-un bucle propio, puro y de sesenta líneas— en un grafo de tres nodos para que quien
-quiera trazas, checkpoints o un `interrupt` humano los tenga. Las funciones que
-hacen el trabajo son EXACTAMENTE las mismas que usa la evaluación; si un día se
-borra este fichero, `G-RECOVERY` sigue midiendo el mismo número.
+Decides nothing. Wraps `run_loop` in a graph so callers can get tracing,
+checkpoints or a human `interrupt`. The functions doing the work are the ones the
+evaluation uses; deleting this file would not change `G-RECOVERY`.
 
-**Por qué el bucle no está dentro del framework.** El bucle es propio por diseño
-y el motivo es medible: este bucle es donde se demuestra la tesis del
-proyecto, y un framework que hiciera los reintentos por dentro dejaría el número de
-`G-RECOVERY` a merced de su política de reintentos, que es justo lo que se está
-midiendo. El grafo es el envoltorio; el bucle es la medida.
+The retry loop stays outside the framework: a framework-managed retry policy would
+confound exactly what `G-RECOVERY` measures.
 
-**Regla dura de `docs/STACK.md`:** solo máquina de estados. El retrieval es SQL
-propio, el acceso al modelo es el `Provider`, y `langchain-*` NO aparece en
-`pyproject.toml`. El riesgo nunca fue LangGraph: es arrastrar LangChain entero y
-romper la regla de que ningún módulo de dominio importa el SDK de un proveedor.
+Per `docs/STACK.md`, state machine only: retrieval is plain SQL, model access is the
+`Provider`, and no `langchain-*` package is a dependency, so no domain module imports
+a provider SDK.
 
-**Y no ejecuta.** El grafo termina con un `ValidatedQuery` o con un rechazo. Al
-motor solo se llega por `AuditedExecutor` (I-06), y el contrato de imports lo
-prohíbe desde aquí: no es disciplina, es `lint-imports`.
+It does not execute. The graph ends with a `ValidatedQuery` or a rejection; the
+engine is reachable only through `AuditedExecutor` (I-06), enforced by
+`lint-imports`.
 
-**Este módulo se MIDE, no se testea** (`docs/RULES.md`): es un adaptador sobre
-funciones puras que ya están probadas, y un test unitario sobre el grafo probaría
-LangGraph. Lo que sí se comprueba es que el grafo y el bucle dan lo mismo, y eso es
-un test de CONTRATO.
+Measured, not unit-tested (`docs/RULES.md`): a unit test of the graph would test
+LangGraph. A contract test checks that graph and loop produce the same result.
 """
 
 from __future__ import annotations
@@ -40,17 +32,16 @@ Validate = Callable[[str], ValidatedQuery | RejectionReason]
 
 
 def _keep_last(_current: Any, incoming: Any) -> Any:
-    """Reductor explícito: el nodo que escribe gana. Sin sorpresas de fusión."""
+    """Explicit reducer: the writing node wins, with no merge surprises."""
     return incoming
 
 
 class GraphState(TypedDict, total=False):
-    """El estado del grafo. **Es un DATO, nunca una autoridad.**
+    """Graph state. Data, never authority.
 
-    El `principal` NO viaja aquí. El rol no viene nunca de datos no autenticados
-    (I-09) y el estado de un grafo es exactamente eso: algo que un nodo anterior
-    escribió. Quien decide con qué rol se valida es el llamante, que lo cierra
-    dentro de `validate` antes de construir el grafo.
+    The `principal` is not carried here: the role never comes from unauthenticated
+    data (I-09), and graph state is whatever a previous node wrote. The caller binds
+    the role inside `validate` before building the graph.
     """
 
     question: Annotated[str, _keep_last]
@@ -67,12 +58,11 @@ def build(
     max_retries: int = MAX_RETRIES,
     seed: Attempt | None = None,
 ) -> Any:
-    """Compila el grafo. Un solo nodo que delega en `run_loop`, y es a propósito.
+    """Compile the graph: a single node delegating to `run_loop`.
 
-    Podría partirse en generar / validar / decidir, y sería más bonito de dibujar.
-    No se hace porque partirlo movería la decisión de cuántas veces se reintenta al
-    grafo, y esa decisión es la que `G-RECOVERY` mide. El grafo aporta traza y
-    checkpoint; la política de reintento se queda donde está probada.
+    Splitting it into generate / validate / decide nodes would move the retry
+    decision, which `G-RECOVERY` measures, into the graph. The graph provides tracing
+    and checkpoints; the retry policy stays where it is tested.
     """
     from langgraph.graph import END, START, StateGraph
 
@@ -106,7 +96,7 @@ def ask(
     validate: Validate,
     max_retries: int = MAX_RETRIES,
 ) -> GraphState:
-    """Atajo: compila el grafo y lo invoca. Devuelve el estado final."""
+    """Shortcut: compile and invoke the graph, returning the final state."""
     compiled = build(provider=provider, validate=validate, max_retries=max_retries)
     result: GraphState = compiled.invoke({"question": question})
     return result

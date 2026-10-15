@@ -1,22 +1,17 @@
-"""El `AuditedExecutor`: **el único camino a `Engine.execute()`** (I-06).
+"""`AuditedExecutor`: the only path to `Engine.execute()` (I-06).
 
-`G-AUDIT-COV` es un axioma y dice una sola cosa: *ninguna invocación sin su
-registro*. No «ninguna ejecución»: ninguna INVOCACIÓN. Se auditan los cuatro
-estados, y el que más importa es el que no ejecuta nada: un rechazo del guard es un
-evento de seguridad, y quien sondea la política sistemáticamente para averiguar qué
-columnas existen es precisamente el que no dejaría ni una línea si solo se
-registraran los éxitos.
+`G-AUDIT-COV` is an axiom: no invocation without its record. Invocation, not
+execution: all four statuses are audited, and the most important one executes
+nothing. A guard rejection is a security event, and someone systematically probing
+the policy to discover columns would leave no trace if only successes were logged.
 
-**Este módulo no reimplementa el orden de los anillos.** Envuelve `cost.screen()`,
-que ya encadena validar → estimar → presupuestar sin ejecutar. Reescribir aquí ese
-orden crearía un segundo sitio donde puede equivocarse, y dos caminos que hacen «lo
-mismo» acaban haciendo dos cosas.
+This module does not re-implement ring ordering. It wraps `screen_and_mask()`, which
+already chains validate, estimate, budget and mask without executing; a second copy
+of that order would be a second place to get it wrong.
 
-**Cómo se distinguen los dos rechazos, y por qué así.** El del guard llega con
-`cost=None`; el de presupuesto llega con su coste calculado. Es una diferencia
-ESTRUCTURAL, no un parseo del `rule_id` ni del texto: el día que un mensaje cambie
-de redacción —y van a cambiar, `G-RECOVERY` los va a reescribir en la fase 6— esta
-clasificación sigue en pie.
+The two rejections are told apart structurally: a guard rejection carries
+`cost=None`, a budget rejection carries its computed cost. Classification does not
+parse `rule_id` or message text, so it survives any rewording of the messages.
 """
 
 from __future__ import annotations
@@ -42,25 +37,22 @@ from datawarden.mask.pipeline import screen_and_mask
 from datawarden.principal.budgets import BudgetBook
 from datawarden.principal.policy import AccessPolicy
 
-#: `sql_digest` cuando NO existe árbol validado, o sea en todo `rejected_by_guard`:
-#: R001 rechaza cosas que ni parsean. El contrato define el campo como el sha256 del
-#: SQL **re-serializado desde el AST validado** y «nunca de la cadena de entrada»,
-#: así que hashear la entrada sería justo lo prohibido: la auditoría certificaría
-#: algo distinto de lo que corrió. Los 64 ceros son un valor legal y distinguible,
-#: el mismo vocabulario que el contrato usa para el génesis de `prev_hash`.
+#: `sql_digest` when there is no validated tree, i.e. every `rejected_by_guard`
+#: (R001 rejects input that does not even parse). The contract defines the field as
+#: the sha256 of SQL re-serialized from the validated AST, never of the input string,
+#: so hashing the input would certify something other than what ran. 64 zeros is a
+#: legal, distinguishable value, the same convention as the `prev_hash` genesis.
 #:
-#: **OJO: el mismo relleno que `chain.GENESIS`, y significa otra cosa.** Allí quiere
-#: decir «primero de la cadena»; aquí, «no hubo árbol validado». No colisionan porque
-#: son campos distintos y se leen por NOMBRE, pero un registro que sea a la vez el
-#: primero de la cadena y un rechazo pre-parseo llevará los dos. Se leen por campo,
-#: nunca por valor. Quedó fijado al aprobar este centinela, y está escrito también en la
-#: `description` de los dos campos del contrato.
+#: Same padding as `chain.GENESIS` with a different meaning ("first in chain" there,
+#: "no validated tree" here). Different fields, so no collision, but a record that is
+#: both first in the chain and a pre-parse rejection carries both. Read by field,
+#: never by value; both contract field descriptions say so.
 NO_VALIDATED_TREE = "0" * 64
 
 
 @dataclass(frozen=True, slots=True)
 class RunResult:
-    """Lo que devuelve una invocación, con su registro de auditoría al lado."""
+    """The outcome of an invocation, alongside its audit entry."""
 
     rows: ResultSet | None
     rejection: RejectionReason | None
@@ -77,7 +69,7 @@ def _digest(text: str) -> str:
 
 
 class AuditedExecutor:
-    """Valida, presupuesta, ejecuta si procede — y registra pase lo que pase."""
+    """Validates, budgets, masks, executes if allowed, and records the outcome regardless."""
 
     def __init__(
         self,
@@ -97,13 +89,10 @@ class AuditedExecutor:
         self.policy = policy
         self.budgets = budgets
         self.stats = stats
-        # **`mask` ES OBLIGATORIO Y NO TIENE VALOR POR DEFECTO, y eso es la mitad del
-        # arreglo.** Este ejecutor llamaba a `screen()` —anillos 2 y 3— y se saltaba
-        # el 4: el único camino sancionado al motor devolvía nombres y correos
-        # REALES a `analyst`, y el registro lo decía con un `columns_masked: []` que
-        # nadie leía. Un parámetro opcional habría dejado que el mismo fallo volviera
-        # con solo olvidarse de pasarlo; sin defecto, no se puede construir un
-        # ejecutor que no enmascare.
+        # `mask` is required and has no default. The executor once called `screen()`
+        # and skipped masking, returning real names and emails to `analyst` while the
+        # record said `columns_masked: []`. With no default, an executor that does
+        # not mask cannot be constructed.
         self.mask = mask
         self.dialect = dialect
 
@@ -116,12 +105,11 @@ class AuditedExecutor:
         keep_question: bool = False,
         trace_id: str | None = None,
     ) -> RunResult:
-        """Una invocación completa. Deja SIEMPRE exactamente un registro.
+        """One full invocation. Always leaves exactly one record.
 
-        `question` se guarda **hasheada**: una pregunta en lenguaje natural puede
-        llevar un dato personal dentro, y el digest permite agrupar y contar sin
-        conservar el texto. Conservarlo es `keep_question=True`, una decisión
-        explícita y nunca el valor por defecto.
+        `question` is stored hashed: a natural-language question may contain personal
+        data, and the digest still allows grouping and counting. Keeping the text
+        requires an explicit `keep_question=True`.
         """
         question_digest = _digest(question if question is not None else sql)
         preview = question if (keep_question and question is not None) else None
@@ -134,10 +122,9 @@ class AuditedExecutor:
             "trace_id": trace_id,
         }
 
-        # LOS CUATRO ANILLOS, no dos. `screen()` valida y presupuesta; el
-        # enmascarado es el anillo 4 y va DESPUÉS del presupuesto a propósito:
-        # reescribir antes cambiaría el árbol que el estimador tarifó y el coste
-        # publicado dejaría de ser el de lo ejecutado.
+        # Validate, cost, budget and mask. Masking runs after budgeting on purpose:
+        # rewriting earlier would change the tree the estimator priced, and the
+        # published cost would no longer match what ran.
         result = screen_and_mask(
             sql,
             principal=principal,
@@ -150,8 +137,8 @@ class AuditedExecutor:
         )
 
         if result.rejection is not None:
-            # ESTRUCTURAL, no textual: el guard rechaza antes de estimar, así que
-            # no hay coste; el presupuesto rechaza después, así que sí lo hay.
+            # Structural, not textual: the guard rejects before estimating (no cost),
+            # the budget rejects after (cost present).
             by_guard = result.cost is None
             entry = self.store.append(
                 status=Status.REJECTED_BY_GUARD if by_guard else Status.REJECTED_BY_BUDGET,
@@ -169,12 +156,10 @@ class AuditedExecutor:
         try:
             rows = self.engine.execute(query)
         except Exception:
-            # I-04 en espíritu: se captura, SE ESCRIBE EL REGISTRO y se RELANZA.
-            # Tragarse la excepción convertiría un fallo del motor en un éxito
-            # silencioso —el llamante recibiría un resultset vacío indistinguible
-            # de «no hay filas»—, y no escribir el registro dejaría sin rastro
-            # justo el evento que más falta hace investigar. El `raise` desnudo
-            # conserva la traza original.
+            # Catch, write the record, re-raise. Swallowing would turn an engine
+            # failure into an empty result indistinguishable from "no rows", and not
+            # recording it would leave no trace of the event most worth investigating.
+            # The bare `raise` keeps the original traceback.
             self.store.append(
                 status=Status.ERROR,
                 sql_digest=query.sql_digest(),
@@ -206,11 +191,11 @@ class AuditedExecutor:
 
 
 def _rejection_payload(rejection: RejectionReason) -> dict[str, Any]:
-    """El rechazo, en la forma que guarda el registro.
+    """The rejection in the shape stored in the record.
 
-    Se guarda la ESTRUCTURA —quién rechazó, de qué habla, dónde— y no solo la
-    frase. El texto va a cambiar cuando `G-RECOVERY` lo mida en la fase 6; los
-    campos con los que se agrupa por causa no pueden cambiar con él.
+    Stores the structure (who rejected, about what, where) rather than only the
+    sentence. Message wording is tuned against `G-RECOVERY`; the fields used to group
+    by cause must not change with it.
     """
     return {
         "rule_id": rejection.rule_id,

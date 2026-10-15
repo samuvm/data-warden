@@ -1,28 +1,27 @@
-"""R012 · la agregación de grupo único, que es el ataque que casi nadie contempla.
+"""R012: single-person groups requested through aggregation.
 
-`docs/RULES.md §7`, error 7: *«Olvidar la agregación de grupo único.
-`SELECT count(*) … GROUP BY national_id` expone la columna por cardinalidad»*. Y hay
-una versión más limpia todavía, que no necesita ninguna columna sensible:
+`SELECT count(*) ... GROUP BY national_id` exposes the column through cardinality
+(`docs/RULES.md` §7, item 7). A cleaner variant needs no sensitive column at all:
 
     SELECT country_code, count(*) FROM dim_customer GROUP BY country_code
     HAVING count(*) = 1
 
-Eso devuelve, país a país, las cohortes de una sola persona. Ninguna columna sale en
-la respuesta y sin embargo la respuesta ES una persona. **Pedir explícitamente los
-grupos de tamaño uno es pedir individuos con forma de agregado.**
+returns, country by country, the cohorts of a single person. No sensitive column
+appears in the response, yet each row is an individual: explicitly asking for groups of
+size one is asking for individuals shaped as aggregates.
 
-Esta regla cierra las dos formas estructurales de pedirlo:
+This rule closes the two structural ways of asking for them:
 
-1. Un `HAVING` que compara un conteo con un literal por debajo de `K_MIN`.
-2. Agrupar —o particionar una ventana— por una columna que la política clasifica
-   como IDENTIFICADOR o CUASI-IDENTIFICADOR, aunque para ese rol sea `allow`.
+1. A `HAVING` that compares a count with a literal below `K_MIN`, or bounds it from
+   above.
+2. Grouping, or partitioning a window, by a column the policy classifies as an
+   identifier or quasi-identifier, even when it is `allow` for that role.
 
-**Límite declarado, y es el mismo que declara la política.** El k-anonimato de
-verdad exige contar antes de devolver, lo que cambia el coste de toda consulta
-agrupada; `docs/spec/policy.yaml` ya lo publica como fuera de alcance. Esto para las
-dos formas ESTRUCTURALES de pedir grupos pequeños, no todas: una combinación de
-columnas todas en `allow` puede seguir aislando a una persona, y eso está escrito en
-`limites_declarados` en vez de fingido.
+Declared limit, shared with the policy: real k-anonymity requires counting before
+returning, which changes the cost of every grouped query, and `docs/spec/policy.yaml`
+lists it as out of scope. This rule stops the structural forms, not all of them: a
+combination of `allow` columns can still isolate a person, and that is recorded in
+`limites_declarados` rather than hidden.
 """
 
 from __future__ import annotations
@@ -36,15 +35,14 @@ from datawarden.guard.position import table_and_column
 from datawarden.guard.rule import PASS, POST_QUALIFY, GuardContext, RuleResult, reject
 from datawarden.guard.rules import messages
 
-#: Tamaño mínimo de grupo que se puede pedir explícitamente. Cinco es el suelo
-#: habitual en estadística oficial para publicar una celda, y aquí se aplica al
-#: PREDICADO —lo que se pide—, no al resultado, que es lo que no se puede acotar
-#: sin contar antes de devolver.
+#: Minimum group size that can be requested explicitly. Five is the usual floor in
+#: official statistics for publishing a cell. It applies to the predicate (what is asked
+#: for), not to the result, which cannot be bounded without counting before returning.
 K_MIN: Final = 5
 
-#: Tipos de dato de la política que identifican a una persona o casi. Salen del
-#: contrato firmado, no de una lista escrita aquí: si negocio reclasifica una
-#: columna, esta regla cambia con ella y sin tocar código.
+#: Policy data types that identify a person, directly or nearly. They are the
+#: `data_type` vocabulary of the signed policy contract: columns are classified there, so
+#: reclassifying a column changes this rule's behaviour without a code change.
 IDENTIFYING_TYPES: Final = frozenset(
     {
         "identificador_directo",
@@ -68,12 +66,12 @@ _SMALL_COMPARISONS: Final = (exp.EQ, exp.LT, exp.LTE)
 
 
 class GroupCardinalityRule:
-    """Ni se piden grupos de tamaño uno, ni se agrupa por un identificador."""
+    """Neither groups of size one nor grouping by an identifier."""
 
     rule_id = "R012"
     code = "group_too_small"
     severity = Severity.POLICY
-    summary = "No se piden grupos por debajo de k, ni se agrupa por identificadores"
+    summary = "No groups below k are requested, and no grouping by identifiers"
     families: tuple[str, ...] = (
         "agregacion_de_grupo_unico",
         "reidentificacion_por_cardinalidad",
@@ -87,23 +85,20 @@ class GroupCardinalityRule:
         return self._check_grouping(ctx) or PASS
 
     def _check_having(self, ctx: GuardContext) -> RuleResult | None:
-        """Un `HAVING` que acota el tamaño de grupo POR ARRIBA pide los grupos raros.
+        """A `HAVING` that bounds group size from above asks for the rare groups.
 
-        **Esto tenía un off-by-one, y lo encontró la mutación.** La comprobación era
-        «rechaza si el literal está por debajo de `K_MIN`», que es correcta para una
-        igualdad —`count(*) = 3` pide grupos de tres— y **falsa para un límite
-        superior**: `count(*) <= 5` devuelve los grupos de 1, 2, 3, 4 y 5, y
-        `count(*) <= 1000` devuelve TODOS los grupos pequeños del almacén, incluidos
-        los de una persona. Se aceptaban las dos.
+        For equality, rejecting literals below `K_MIN` is correct: `count(*) = 3` asks
+        for groups of three. For an upper bound it is not: `count(*) <= 5` returns groups
+        of 1 to 5, and `count(*) <= 1000` returns every small group in the warehouse,
+        single-person groups included.
 
-        Acotar por arriba el tamaño de grupo **es** la consulta de k-anonimato al
-        revés: «enséñame las cohortes raras». Así que un `<` o un `<=` sobre un
-        conteo se rechaza **siempre**, salvo que el mismo `HAVING` ponga también un
-        suelo de al menos `K_MIN` —`count(*) >= 5 AND count(*) <= 100`—, que es la
-        forma legítima de preguntar por una franja de tamaños.
+        Bounding group size from above is the k-anonymity query in reverse ("show me the
+        rare cohorts"), so `<` or `<=` on a count is always rejected unless the same
+        `HAVING` also sets a floor of at least `K_MIN` (`count(*) >= 5 AND count(*) <=
+        100`), which is the legitimate way to ask for a band of sizes.
 
-        La igualdad se queda como estaba: `count(*) = 5` pide grupos de exactamente
-        cinco, y cinco es el mínimo.
+        Equality is unchanged: `count(*) = 5` asks for groups of exactly five, and five
+        is the minimum.
         """
         for having in ctx.tree.find_all(exp.Having):
             floor = _group_floor(having)
@@ -117,7 +112,7 @@ class GroupCardinalityRule:
                         continue
                     bounded_above = isinstance(comparison, (exp.LT, exp.LTE))
                     if bounded_above:
-                        # Un techo sin suelo devuelve siempre los grupos de uno.
+                        # An upper bound without a floor always returns groups of one.
                         if floor is not None and floor >= K_MIN:
                             continue
                     elif value >= K_MIN:
@@ -164,11 +159,11 @@ class GroupCardinalityRule:
 
 
 def _group_floor(having: exp.Having) -> int | None:
-    """El SUELO que el `HAVING` pone al tamaño de grupo, si pone alguno.
+    """The floor the `HAVING` puts on group size, if any.
 
-    `count(*) >= 5` o `count(*) > 4`. Es lo que convierte un techo en una franja
-    legítima: preguntar por grupos de entre 5 y 100 es análisis normal; preguntar
-    por grupos de «100 o menos» es pedir los raros.
+    `count(*) >= 5` or `count(*) > 4`. A floor is what turns an upper bound into a
+    legitimate band: groups of 5 to 100 is normal analysis; groups of "100 or fewer" is
+    asking for the rare ones.
     """
     best: int | None = None
     for comparison in having.find_all(exp.GT, exp.GTE):
@@ -181,14 +176,14 @@ def _group_floor(having: exp.Having) -> int | None:
             value = _int_literal(literal_side)
             if value is None:
                 continue
-            # `> 4` es un suelo de 5; `>= 5` también.
+            # `> 4` is a floor of 5, and so is `>= 5`.
             floor = value + 1 if isinstance(comparison, exp.GT) else value
             best = floor if best is None else max(best, floor)
     return best
 
 
 def _int_literal(node: exp.Expression | None) -> int | None:
-    """El entero de un literal, o `None` si no es un entero literal."""
+    """Integer value of a literal, or `None` if it is not an integer literal."""
     if isinstance(node, exp.Literal) and node.is_int:
         return int(node.this)
     if isinstance(node, exp.Neg):

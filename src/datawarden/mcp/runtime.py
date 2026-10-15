@@ -1,23 +1,19 @@
-"""Levanta el servidor MCP sobre stdio. **Adaptador: contrato y snapshot.**
+"""Run the MCP server over stdio. Adapter: tested by contract and snapshot.
 
-**Qué es stdio y por qué no hay nada que levantar.** El cliente —Claude Desktop,
-Cursor— lanza este proceso él mismo y habla con él por la entrada y la salida
-estándar. No hay demonio, no hay puerto, no hay `make up` y no hay nada que acordarse
-de arrancar: cuando el cliente se cierra, el proceso muere con él. DuckDB es
-embebido, así que tampoco hay servidor de base de datos.
+The client (Claude Desktop, Cursor) spawns this process and talks to it over stdin
+and stdout: no daemon, no port, nothing to start. DuckDB is embedded, so there is no
+database server either.
 
-**Y no hace falta ningún modelo.** Las cuatro herramientas RECIBEN SQL; quien lo
-escribe es el modelo del cliente. El modelo local de `models.lock` solo sirve para
-medir `G-RECOVERY` y `G-TOOL-CHOICE` fuera de línea. Se puede tener Ollama apagado.
+No model is required. The four tools receive SQL written by the client's model; the
+local model in `models.lock` is only used to measure `G-RECOVERY` and
+`G-TOOL-CHOICE` offline.
 
-**Nada de esto decide política.** El rol sale de `mcp/principal.py` —del entorno del
-proceso, que lo fija quien instala el servidor— y jamás de `_meta` ni de
-`arguments`; al motor se llega solo por `AuditedExecutor`, construido por la factoría
-de `audit/`. Este fichero traduce un protocolo, y ya está.
+No policy is decided here. The role comes from `service/principal.py` (the process
+environment set by whoever installs the server), never from `_meta` or `arguments`;
+the engine is reached only through `AuditedExecutor`, built by the `audit/` factory.
 
-**Todo lo que puede fallar, falla al arrancar.** Un servidor que arranca y revienta
-en la primera consulta es peor que uno que no arranca: el cliente ya le ha dicho al
-usuario que está conectado, y el usuario culpa a la consulta.
+Everything that can fail does so at startup: a server that connects and then breaks
+on the first query makes the user blame the query.
 """
 
 from __future__ import annotations
@@ -33,22 +29,14 @@ from datawarden.principal.budgets import Decision
 from datawarden.service.principal import from_server_process
 from datawarden.service.tools import WardenTools
 
-#: La raíz del repositorio, DEDUCIDA DEL PAQUETE y no del directorio de trabajo.
-#:
-#: **Esto nace de un fallo real de la prueba manual con Claude Desktop.** El README
-#: decía que se pusiera `cwd` en la configuración del cliente, y **Claude Desktop lo
-#: ignora**: lanzaba el proceso desde otro sitio y `uv run warden` moría con
-#: `Failed to spawn: warden`. Un servidor que lo lanza una aplicación de escritorio
-#: no puede dar por hecho su directorio de trabajo — lo elige quien lo lanza, y no
-#: hay forma de obligarle.
-#:
-#: Los artefactos generados (`schema.json`, `policy.json`, `budgets.json`) ya eran
-#: relativos al paquete y por eso no fallaron. Estos dos no lo eran.
+#: Repository root, derived from the package location rather than the working
+#: directory. Observed with Claude Desktop as client: it ignores a configured `cwd`
+#: and spawns the process elsewhere, so `uv run warden` failed with
+#: `Failed to spawn: warden`. A desktop-launched server cannot assume its cwd.
 REPO_ROOT: Final = pathlib.Path(__file__).resolve().parents[3]
 
-#: El contrato de las herramientas. Es la MISMA fuente que mide `G-TOOL-CHOICE`: si
-#: el servidor publicara otras descripciones que las evaluadas, el número dejaría de
-#: decir algo sobre lo que un cliente ve de verdad.
+#: Tool contract. Same source `G-TOOL-CHOICE` measures, so published descriptions
+#: are exactly the evaluated ones.
 TOOLS_CONTRACT: Final = REPO_ROOT / "docs" / "spec" / "tools.yaml"
 
 SERVER_NAME: Final = "data-warden"
@@ -56,10 +44,9 @@ SERVER_VERSION: Final = "0.7.0"
 
 INSTRUCTIONS: Final = (
     "Almacén analítico de pagos con guard por AST, presupuesto y enmascarado por rol. "
-    # EMPIEZA POR AQUÍ, y va lo primero por un motivo medido: en la prueba manual con
-    # Claude Desktop un cliente sin lectura de recursos MCP dejó al modelo adivinando
-    # nombres de tabla a ciegas —`customers`, `clientes`, `pagos`— hasta rendirse.
-    # Los recursos son OPCIONALES para un cliente; las herramientas no.
+    # Discovery instruction first. Observed with Claude Desktop as client: without
+    # MCP resource support the model guessed table names (`customers`, `clientes`,
+    # `pagos`) until giving up. Resources are optional for clients; tools are not.
     "EMPIEZA llamando a `describe_table` SIN argumentos: devuelve las tablas que "
     "existen. Después `describe_table` con una de ellas para ver sus columnas. "
     "Solo entonces escribe SQL `SELECT` de DuckDB en `run_query`. "
@@ -70,20 +57,18 @@ INSTRUCTIONS: Final = (
 
 
 def load_contract(path: pathlib.Path = TOOLS_CONTRACT) -> dict[str, Any]:
-    """Lee el contrato de herramientas. Lo parsea el ADAPTADOR, no el dominio.
+    """Read the tool contract. Parsed by the adapter, not the domain.
 
-    PyYAML no está en `[project.dependencies]` —entra transitivamente— y ningún
-    módulo de dominio lo importa. Aquí es admisible por el mismo motivo que
-    en `scripts/`: esto es el borde, corre una vez al arrancar y no está en el camino
-    crítico de ninguna consulta.
+    PyYAML is a transitive dependency and no domain module imports it. It is
+    acceptable here as in `scripts/`: this is the edge, runs once at startup, and is
+    off every query's critical path.
     """
     import yaml  # type: ignore[import-untyped]
 
     if not path.exists():
         message = (
-            f"no existe {path}. Es el contrato de las cuatro herramientas y la MISMA "
-            "fuente con la que se mide `G-TOOL-CHOICE`: publicar descripciones que no "
-            "son las evaluadas haría que ese número no dijera nada del cliente real."
+            f"{path} does not exist. It is the contract of the four tools and the "
+            "same source `G-TOOL-CHOICE` is measured against."
         )
         raise FileNotFoundError(message)
     parsed: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -96,7 +81,7 @@ def build_server(
     audit_db: pathlib.Path | None = None,
     contract_path: pathlib.Path = TOOLS_CONTRACT,
 ) -> Any:
-    """Monta el `MCPServer` con sus cuatro herramientas y el recurso del catálogo."""
+    """Build the `MCPServer` with its four tools and the catalog resource."""
     from mcp.server import CacheHint, MCPServer
 
     from datawarden.audit.factory import DEFAULT_AUDIT_DB, build_executor
@@ -106,22 +91,21 @@ def build_server(
 
     contract = load_contract(contract_path)
     specs = warden.tool_specs(contract)
-    # Una ruta relativa se resuelve contra la RAÍZ DEL REPOSITORIO, nunca contra el
-    # directorio de trabajo: quien lanza este proceso es una aplicación de escritorio
-    # y elige el suyo. Una ruta absoluta se respeta tal cual.
+    # Relative paths resolve against the repository root, not the cwd chosen by
+    # the launching desktop app. Absolute paths are kept as is.
     database = database if database.is_absolute() else REPO_ROOT / database
 
-    # La pimienta sale del entorno y NO tiene valor por defecto: una pimienta por
-    # defecto es una pimienta pública. Si falta, esto levanta aquí y el cliente ve
-    # el motivo, en vez de servir columnas hasheadas con una clave que todos saben.
+    # The pepper comes from the environment with no default (a default pepper is a
+    # public one). If missing, this raises at startup instead of hashing columns
+    # with a known key.
     mask = load_mask_config(load_policy(POLICY_PATH))
     executor = build_executor(
         database=database,
         audit_db=audit_db or DEFAULT_AUDIT_DB,
         mask=mask,
     )
-    # EL ROL SALE DEL PROCESO, que lo fija quien instala el servidor en su cliente.
-    # Nunca de `_meta` ni de `arguments`: `G-ROLE-SPOOF` es un axioma.
+    # The role comes from the process, set by whoever installs the server; never
+    # from `_meta` or `arguments` (`G-ROLE-SPOOF`).
     tools = WardenTools(executor=executor, principal=from_server_process())
 
     hint = CacheHint(ttl_ms=warden.TTL_MS, scope=warden.CACHE_SCOPE)
@@ -130,9 +114,8 @@ def build_server(
         title="Data Warden",
         version=SERVER_VERSION,
         instructions=INSTRUCTIONS,
-        # `ttlMs` y `cacheScope` son OBLIGATORIOS en los `list` de la spec
-        # 2026-07-28: sin TTL, un cliente no sabe si puede cachear el catálogo de
-        # herramientas ni por cuánto, y acaba pidiéndolo en cada vuelta.
+        # `ttlMs` and `cacheScope` are required on `list` results by spec
+        # 2026-07-28.
         cache_hints={
             "server/discover": hint,
             "tools/list": hint,
@@ -141,8 +124,8 @@ def build_server(
         },
     )
 
-    # EL ORDEN DE REGISTRO ES EL DEL CONTRATO. `tools/list` determinista lo exige la
-    # spec, y además es lo que hace que un snapshot signifique algo.
+    # Registration follows contract order: the spec requires a deterministic
+    # `tools/list`, and snapshots depend on it.
     for spec in specs:
         _register(server, tools, spec)
 
@@ -150,28 +133,22 @@ def build_server(
     return server
 
 
-#: El identificador de la pregunta dentro de `input_requests`. Uno solo: esta ronda
-#: pregunta una cosa y nada más.
+#: Id of the single question inside `input_requests`.
 _CONFIRM_ID: Final = "confirm_soft_budget"
 
-#: El estado opaco que el servidor manda y el cliente devuelve. Sirve para distinguir
-#: «ronda uno» de «el cliente ya contestó», que es lo único que hace falta recordar.
+#: Opaque state the server sends and the client echoes back, to tell the first round
+#: from the answered one.
 _CONFIRM_STATE: Final = "soft-budget-confirmation"
 
 
 def _peticion_de_confirmacion(sql: str) -> InputRequiredResult:
-    """La ronda 1 de MRTR: **el servidor DEVUELVE la pregunta, no la llama.**
+    """MRTR round 1: the server returns the question instead of calling the client.
 
-    Aquí estaba mi error, y es exactamente el que `docs/STACK.md` avisa cuando dice que
-    «el código de ejemplo de 2025 no compila». Lo implementé primero con `ctx.elicit()`,
-    que es el patrón viejo: el servidor abre una petición HACIA el cliente. La spec
-    2026-07-28 **eliminó las sesiones**, así que no hay canal de vuelta y el SDK lo dijo
-    con todas las letras — `NoBackChannelError: this transport context has no
-    back-channel for server-initiated requests`.
-
-    Por eso la spec puso **MRTR** en su lugar: el servidor responde a la llamada con un
-    `InputRequiredResult`, el cliente contesta y vuelve a llamar, y la segunda ronda lee
-    `ctx.input_responses`. Sin estado en el servidor, que es la idea entera del cambio.
+    The pre-2026 pattern, `ctx.elicit()`, opens a server-initiated request. Spec
+    2026-07-28 removed sessions, so there is no back-channel and the SDK raises
+    `NoBackChannelError` (see `docs/STACK.md`). With MRTR the server answers with an
+    `InputRequiredResult`, the client calls again with its answer, and round 2 reads
+    `ctx.input_responses`. The server stays stateless.
     """
     from mcp.types import ElicitRequest
     from mcp_types import ElicitRequestFormParams
@@ -207,11 +184,11 @@ def _peticion_de_confirmacion(sql: str) -> InputRequiredResult:
 
 
 def _confirmado(responses: Any) -> bool:
-    """Si el cliente dijo que sí. Declinar, cancelar o no contestar es que no.
+    """Whether the client said yes. Declining, cancelling or not answering means no.
 
-    **Fail-closed en la dirección barata:** ante cualquier respuesta que no sea un
-    `accept` con `proceed: true`, la consulta cara no se lanza. Equivocarse aquí cuesta
-    una repetición; equivocarse al revés cuesta un escaneo que nadie pidió.
+    Fail-closed in the cheap direction: anything other than `accept` with
+    `proceed: true` does not run the expensive query. A wrong no costs a retry; a
+    wrong yes costs an unrequested scan.
     """
     if not isinstance(responses, dict):
         return False
@@ -223,22 +200,18 @@ def _confirmado(responses: Any) -> bool:
 
 
 def _mrtr_run_query(tools: WardenTools) -> Any:
-    """`run_query` con **MRTR**: preguntar antes de gastar, no rechazar después.
+    """`run_query` with MRTR: ask before spending rather than warn afterwards.
 
-    El presupuesto `soft` ejecutaba con un aviso que nadie leía. Un umbral blando que no
-    pregunta no es blando: es decorativo. La spec 2026-07-28 retiró `sampling` y
-    `elicitation` y puso el patrón de múltiples idas y vueltas en su sitio, y encaja
-    exactamente con esto.
+    A soft budget that only attaches a warning nobody reads is decorative. Spec
+    2026-07-28 replaced `sampling` and `elicitation` with the multi-round-trip
+    pattern, which fits this exactly.
 
-    **Se pregunta ANTES de invocar nada**, lo que deja intacto el contrato de auditoría:
-    la consulta se audita cuando de verdad ocurre, con los mismos cuatro estados.
-    Sondear el coste no llega al motor —es lo mismo que hace `explain_cost`—, así que no
-    inventa un quinto estado.
+    The question is asked before anything is invoked, so the audit contract is
+    unchanged: the query is audited when it actually runs, with the same four
+    statuses. Probing the cost does not reach the engine (same as `explain_cost`).
 
-    **Y si el cliente no entiende MRTR**, recibe un resultado `input_required` que la
-    spec define y no ejecuta nada. No se le rompe: se le pide algo que no sabe dar. El
-    presupuesto `soft` es un control de COSTE; el `hard` sigue rechazando solo, y
-    `G-BUDGET-ESCAPE` —el axioma— no depende de esto.
+    The soft budget is a cost control; the hard budget still rejects on its own and
+    `G-BUDGET-ESCAPE` does not depend on this path.
     """
 
     async def run_query(
@@ -246,25 +219,20 @@ def _mrtr_run_query(tools: WardenTools) -> Any:
         ctx: Context[Any, Any],
         question: str | None = None,
     ) -> dict[str, Any] | InputRequiredResult:
-        # **EL TIPO DE RETORNO SE DECLARA, no se deja en `Any`.** El SDK lo usa para dos
-        # cosas: rechaza una herramienta con salida estructurada cuyo retorno no sabe
-        # serializar —`InvalidSignature: return type Any is not serializable`— y detecta
-        # por la anotación que esta herramienta puede pedir entrada. Sin declararlo, el
-        # servidor ni siquiera arranca, que es lo correcto: mejor no arrancar que
-        # arrancar y romperse en la primera consulta cara.
+        # The return type must be declared, not `Any`: the SDK rejects structured
+        # output it cannot serialize (`InvalidSignature: return type Any is not
+        # serializable`) and uses the annotation to detect that the tool may request
+        # input. Without it the server fails at startup.
         if tools.budget_decision(question_sql) is not Decision.CONFIRM:
             return tools.run_query(question_sql, question=question)
-        # **Un cliente que no sabe contestar no puede quedarse sin respuesta.**
-        # Devolver `InputRequiredResult` a un cliente que no declaró `elicitation` no
-        # le pide algo que no sabe dar: le rompe la llamada con un error de protocolo
-        # —`MCPError: Elicitation not supported`—, y eso deja la herramienta inservible
-        # en TODA la franja blanda. Medido en la prueba manual con Claude
-        # Desktop: 17 de 92 llamadas (18 %) murieron así, y las 17 eran `CONFIRM`.
+        # Returning `InputRequiredResult` to a client that did not declare
+        # `elicitation` fails the call with `MCPError: Elicitation not supported`,
+        # making the tool unusable across the whole soft band. Observed with Claude
+        # Desktop as client: 17 of 92 calls (18 %) failed this way, all `CONFIRM`.
         #
-        # Contra ese cliente, el blando vuelve a lo que significaba antes de MRTR:
-        # ejecutar con aviso. No se debilita nada — el **duro** sigue rechazando solo y
-        # `G-BUDGET-ESCAPE` cubre ese, no este—, y el aviso viaja en la respuesta para
-        # que cruzar el umbral no sea silencioso.
+        # For such clients the soft budget falls back to running with a warning in
+        # the response. The hard budget still rejects on its own and is what
+        # `G-BUDGET-ESCAPE` covers.
         if not _sabe_confirmar(ctx):
             return _con_aviso(tools.run_query(question_sql, question=question))
         if ctx.request_state != _CONFIRM_STATE:
@@ -277,17 +245,16 @@ def _mrtr_run_query(tools: WardenTools) -> Any:
 
 
 def _sabe_confirmar(ctx: Context[Any, Any]) -> bool:
-    """¿Declaró el cliente que sabe contestar a una petición de entrada?
+    """Whether the client declared it can answer an input request.
 
-    Se mira lo que el cliente DECLARÓ, no lo que se espera de él. `client_capabilities`
-    es `None` cuando no declaró ninguna, y ahí la respuesta es que no: preguntarle sería
-    romperle la llamada.
+    Uses declared capabilities only. `client_capabilities` is `None` when none were
+    declared, which means no.
     """
     capacidades = ctx.client_capabilities
     return capacidades is not None and capacidades.elicitation is not None
 
 
-#: El aviso que acompaña a una consulta que cruzó el blando sin poder preguntar.
+#: Warning attached to a query that crossed the soft budget without confirmation.
 AVISO_BLANDO: Final = (
     "this query crossed the soft budget for this role; it ran because the client "
     "cannot answer a confirmation request. Narrow it — a date range or fewer columns "
@@ -296,12 +263,11 @@ AVISO_BLANDO: Final = (
 
 
 def _con_aviso(payload: dict[str, Any]) -> dict[str, Any]:
-    """Cuelga el aviso del resultado, sin tocar las filas.
+    """Attach the warning to the result without touching the rows.
 
-    Va dentro de `result` y no al lado porque el `oneOf` del `outputSchema` distingue
-    exactamente dos desenlaces, y meter una tercera clave arriba obligaría a un cliente
-    a tratar un caso más para algo que no es un desenlace distinto: son filas, con una
-    nota. En un rechazo no se pone nada: el rechazo ya trae su motivo.
+    Placed inside `result` because the `outputSchema` `oneOf` has exactly two
+    outcomes; this is rows with a note, not a third outcome. Rejections are left
+    unchanged.
     """
     cuerpo = payload.get("result")
     if isinstance(cuerpo, dict):
@@ -310,12 +276,10 @@ def _con_aviso(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _no_confirmada() -> dict[str, Any]:
-    """La consulta no se lanzó porque no se confirmó. **No es un fallo, es una decisión.**
+    """The query did not run because it was not confirmed.
 
-    Se devuelve con la forma de un rechazo —la misma que el guard— para que el cliente
-    no tenga que tratar dos formas distintas del suceso «no hay filas y este es el
-    motivo». Y `retryable: true`, porque confirmar es exactamente lo que hay que hacer
-    para que ocurra.
+    Uses the guard's rejection shape so clients handle a single "no rows, here is
+    why" form. `retryable: true` because confirming is exactly what makes it run.
     """
     return {
         "outcome": "rejected",
@@ -340,15 +304,12 @@ def _no_confirmada() -> dict[str, Any]:
 
 
 def _register(server: Any, tools: WardenTools, spec: warden.ToolSpec) -> None:
-    """Cuelga una herramienta con la descripción del CONTRATO, no con su docstring.
+    """Register a tool with the contract's description, not its docstring.
 
-    La descripción es lo que `G-TOOL-CHOICE` mide, así que tiene que salir del mismo
-    fichero que se evaluó. Un docstring que se editara «para que quede mejor» movería
-    lo que ve el cliente sin mover el número, que es la peor forma de que una métrica
-    deje de significar algo.
+    `G-TOOL-CHOICE` measures the description, so it must come from the evaluated
+    file; a docstring edit would change what clients see without moving the metric.
     """
-    # `run_query` se registra envuelto en MRTR; las otras tres, directas. Solo esa
-    # gasta presupuesto, así que solo esa tiene algo que preguntar.
+    # Only `run_query` spends budget, so only it is wrapped in MRTR.
     method = _mrtr_run_query(tools) if spec.name == "run_query" else getattr(tools, spec.name)
     server.add_tool(
         method,
@@ -360,19 +321,13 @@ def _register(server: Any, tools: WardenTools, spec: warden.ToolSpec) -> None:
 
 
 def _register_catalog(server: Any, executor: Any) -> None:
-    """El catálogo COMPLETO como recurso, no dentro del prompt.
-
-    32 tablas y 428 columnas no caben cómodas en un prompt, y meterlas obligaría a
-    recortarlas justo cuando el modelo necesita el esquema entero. Como recurso, el
-    cliente lo pide una vez y lo cachea el `ttlMs` que declara el discover.
-    """
+    """Register the full catalog as a resource rather than putting it in the prompt."""
 
     def catalog() -> str:
         return warden.catalog_resource(executor.schema.published().to_dict())
 
-    # Se registra por llamada y no con `@`: el decorador del SDK no lleva tipos, y
-    # `mypy --strict` marca —con razón— que decorar una función tipada con uno sin
-    # tipar la vuelve `Any`. Llamarlo así conserva la firma de `catalog()`.
+    # Called rather than used as `@`: the SDK decorator is untyped and would turn
+    # `catalog()` into `Any` under `mypy --strict`.
     server.resource(
         "warden://catalog",
         name="catalogo",
@@ -387,11 +342,10 @@ def _register_catalog(server: Any, executor: Any) -> None:
 
 
 def serve_stdio(*, database: pathlib.Path, audit_db: pathlib.Path | None = None) -> None:
-    """Arranca y se queda hablando por la entrada y la salida estándar.
+    """Start the server and serve over stdin and stdout.
 
-    **Nada se imprime en `stdout`**, y no es un detalle de estilo: en stdio, `stdout`
-    ES el canal del protocolo. Un `print` de depuración ahí corrompe el flujo JSON-RPC
-    y el cliente desconecta con un error que no se parece en nada a su causa.
+    Nothing may be printed to `stdout`: over stdio it is the protocol channel, and a
+    stray `print` corrupts the JSON-RPC stream.
     """
     import anyio
 

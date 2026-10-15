@@ -1,27 +1,24 @@
-"""Bytes y filas por tabla, por columna y por partición. Sale de Iceberg.
+"""Bytes and rows per table, column and partition, read from Iceberg metadata.
 
-**Por qué no está en `schema.json`.** Porque son dos cosas con dos ritmos de cambio
-distintos: el esquema no cambia cuando se regeneran los datos, y estas cifras sí. Si
-vivieran en el mismo fichero, el sha del catálogo dependería de cuántas filas se
-generaron y `G-CATALOG-FRESH` dejaría de significar nada.
+Kept out of `schema.json` because these figures change when data is regenerated and
+the schema does not; mixing them would tie the catalog sha to row counts and void
+`G-CATALOG-FRESH`.
 
-**Por qué de Iceberg y no de un `EXPLAIN`.** `docs/RULES.md §7`, error 11: `EXPLAIN
-ANALYZE` **ejecuta la consulta**, así que es inútil para un guardián preventivo; y
-el `EXPLAIN` de DuckDB da cardinalidad pero no bytes escaneados. Athena solo reporta
-`DataScannedInBytes` **después** de ejecutar. El manifiesto de Iceberg, en cambio,
-lleva `column_sizes` por fichero y el valor de partición de cada uno, **sin leer una
-sola fila**. Y por eso mismo el estimador sirve para los dos motores.
+Sourced from Iceberg rather than `EXPLAIN` (`docs/RULES.md` section 7, error 11):
+`EXPLAIN ANALYZE` executes the query, DuckDB's `EXPLAIN` gives cardinality but not
+bytes scanned, and Athena reports `DataScannedInBytes` only after execution. Iceberg
+manifests carry per-file `column_sizes` and partition values without reading a row,
+so the same estimator works for both engines.
 
-Lo que se guarda, y por qué solo eso:
+Stored:
 
-- **bytes por columna a nivel de tabla** — para podar por proyección;
-- **bytes, filas y ficheros por VALOR de partición** — para podar por predicado.
+- bytes per column at table level, for projection pruning;
+- bytes, rows and files per partition value, for predicate pruning.
 
-No se guardan bytes por columna Y por partición: serían 730 particiones por 36
-columnas solo en `fact_payment_attempt`, y el modelo proporcional —fracción de
-columnas por fracción de particiones— da el mismo orden de magnitud con tres órdenes
-de magnitud menos de fichero. La calibración de `G-COST-CALIB` dirá si basta; hasta
-entonces, es una hipótesis declarada y no un hecho.
+Bytes per column and partition are not stored: that would be 730 partitions times
+36 columns for `fact_payment_attempt` alone, and the proportional model (column
+fraction times partition fraction) gives the same order of magnitude. Whether that
+suffices is measured by `G-COST-CALIB`.
 """
 
 from __future__ import annotations
@@ -35,25 +32,25 @@ from typing import Any
 
 @dataclass(frozen=True, slots=True)
 class TableStats:
-    """Lo que se sabe de una tabla sin leer ni una fila."""
+    """What is known about a table without reading a row."""
 
     name: str
     rows: int
     bytes: int
     files: int
-    #: `columna` -> bytes que ocupa en toda la tabla.
+    #: `column` -> bytes it occupies across the whole table.
     column_bytes: dict[str, int] = field(default_factory=dict)
-    #: La columna por la que la tabla está particionada, si lo está.
+    #: The partition column, if the table is partitioned.
     partition_column: str | None = None
-    #: `valor de partición` -> `{rows, bytes, files}`.
+    #: `partition value` -> `{rows, bytes, files}`.
     partitions: dict[str, dict[str, int]] = field(default_factory=dict)
 
     def bytes_of(self, columns: tuple[str, ...]) -> int:
-        """Bytes de esas columnas. Sin columnas, la tabla entera.
+        """Bytes of those columns; with no columns, the whole table.
 
-        «Sin columnas» pasa con `count(*)`: no se proyecta ninguna, y aun así el
-        motor tiene que abrir los ficheros. Cobrar cero ahí haría que
-        `G-BUDGET-ESCAPE` fuera trivialmente cierto para toda consulta agregada.
+        No columns happens with `count(*)`: nothing is projected but the engine
+        still opens the files. Charging zero there would make `G-BUDGET-ESCAPE`
+        trivially true for every aggregate query.
         """
         if not columns:
             return self.bytes
@@ -63,7 +60,7 @@ class TableStats:
 
 @dataclass(frozen=True, slots=True)
 class Statistics:
-    """Las estadísticas de todo el almacén, con su procedencia."""
+    """Statistics for the whole warehouse, with their provenance."""
 
     profile: str
     source: str
@@ -122,11 +119,10 @@ def to_json(stats: Statistics) -> str:
 
 
 def build_from_iceberg(iceberg_root: pathlib.Path, profile: str) -> Statistics:
-    """Lee los manifiestos de Iceberg. **No abre ni un fichero de datos.**
+    """Read Iceberg manifests without opening any data file.
 
-    Es la propiedad que hace útil a un estimador preventivo: contar los 66,6 M de
-    filas leyendo el manifiesto tarda 0,02 s; escanearlas, minutos. Un guardián que
-    para saber si una consulta es cara tuviera que ejecutarla no serviría de nada.
+    This is what makes a preventive estimator viable: counting 66.6 M rows from the
+    manifest takes 0.02 s; scanning them takes minutes.
     """
     from pyiceberg.catalog.sql import SqlCatalog
 
@@ -188,24 +184,17 @@ def build_from_iceberg(iceberg_root: pathlib.Path, profile: str) -> Statistics:
 
 
 def _partition_value(partition: Any, transform: str) -> str:
-    """El valor de partición, como TEXTO ISO. Es la clave del índice de poda.
+    """The partition value as ISO text; the key of the pruning index.
 
-    **Y aquí hubo un fallo grave, que merece quedar escrito.** El `Record` de
-    pyiceberg tiene un `repr` de la forma `Record[19967]`, y usarlo como clave
-    producía particiones llamadas `Record[19967]` contra las que ningún literal de
-    fecha casaba jamás. Consecuencia: la poda devolvía el conjunto VACÍO, el
-    estimador cobraba **cero bytes** por la tabla de 4,1 GB, y `G-BUDGET-ESCAPE`
-    —que es un axioma— habría dejado pasar cualquier consulta con un predicado de
-    fecha. Subestimar a cero es exactamente la peor dirección posible.
+    pyiceberg's `Record` has a `repr` like `Record[19967]`. Using it as the key once
+    produced partitions no date literal could match, so pruning returned the empty
+    set and the estimator charged zero bytes for the 4.1 GB table, which would let
+    any date-filtered query through `G-BUDGET-ESCAPE`. `G-COST-CALIB` caught it
+    (`partitions_kept: 0`).
 
-    Lo encontró la calibración: `p95(real/estimado)` se disparó y al mirar el
-    detalle salió `partitions_kept: 0`. Por eso `G-COST-CALIB` existe, y por eso
-    `GOALS.yaml` dice que sin ella `G-BUDGET-ESCAPE` sería «trivialmente cierto y a
-    la vez inútil». No era una frase retórica.
-
-    Una partición `identity` sobre un `DATE` llega como días desde la época, así que
-    se convierte; cualquier otra cosa se rinde y devuelve su texto, y quien se rinde
-    es `_partition_filter`, que ante claves que no entiende no poda.
+    An `identity` partition on a `DATE` arrives as days since the epoch and is
+    converted; anything else falls back to its text, and `_partition_filter` does
+    not prune on keys it does not understand.
     """
     values = tuple(partition)
     if not values:
@@ -219,38 +208,26 @@ def _partition_value(partition: Any, transform: str) -> str:
 
 
 def derive_views(stats: Statistics, schema: Any) -> Statistics:
-    """Las estadísticas de las VISTAS, deducidas del linaje ya publicado.
+    """Statistics for views, derived from the published lineage.
 
-    **El defecto que esto arregla era grave.** Los manifiestos de
-    Iceberg solo existen para las 24 tablas físicas, pero el catálogo publica 32
-    relaciones: las 8 que faltaban son las vistas derivadas. Para el estimador eran
-    tablas DESCONOCIDAS, así que les cobraba `UNKNOWN_TABLE_BYTES` —1 GB, un castigo
-    deliberado y correcto para lo que de verdad no se conoce—. Solo que 1 GB está por
-    encima del presupuesto duro de `analyst` (600 MB), de modo que **las ocho vistas
-    eran inalcanzables para el rol principal, hicieran lo que hicieran**: se cobraba
-    1 GB por lo que cuesta 7,5 MB.
+    Iceberg manifests exist only for the 24 physical tables, but the catalog
+    publishes 32 relations. Without this, the 8 views were unknown tables charged
+    `UNKNOWN_TABLE_BYTES` (1 GB), above the `analyst` hard budget (600 MB), so the
+    views the glossary prescribes (`v_payment_intent`, `v_attempt_dedup`) were
+    unreachable for the main role: 1 GB charged for a 7.5 MB read.
 
-    Y el glosario FIRMADO manda usarlas: `pago_valido` «se calcula» sobre
-    `v_payment_intent`, `tasa_de_aprobacion` sobre `v_attempt_dedup`. El sistema le
-    decía al modelo que usara un camino que él mismo cerraba. 20 de las 47 referencias
-    escritas del banco las rechazaba el propio sistema.
+    Overestimating costs an extra rejection; underestimating lets an expensive query
+    through `G-BUDGET-ESCAPE`. Everything uncertain therefore rounds up:
 
-    **La dirección del error es lo que decide el diseño.** Sobreestimar es un rechazo
-    de más; subestimar deja pasar una consulta cara, y `G-BUDGET-ESCAPE` es un axioma.
-    Así que todo lo dudoso se redondea hacia arriba:
+    - `bytes` and `files`: the sum over bases. A view reads no less than its bases.
+    - `rows`: the max over bases. Dedup and group-by only remove rows.
+    - `column_bytes`: the sum of the source columns of each column, which is what
+      the engine opens to produce it.
+    - `partitions`: inherited only when the view has a single partitioned base and
+      keeps its partition column with identity lineage, the only case where a
+      predicate on the view prunes the same files. Otherwise no pruning.
 
-    - `bytes` y `files`: la SUMA de las bases. Una vista no lee menos que sus bases.
-    - `rows`: el MÁXIMO de las bases. Un `dedup` o un `group by` solo quitan filas.
-    - `column_bytes`: la suma de las columnas de las que deriva cada una, que es
-      exactamente lo que el motor abre para producirla.
-    - `partitions`: **solo** se heredan cuando la vista tiene UNA base particionada y
-      conserva su columna de partición con linaje de identidad. Es el único caso en
-      que podar por predicado sobre la vista poda los mismos ficheros que sobre la
-      base. En cualquier otro, sin particiones: no se poda y se cobra entero.
-
-    Lo que NO se toca: una relación sin linaje sigue siendo desconocida y sigue
-    pagando el castigo. El castigo no era el error; el error era aplicárselo a algo
-    cuyo linaje está publicado columna a columna.
+    A relation without lineage stays unknown and keeps the penalty.
     """
     derived: dict[str, TableStats] = {}
     for table in schema.tables:
@@ -293,12 +270,11 @@ def derive_views(stats: Statistics, schema: Any) -> Statistics:
 
 
 def _inherited_partitions(table: Any, bases: dict[str, TableStats]) -> dict[str, Any]:
-    """El índice de poda de la base, **solo si la vista lo conserva intacto**.
+    """The base's pruning index, only if the view preserves it intact.
 
-    Se exige que haya una sola base, que esté particionada, y que exista una columna
-    de la vista cuyo linaje sea EXACTAMENTE esa columna de partición y nada más. Una
-    columna agregada (`min(event_ts)`) o compuesta no vale: un predicado sobre ella
-    no poda los mismos ficheros, y creer que sí es subestimar.
+    Requires a single partitioned base and a view column whose lineage is exactly
+    that partition column. An aggregated (`min(event_ts)`) or composite column does
+    not qualify: a predicate on it does not prune the same files.
     """
     if len(bases) != 1:
         return {"partition_column": None, "partitions": {}}

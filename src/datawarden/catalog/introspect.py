@@ -1,15 +1,13 @@
-"""El catálogo se GENERA desde el esquema vivo; nunca se escribe a mano (I-07).
+"""The catalog is generated from the live schema, never hand-written (I-07).
 
-`PROJECT.md` §2 lo exige —«catálogo autogenerado desde el esquema real, no escrito
-a mano»— y `G-CATALOG-FRESH` lo hace comprobable: cero divergencias entre el sha de
-`catalog/generated/schema.json` y el recomputado ahora mismo contra el motor.
+Required by `docs/DESIGN.md` section 2 and made checkable by `G-CATALOG-FRESH`: zero
+divergence between the sha of `catalog/generated/schema.json` and one recomputed
+against the engine.
 
-**El módulo está partido en dos a propósito.** `build_schema()` es puro y no sabe
-que DuckDB existe: recibe filas y devuelve un `CatalogSchema`. `introspect_duckdb()`
-es la parte que toca disco. La razón es la invariante I-13: `tests/unit` no toca
-disco, ni red, ni DuckDB, así que los tests unitarios del catálogo corren contra un
-esquema fixture en memoria y solo la integración levanta el motor. Un catálogo que
-solo se pudiera probar con 7,4 GB delante no se probaría nunca.
+The module is split on purpose. `build_schema()` is pure and knows nothing about
+DuckDB; `introspect_duckdb()` is the only part with I/O. Invariant I-13 keeps
+`tests/unit` off disk, network and DuckDB, so unit tests run against an in-memory
+fixture schema and only integration tests start the engine.
 """
 
 from __future__ import annotations
@@ -40,10 +38,8 @@ from datawarden.catalog.types import (
     TableSpec,
 )
 
-#: Prefijos de tipo de motor, del más específico al más general. El orden importa:
-#: `TIMESTAMP` empieza por `TIME` y clasificarlo antes lo mandaría a la familia
-#: equivocada. Es la clase de error que no da síntoma hasta que una regla del guard
-#: decide sobre la familia.
+#: Engine type prefixes, most specific first. Order matters: `TIMESTAMP` starts
+#: with `TIME`, and matching `TIME` first would assign the wrong family silently.
 _FAMILY_BY_PREFIX: tuple[tuple[str, str], ...] = (
     ("TIMESTAMP", FAMILY_TIMESTAMP),
     ("DATETIME", FAMILY_TIMESTAMP),
@@ -78,7 +74,7 @@ _FAMILY_BY_PREFIX: tuple[tuple[str, str], ...] = (
 
 @dataclass(frozen=True, slots=True)
 class ColumnRow:
-    """Una fila de `information_schema.columns`, sin depender de qué motor la dio."""
+    """An engine-agnostic row of `information_schema.columns`."""
 
     table_name: str
     table_kind: str
@@ -89,11 +85,11 @@ class ColumnRow:
 
 
 def family_of(engine_type: str) -> str:
-    """Familia canónica de un tipo de motor.
+    """Canonical family of an engine type.
 
-    El guard y el estimador de coste razonan sobre la familia, no sobre el nombre
-    del motor: `VARCHAR` y `string` son la misma cosa con dos nombres, y una regla
-    que compare nombres de motor se rompe el día que entre Athena.
+    The guard and the cost estimator reason over families, not engine type names:
+    `VARCHAR` and `string` are the same type, and a rule comparing engine names
+    would break when another engine (e.g. Athena) is added.
     """
     upper = engine_type.strip().upper()
     for prefix, family in _FAMILY_BY_PREFIX:
@@ -110,25 +106,23 @@ def build_schema(
     deprecated_columns: Mapping[str, str] = {},
     view_sql: Mapping[str, str] = {},
 ) -> CatalogSchema:
-    """Construye el esquema. PURO: ni disco, ni red, ni motor.
+    """Build the schema. Pure: no disk, network or engine.
 
     Args:
-        rows: Las columnas del esquema vivo, en cualquier orden.
-        dialect: El dialecto de sqlglot con el que se re-serializará el AST.
-        excluded_columns: `tabla.columna` que NO se publican en el anillo 1. Salen
-            de `docs/spec/policy.yaml`.
-        deprecated_columns: `tabla.columna` -> motivo. Salen de
-            `docs/spec/catalog-overlay.yaml`: el motor no puede saber que una
-            columna que sigue existiendo ya no debe usarse.
-        view_sql: `vista` -> su definición SQL. Sin esto no hay linaje, y sin
-            linaje la política se salta usando una vista: `v_customer.birth_date`
-            es la misma columna que `dim_customer.birth_date` con otro nombre.
+        rows: Live schema columns, in any order.
+        dialect: sqlglot dialect the AST will be re-serialized with.
+        excluded_columns: `table.column` refs not published in ring 1, from
+            `docs/spec/policy.yaml`.
+        deprecated_columns: `table.column` -> reason, from
+            `docs/spec/catalog-overlay.yaml`.
+        view_sql: `view` -> its SQL definition. Without it there is no lineage, and
+            the policy can be bypassed through a view: `v_customer.birth_date` is
+            `dim_customer.birth_date` under another name.
 
     Returns:
-        El esquema con las tablas y columnas ordenadas de forma determinista. El
-        orden no es cosmético: el fichero generado se compara por sha256 y un
-        orden que dependiera del motor haría que `G-CATALOG-FRESH` fallara al
-        cambiar de versión de DuckDB sin que el esquema hubiera cambiado.
+        The schema with tables and columns in deterministic order. The generated
+        file is compared by sha256, so engine-dependent ordering would fail
+        `G-CATALOG-FRESH` on a DuckDB upgrade with an unchanged schema.
     """
     excluded = {c.strip().lower() for c in excluded_columns}
     deprecated = {k.strip().lower(): v for k, v in deprecated_columns.items()}
@@ -170,8 +164,8 @@ def build_schema(
                 ),
                 lineage_resolved=f"{table_name}.{row.column_name}" not in unresolved_lineage,
             )
-            # Por ordinal y no por nombre: el orden de columnas de una tabla es
-            # parte de su esquema, y `SELECT *` se expande en ese orden.
+            # By ordinal, not name: column order is part of the schema and
+            # `SELECT *` expands in that order.
             for row in sorted(by_table[table_name], key=lambda r: (r.ordinal, r.column_name))
         )
         tables.append(TableSpec(name=table_name, kind=kinds[table_name], columns=columns))
@@ -179,19 +173,12 @@ def build_schema(
 
 
 def _is_published(ref: str, derives_from: tuple[str, ...], excluded: set[str]) -> bool:
-    """Una columna se publica salvo que ELLA o alguna de sus FUENTES esté excluida.
+    """A column is published unless it or any of its sources is excluded.
 
-    **Lo encontró el agente aislado que escribió la reserva de ataques**, y es
-    exactamente la clase de agujero que la reserva existe para encontrar:
-    `dim_merchant.traffic_weight` salía con `published: false`, como manda la
-    política, y
-    `v_merchant_current.traffic_weight` —la MISMA columna vista a través de la
-    vista— salía con `published: true`. La exclusión del catálogo del anillo 1
-    tenía una puerta trasera con nombre de vista.
-
-    Propagar por linaje es la única forma de cerrarlo que no depende de que alguien
-    se acuerde de excluir también la vista, y de la siguiente vista, y de la que se
-    cree dentro de seis semanas.
+    Found by the attack holdout: `dim_merchant.traffic_weight` was unpublished as
+    the policy requires, but `v_merchant_current.traffic_weight` (the same column
+    through a view) was published. Propagating exclusion through lineage closes
+    that path without relying on every future view being excluded by hand.
     """
     if ref.lower() in excluded:
         return False
@@ -199,12 +186,11 @@ def _is_published(ref: str, derives_from: tuple[str, ...], excluded: set[str]) -
 
 
 def unknown_columns(schema: CatalogSchema, qualified: Iterable[str]) -> list[str]:
-    """Las `tabla.columna` de `qualified` que NO existen en el esquema.
+    """The `table.column` refs in `qualified` that do not exist in the schema.
 
-    Es el motor de la mitad de I-07: las claves de `docs/spec/policy.yaml` y del
-    glosario tienen que ser un subconjunto exacto del catálogo generado. Una
-    política que protege una columna que ya no existe da una falsa sensación de
-    cobertura, y es un fallo silencioso: nada la ejercita nunca.
+    Backs half of I-07: keys in `docs/spec/policy.yaml` and the glossary must be a
+    subset of the generated catalog. A policy protecting a column that no longer
+    exists gives false coverage and fails silently.
     """
     missing: list[str] = []
     for ref in qualified:
@@ -216,11 +202,10 @@ def unknown_columns(schema: CatalogSchema, qualified: Iterable[str]) -> list[str
 
 
 def to_json(schema: CatalogSchema) -> str:
-    """Serialización canónica: claves ordenadas y un salto de línea final.
+    """Canonical serialization: sorted keys and a trailing newline.
 
-    Determinista por obligación, no por gusto: `G-CATALOG-FRESH` compara el sha256
-    de este texto contra el recomputado, y un `json.dumps` sin `sort_keys` produce
-    un sha distinto según la versión de Python.
+    `G-CATALOG-FRESH` compares the sha256 of this text against a recomputed one, so
+    the output must not depend on dict ordering.
     """
     return json.dumps(schema.to_dict(), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
@@ -231,12 +216,10 @@ def introspect_duckdb(
     excluded_columns: Iterable[str] = (),
     deprecated_columns: Mapping[str, str] = {},
 ) -> CatalogSchema:
-    """Lee el esquema vivo de un catálogo DuckDB. Es la única parte con I/O.
+    """Read the live schema of a DuckDB catalog. The only part with I/O.
 
-    `import duckdb` va DENTRO de la función y no arriba: el contrato de capas
-    prohíbe que `datawarden.domain` toque el motor, y aunque `catalog` sí puede,
-    mantener la importación local hace que `build_schema()` —lo que de verdad se
-    prueba— siga siendo importable sin motor instalado.
+    `duckdb` is imported locally so `build_schema()`, which is what the unit tests
+    exercise, stays importable without the engine installed.
     """
     import duckdb
 
@@ -289,7 +272,7 @@ def introspect_duckdb(
 
 
 def load_generated(path: pathlib.Path) -> CatalogSchema:
-    """Carga el catálogo ya generado. Lo que usa el guard en tiempo de ejecución."""
+    """Load the generated catalog; this is what the guard uses at runtime."""
     from datawarden.catalog.types import from_dict
 
     payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))

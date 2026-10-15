@@ -1,14 +1,12 @@
-"""Las cuatro operaciones, y la forma de lo que devuelven. Transporte-neutro.
+"""The four operations and the shape of their results. Transport-neutral.
 
-**Ni una decisión de política aquí.** El rol llega en el constructor y jamás por
-llamada; al motor se llega solo por `AuditedExecutor`, que es el único camino (I-06) y
-el único que atraviesa los cuatro anillos. Esto orquesta y da forma, nada más.
+No policy decisions here. The role arrives in the constructor, never per call; the
+engine is reached only through `AuditedExecutor`, the single path through all four
+rings (I-06).
 
-**Un rechazo es una RESPUESTA, no un error**, y esa decisión se toma aquí para que los
-dos transportes la hereden igual: MCP lo devuelve con `is_error: false` y HTTP con un
-200. Modelarlo como error haría que un cliente lo reintentara a ciegas o lo tratara como
-una caída, en vez de leer la regla, el motivo y la alternativa — que es lo más valioso
-que produce este sistema.
+A rejection is an answer, not an error, decided here so both transports inherit it:
+MCP returns it with `is_error: false` and HTTP with a 200. Treated as an error, a
+client would retry blind instead of reading the rule, reason and alternative.
 """
 
 from __future__ import annotations
@@ -21,12 +19,10 @@ from datawarden.principal.budgets import Decision
 
 
 def to_payload(result: RunResult) -> dict[str, Any]:
-    """El resultado de una invocación, en la forma que publica el `outputSchema`.
+    """An invocation result in the shape published by `outputSchema`.
 
-    **`columns_masked` viaja al cliente a propósito.** Que una columna salga
-    enmascarada no es un secreto: decirlo evita que quien lee la respuesta confunda
-    un `***` con un dato real de la base, y le dice exactamente qué columna pedir de
-    otra forma. Ocultarlo solo protegería del usuario, no del atacante.
+    `columns_masked` is sent to the client deliberately: masking is not a secret, and
+    stating it keeps readers from mistaking `***` for real data.
     """
     if result.rejection is not None:
         return {"outcome": "rejected", "rejected": _rejection_dict(result.rejection)}
@@ -59,7 +55,7 @@ def _rejection_dict(rejection: RejectionReason) -> dict[str, Any]:
 
 
 def _list_tables_payload(schema: Any) -> dict[str, Any]:
-    """Las relaciones publicadas, con su grano. Es el punto de entrada al almacén."""
+    """Published relations; the entry point into the warehouse."""
     published = schema.published()
     return {
         "outcome": "rows",
@@ -74,11 +70,9 @@ def _list_tables_payload(schema: Any) -> dict[str, Any]:
 
 
 def _unknown_relation(table: str) -> dict[str, Any]:
-    """El rechazo de una tabla que no está en el catálogo, con el mismo `rule_id`.
+    """Rejection for a table not in the catalog, with the same `rule_id` as R004.
 
-    Se responde con la forma de R004 y no con un error del protocolo porque para
-    quien pregunta es exactamente el mismo suceso que si hubiera llegado por SQL, y
-    darle dos formas distintas al mismo hecho obliga al cliente a tratarlo dos veces.
+    Same shape as the SQL path so clients handle one form for the same event.
     """
     return {
         "outcome": "rejected",
@@ -86,9 +80,9 @@ def _unknown_relation(table: str) -> dict[str, Any]:
             "rule_id": "R004",
             "code": "relation_out_of_scope",
             "message": f"relation {table.lower()} is not in the generated catalog",
-            # LA SUGERENCIA NOMBRA ALGO QUE EL CLIENTE PUEDE HACER. Decir «lee el
-            # recurso del catálogo» es inútil en un cliente sin lectura de recursos,
-            # y así se quedó tirado un modelo real en la prueba manual con Claude Desktop.
+            # The suggestion names something every client can do. "Read the catalog
+            # resource" is useless to a client without resource support (observed
+            # with Claude Desktop as client).
             "suggestion": (
                 "call describe_table with no arguments to see the tables that exist, "
                 "then describe the one you need"
@@ -103,11 +97,10 @@ def _unknown_relation(table: str) -> dict[str, Any]:
 
 
 class WardenTools:
-    """Las cuatro herramientas, sobre el ejecutor auditado. **No deciden nada.**
+    """The four tools on top of the audited executor. They decide nothing.
 
-    El `principal` se recibe en el constructor y NUNCA se lee de los argumentos de
-    una llamada: es la mitad ejecutable de `G-ROLE-SPOOF`. Un método que aceptara un
-    `role=` en su firma sería un agujero con forma de comodidad.
+    The `principal` is fixed in the constructor and never read from call arguments
+    (`G-ROLE-SPOOF`); no method may accept a `role=` parameter.
     """
 
     def __init__(self, *, executor: AuditedExecutor, principal: Principal) -> None:
@@ -120,12 +113,10 @@ class WardenTools:
         question: str | None = None,
         trace_id: str | None = None,
     ) -> dict[str, Any]:
-        """Valida, presupuesta, enmascara, ejecuta si procede — y audita pase lo que pase.
+        """Validate, budget, mask, execute if allowed, and audit in every case.
 
-        `trace_id` viene del `traceparent` de `_meta`, ya validado. **Es dato y no
-        autoridad**: encadena la traza con la de quien llama y no concede nada. Va al
-        registro porque un evento de seguridad que no se puede correlacionar con la
-        petición que lo produjo vale la mitad.
+        `trace_id` comes from the validated `_meta` `traceparent`. It is data, not
+        authority, and is recorded so security events correlate with their request.
         """
         return to_payload(
             self._executor.run(
@@ -137,16 +128,14 @@ class WardenTools:
         )
 
     def budget_decision(self, question_sql: str) -> Decision | None:
-        """Qué diría el presupuesto, SIN ejecutar y SIN auditar. `None` si el guard para.
+        """The budget decision without executing or auditing; `None` if the guard rejects.
 
-        Es lo que necesita MRTR para decidir si preguntar antes de gastar. Se separa de
-        `explain_cost` porque aquello devuelve una respuesta para un humano y esto un
-        dato para una decisión, y mezclarlos obligaría a leer filas para tomarla.
+        Used by MRTR to decide whether to ask before spending. Separate from
+        `explain_cost`, which returns a human-facing answer.
 
-        Usa `screen()` a propósito, que es lo que `check_mask_path.py` prohíbe en el
-        ejecutor: **esto no devuelve ni una fila**, así que no hay nada que enmascarar.
-        La regla no es «llama siempre a `screen_and_mask`», es «lo que devuelve datos
-        pasa por el anillo 4».
+        Uses `screen()`, which `check_mask_path.py` forbids in the executor: this
+        returns no rows, so there is nothing to mask. The rule is that whatever
+        returns data goes through ring 4.
         """
         from datawarden.cost.screen import screen
 
@@ -161,23 +150,16 @@ class WardenTools:
         return result.decision
 
     def explain_cost(self, question_sql: str) -> dict[str, Any]:
-        """Lo que COSTARÍA, sin ejecutar nada. Anillos 2 y 3, y ahí se para.
+        """What a query would cost, without executing it. Rings 2 and 3 only.
 
-        Usa `screen()` a propósito, que es justo lo que `check_mask_path.py` prohíbe
-        en el ejecutor. Aquí es correcto y allí no, y la diferencia es exactamente la
-        que importa: **esto no devuelve ni una fila**, así que no hay nada que
-        enmascarar; el ejecutor sí las devuelve, y por eso tiene que pasar por el
-        anillo 4. La regla no es «llama siempre a `screen_and_mask`», es «lo que
-        devuelve datos pasa por el anillo 4».
+        Uses `screen()`, which `check_mask_path.py` forbids in the executor: this
+        returns no rows, so there is nothing to mask.
 
-        **Límite declarado, y prefiero escribirlo que descubrirlo luego:** esto NO
-        deja registro de auditoría, porque el invariante I-06 habla del camino al
-        motor y esto no llega al motor. Aun así, repetir `explain_cost` con distintos
-        predicados revela cómo está particionado el almacén, que es información. Si
-        se decide auditarlo, hace falta un estado nuevo en
-        `docs/spec/audit-record.schema.json` y `G-AUDIT-COV` pasa de cuatro estados a
-        cinco: es una decisión de contrato, no un añadido, y se decide antes que el
-        código.
+        Known limitation: this leaves no audit record, since I-06 covers the path to
+        the engine and this does not reach it. Repeated `explain_cost` calls with
+        different predicates still reveal how the warehouse is partitioned. Auditing
+        it would require a new status in `docs/spec/audit-record.schema.json` and a
+        fifth state in `G-AUDIT-COV`, which is a contract change.
         """
         from datawarden.cost.screen import screen
 
@@ -190,9 +172,8 @@ class WardenTools:
             stats=self._executor.stats,
         )
         if result.rejection is not None and result.cost is None:
-            # Rechazo del GUARD: ni siquiera se llegó a estimar, así que no hay coste
-            # que publicar. Devolver un cero aquí sería el mismo error que cobrar
-            # cero por una tabla de 4,1 GB.
+            # Guard rejection: nothing was estimated, so there is no cost to report.
+            # Returning zero here would understate the cost.
             return {"outcome": "rejected", "rejected": _rejection_dict(result.rejection)}
 
         cost = result.cost
@@ -218,52 +199,44 @@ class WardenTools:
         }
 
     def sample_table(self, table: str, limit: int = 10) -> dict[str, Any]:
-        """Unas filas sin condición. **Lo que se interpola sale del CATÁLOGO.**
+        """Unfiltered sample rows. Everything interpolated comes from the catalog.
 
-        Aquí el servidor compone SQL, y componer SQL con un nombre que viene de una
-        petición es la forma clásica de comerse una inyección. Se cierra por
-        construcción y en dos pasos, no escapando cadenas:
+        This is the one place the server composes SQL, and injection is closed by
+        construction rather than by escaping:
 
-        1. **El nombre de la tabla se RESUELVE contra el catálogo generado antes de
-           componer nada.** Lo que acaba dentro del `SELECT` no es la cadena que
-           mandó el cliente: es `found.name`, un identificador que ya estaba en
-           `catalog/generated/schema.json`. Una tabla desconocida —o una con una
-           subconsulta dentro— no resuelve y se va por el rechazo, sin llegar a
-           componerse.
-        2. Y aunque lo anterior fallara, **lo que se ejecuta es el árbol que el guard
-           validó**, nunca esta cadena: R004 rechaza toda relación fuera del catálogo
-           y la allowlist rechaza todo nodo desconocido. La defensa es estructural.
+        1. The table name is resolved against the generated catalog first. What ends
+           up in the `SELECT` is `found.name`, an identifier from
+           `catalog/generated/schema.json`, not the client's string. Unknown names
+           (including ones containing a subquery) are rejected before composing.
+        2. Even so, what runs is the guard-validated tree, never this string: R004
+           rejects relations outside the catalog and the allowlist rejects unknown
+           nodes.
         """
         found = self._executor.schema.table(table.lower())
         if found is None:
             return _unknown_relation(table)
         columns = [c.name for c in found.columns if c.published]
         projection = ", ".join(columns) if columns else "*"
-        # `found.name` y `columns` salen del catálogo; `limit` pasa por `int()` y el
-        # `inputSchema` ya lo acota entre 1 y 100. Ningún trozo viene de la petición.
+        # `found.name` and `columns` come from the catalog; `limit` goes through
+        # `int()` and `inputSchema` bounds it to 1..100. Nothing comes from the request.
         sql = f"SELECT {projection} FROM {found.name} LIMIT {int(limit)}"  # noqa: S608
         return to_payload(self._executor.run(sql, principal=self._principal))
 
     def _list_tables(self) -> dict[str, Any]:
-        """Las relaciones publicadas. El punto de entrada cuando no se conoce nada."""
+        """Published relations; the entry point when nothing is known yet."""
         return _list_tables_payload(self._executor.schema)
 
     def describe_table(self, table: str | None = None) -> dict[str, Any]:
-        """La ficha de una tabla — o, SIN ARGUMENTO, la lista de las que hay.
+        """Describe a table or, with no argument, list the tables that exist.
 
-        **Sin el caso «sin argumento» este servidor era indescubrible**, y se vio en
-        la prueba manual con Claude Desktop: el catálogo se servía solo como recurso MCP, el
-        cliente no tenía herramienta para leer recursos, y el modelo acabó adivinando
-        nombres a ciegas —`customers`, `clientes`, `payments`, `pagos`— hasta rendirse.
+        Without the no-argument case the server was undiscoverable. Observed with
+        Claude Desktop as client: the catalog was only an MCP resource, the client
+        could not read resources, and the model guessed names (`customers`,
+        `clientes`, `payments`, `pagos`) until giving up, while the rejection told it
+        to "read the catalog resource", an action it could not perform.
 
-        Lo peor no era el callejón: era que el rechazo decía *«read the catalog
-        resource»*, **una acción que ese cliente no podía ejecutar**. Un mensaje
-        accionable que nombra algo que no se puede hacer no es accionable, y este
-        proyecto se sostiene precisamente sobre esa promesa.
-
-        Los recursos MCP son OPCIONALES para un cliente; las herramientas no. Así que
-        el camino de descubrimiento tiene que existir como herramienta. El recurso se
-        queda: para quien sí lo lee, es el catálogo entero de una vez.
+        MCP resources are optional for clients; tools are not, so discovery must
+        exist as a tool. The resource remains for clients that read it.
         """
         if table is None or not table.strip():
             return self._list_tables()

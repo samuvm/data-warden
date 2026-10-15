@@ -1,18 +1,17 @@
-"""R010 · ninguna escritura, en ninguna parte del árbol.
+"""R010: no write, anywhere in the tree.
 
-**Corre antes que R001 a propósito.** R001 mira qué clase de sentencia es la de
-arriba; esta mira TODO el árbol, y por eso es la que atrapa el ataque real:
+Runs before R001 on purpose. R001 checks the class of the root statement; this rule
+walks the whole tree, which is what catches the real attack:
 
     WITH x AS (DELETE FROM dim_customer RETURNING 1) SELECT * FROM x
 
-Eso es un `Select` en la raíz. Un validador que se conforme con mirar el nodo de
-arriba lo acepta, y el motor borra la tabla. La CTE que esconde una escritura es el
-caso que `PROJECT.md` nombra en su cuaderno de evasiones, y es la razón de que estas
-dos reglas estén separadas: si fueran una, el mensaje diría «solo se admite SELECT»
-sobre una consulta que empieza por SELECT, y nadie entendería el rechazo.
+The root is a `Select`. A validator that only inspects the root accepts it, and the
+engine deletes the table. A CTE hiding a write is also why the two rules are separate:
+merged, the message would say "only SELECT is accepted" about a query that starts with
+SELECT.
 
-**No es reintentable.** Reformular un `DELETE` no lo convierte en una pregunta:
-reintentarlo solo gasta tokens y contamina la métrica de recuperación de la fase 6.
+Not retryable. Rephrasing a `DELETE` does not turn it into a question; retrying only
+spends tokens and skews the recovery metric.
 """
 
 from __future__ import annotations
@@ -25,16 +24,13 @@ from datawarden.domain.types import Position, Severity
 from datawarden.guard.rule import PASS, PRE_QUALIFY, GuardContext, RuleResult, reject
 from datawarden.guard.rules import messages
 
-#: Escrituras de DATOS, y solo eso. `PRAGMA`, `SET`, `ATTACH` o `INSTALL` cambian
-#: el estado del MOTOR y no los datos: los para R001 en la raíz —que es donde
-#: sintácticamente pueden estar— y R002 en cualquier otro sitio. La separación no es
-#: taxonómica: un `DELETE` merece el mensaje «este sistema es de solo lectura», y un
-#: `PRAGMA` merece «esto no es una pregunta sobre datos». Meterlos en la misma regla
-#: daba el mensaje equivocado a la mitad de los casos.
+#: Data writes only. `PRAGMA`, `SET`, `ATTACH` or `INSTALL` change engine state, not
+#: data: R001 stops them at the root, where they can syntactically appear, and R002
+#: anywhere else. The split is about the message: a `DELETE` deserves "this system is
+#: read-only", a `PRAGMA` deserves "this is not a question about data".
 #:
-#: Se nombra por CLASE de nodo y no por palabra clave:
-#: `DeLeTe`, `/*x*/DELETE` y `delete` son el mismo nodo, y no hay nada que
-#: normalizar. Es la diferencia entre esta regla y una lista negra de palabras.
+#: Matched by node class, not keyword: `DeLeTe`, `/*x*/DELETE` and `delete` are the same
+#: node, with nothing to normalise.
 WRITE_NODES: Final = (
     exp.Insert,
     exp.Update,
@@ -51,12 +47,12 @@ WRITE_NODES: Final = (
 
 
 class NoWriteNodeRule:
-    """Cero nodos de escritura en cualquier profundidad del árbol."""
+    """Zero write nodes at any depth of the tree."""
 
     rule_id = "R010"
     code = "write_node_present"
     severity = Severity.SECURITY
-    summary = "Ningún nodo de escritura aparece en el árbol, a ninguna profundidad"
+    summary = "No write node appears in the tree, at any depth"
     families: tuple[str, ...] = (
         "escritura_directa",
         "escritura_oculta_en_cte",
@@ -68,11 +64,9 @@ class NoWriteNodeRule:
         for node in ctx.tree.walk():
             if isinstance(node, WRITE_NODES):
                 kind = node.__class__.__name__
-                # LA DECISION: dónde estaba el nodo de escritura. Se calcula mirando
-                # la ascendencia en el ÁRBOL y se devuelve como `Position`, que es lo
-                # que el corpus asierta por su valor. Antes se derivaba de una cadena
-                # de prosa —`Position.CTE if "CTE" in where`— y eso era decisión
-                # disfrazada de texto: cambiar la frase cambiaba la posición.
+                # The decision: where the write node was. It is computed from the
+                # node's ancestry in the tree and returned as a `Position`, which the
+                # case corpus asserts by value; it must never be derived from text.
                 position = (
                     Position.CTE
                     if node.find_ancestor(exp.CTE) is not None

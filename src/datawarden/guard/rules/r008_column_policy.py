@@ -1,31 +1,29 @@
-"""R008 · rol, columna y POSICIÓN. Aquí vive la tesis del proyecto.
+"""R008: role, column and position, resolved through lineage.
 
-Es la regla que hace serio a `data-warden`, y lo que la distingue de un
-enmascarado de salida —que es teatro— son dos decisiones:
+Output masking alone is not enough. Two decisions make this rule effective.
 
-**1 · La posición, no solo la columna.** Un nivel `mask` admite la columna en
-proyección directa y la RECHAZA en `WHERE`, `JOIN ON`, `GROUP BY`, `ORDER BY`,
-`HAVING`, `QUALIFY`, dentro de cualquier función y como clave de partición de
-ventana. Si pudieras FILTRAR por una columna, la reconstruirías a base de preguntas
-sin ver nunca su valor.
+1. Position, not just the column. A `mask` level admits the column as a direct
+   projection and rejects it in `WHERE`, `JOIN ON`, `GROUP BY`, `ORDER BY`, `HAVING`,
+   `QUALIFY`, inside any function and as a window partition key. A column that can be
+   filtered on can be reconstructed question by question without its value ever
+   being returned.
 
-**2 · El LINAJE, no el nombre.** La comprobación no se hace sobre
-`tabla.columna` tal y como aparece escrita, sino sobre las columnas BASE de las que
-sale, que el catálogo resolvió con sqlglot al generarse. Eso cierra de una vez tres
-evasiones que de otro modo necesitarían tres reglas:
+2. Lineage, not name. The check runs on the base columns a reference derives from, as
+   resolved with sqlglot when the catalog was generated, rather than on `table.column`
+   as written. That closes three evasions that would otherwise need three rules:
 
-    SELECT full_name FROM v_customer          -- una vista que reexpone la columna
-    SELECT concat(first_name,last_name) ...   -- la expresión derivada de PROJECT.md
+    SELECT full_name FROM v_customer          -- a view that re-exposes the column
+    SELECT concat(first_name,last_name) ...   -- a derived expression
     WITH c AS (SELECT birth_date AS b ...) SELECT b FROM c WHERE b > '1990-01-01'
 
-El tercero es el interesante: `qualify()` deja la CTE resuelta, y el linaje lleva
-`c.b` hasta `dim_customer.birth_date`. **Un alias no cambia de qué columna sale un
-dato**, y una política que casara por nombre no vería ninguno de los tres.
+In the third, `qualify()` resolves the CTE and lineage follows `c.b` back to
+`dim_customer.birth_date`. An alias does not change which column a value comes from,
+and a policy that matched by name would miss all three.
 
-**Y el rechazo nombra la salida.** Cuando la política publica una columna
-generalizada —`age_band` para `birth_date`—, la sugerencia la dice. Un rechazo sin
-salida no redirige el trabajo: lo bloquea, y un guard que bloquea el trabajo se
-desactiva en tres semanas (I-09).
+The rejection names the way out. When the policy publishes a generalised column
+(`age_band` for `birth_date`), the suggestion names it. A rejection without an
+alternative blocks work instead of redirecting it, and a guard that blocks work ends up
+disabled (I-09).
 """
 
 from __future__ import annotations
@@ -41,12 +39,12 @@ from datawarden.principal.policy import Level
 
 
 class ColumnPolicyRule:
-    """Toda columna, en la posición donde está, es legal para este rol."""
+    """Every column, in its position, is legal for this role."""
 
     rule_id = "R008"
     code = "column_policy"
     severity = Severity.POLICY
-    summary = "Rol, columna y posición en el árbol, resueltos por linaje"
+    summary = "Role, column and tree position, resolved through lineage"
     families: tuple[str, ...] = (
         "columna_denegada",
         "columna_enmascarada_en_predicado",
@@ -63,9 +61,9 @@ class ColumnPolicyRule:
             position = position_of(column)
             for base in ctx.sources_of(column, table, name):
                 if base == LINEAGE_UNKNOWN:
-                    # FAIL-CLOSED. Si el guard no puede seguir de dónde sale una
-                    # columna, no puede afirmar que sea segura, y lo que no se puede
-                    # afirmar no se acepta. Un linaje que falla en silencio es una fuga.
+                    # Fail-closed: if the guard cannot trace where a column comes from,
+                    # it cannot claim the column is safe. Lineage that fails silently
+                    # is a leak.
                     return _reject_unknown(self, ctx, name, position)
                 level = ctx.policy.level_for(base, role)
                 if level is Level.ALLOW:
@@ -82,7 +80,7 @@ def _reject_unknown(
     name: str,
     position: Position,
 ) -> RuleResult:
-    """Cuando no se puede saber de dónde sale una columna."""
+    """Rejection for a column whose origin cannot be determined."""
     message, suggestion = messages.lineage_unknown(name)
     return reject(
         rule,
@@ -103,10 +101,11 @@ def _reject_for(
     position: Position,
     level: Level,
 ) -> RuleResult:
-    """El rechazo, con el detalle que lo hace accionable en vez de mudo."""
-    # LAS DECISIONES se quedan aquí y se miden: qué nivel se violó, si la columna se
-    # alcanzó por otro nombre, y si la política publica una alternativa. El TEXTO con
-    # el que eso se cuenta está en `messages.py`, fuera de la mutación.
+    """The rejection, with the detail that makes it actionable."""
+    # The decisions stay here so mutation testing measures them: which level was
+    # violated, whether the column was reached under another name, and whether the
+    # policy publishes an alternative. The wording lives in `messages.py`, which is
+    # excluded from mutation.
     alternative = ctx.policy.generalized_for(base)
     written = f"{written_table}.{written_name}" if written_table else written_name
     message, suggestion = messages.column_policy(
