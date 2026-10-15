@@ -83,7 +83,7 @@ def main() -> int:
         )
         print(
             f"check_no_raw_sql: {ENGINES.relative_to(ROOT)} no existe todavía "
-            "(fase 0). El invariante se comprobará en cuanto haya un motor."
+            "El invariante se comprobará en cuanto haya un motor."
         )
         return 0
     files = sorted(ENGINES.rglob("*.py"))

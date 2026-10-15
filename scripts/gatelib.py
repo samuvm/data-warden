@@ -127,9 +127,9 @@ def _hardware() -> str:
 
 #: El identificador del proyecto **en el vocabulario del contrato**, no el del directorio.
 #:
-#: El esquema lo tiene como enumerado —`citebound`, `evalgate`, `datawarden`,
-#: `indexkeeper`— y aquí se publicaba `"data-warden-03"`, que es el nombre de la carpeta.
-#: El informe se escribía igual y el panel consumidor lo habría descartado sin decir nada.
+#: El esquema lo tiene como enumerado cerrado (`datawarden`), distinto del nombre de la
+#: carpeta. Publicar el nombre de la carpeta escribiría el informe igual y un consumidor
+#: lo descartaría sin decir nada.
 PROYECTO: str = "datawarden"
 
 #: Los roles de prompt del contrato están en INGLÉS y son un enumerado cerrado. Dentro

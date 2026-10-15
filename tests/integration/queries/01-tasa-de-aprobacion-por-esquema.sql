@@ -1,4 +1,4 @@
--- Consulta 1 de la fase 0, escrita a mano y sin una sola línea de IA.
+-- Consulta 1 de 3, escrita a mano y sin una sola línea de IA.
 --
 -- Tasa de aprobación POR INTENTO y por esquema de tarjeta. Toca las dos trampas
 -- declaradas que más se cometen contra esta tabla y las esquiva a propósito:

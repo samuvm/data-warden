@@ -29,26 +29,11 @@ evals/reports/.duckdb-profile.json
 htmlcov/
 mutants/
 
-# Punto de retorno anterior a git; sigue siendo el que crea `make done`
+# Punto de retorno que crea `make done` en cada cierre verde
 .snapshots/
 
-# Estado que escribe el gate, no una persona
-.claude/state/*.json
-
-# ---------------------------------------------------------------------------
-# Notas de trabajo locales y configuracion del entorno de desarrollo: no forman
-# parte del proyecto. Las reglas que si lo son estan en `docs/RULES.md`,
-# `docs/GOALS.yaml` y `docs/spec/`.
-# ---------------------------------------------------------------------------
-CLAUDE.md
-.claude/
-docs/CONSTITUCION.md
-docs/PARA-SAMUEL.md
-# Borradores locales con fecha. Sin esto, un `git add -A` los publica.
-docs/PENDIENTE-*.md
-docs/BORRADOR-RESPUESTAS-Q003-Q010.md
-docs/DECISIONES-GLOBALES-APLICADAS.md
-docs/PLAN.md
+# Estado que escribe el gate (`scripts/done.py`), no una persona
+.gate/
 
 # Sistema
 .DS_Store
@@ -60,8 +45,8 @@ docs/PLAN.md
 # datos de consultas reales en el repositorio.
 var/
 
-# El material EN BRUTO del video de la fase 10. Se publica solo el montaje final en
-# H.264 (5 MB, `docs/proof/video/proof.mp4`): los clips sin montar suman 162 MB —uno
-# solo son 92— y el original en HEVC no lo reproducen la mitad de los navegadores.
+# Material en bruto del video de demostracion. Se publica solo el montaje final en
+# H.264 (5 MB, `docs/proof/video/proof.mp4`): los clips sin montar suman 162 MB y el
+# original en HEVC no lo reproducen todos los navegadores.
 docs/proof/video/[0-9].mp4
 docs/proof/video/proof-hevc.mp4

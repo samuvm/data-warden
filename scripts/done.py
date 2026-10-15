@@ -1,19 +1,16 @@
 #!/usr/bin/env python
-"""`make done MILESTONE=N`: la ÚNICA definición de «hecho».
+"""`make done MILESTONE=N`: la única definición de "hecho" del proyecto.
 
 Doce condiciones, en el orden de la Definition of Done, parando en la primera que
-falla. Escribe el resultado en `.claude/state/gate-status.json` —que nadie edita a
-mano: lo escribe el gate, y esto ES el gate— y crea el punto de retorno de
-`.snapshots/`.
+falla. Escribe el resultado en `.gate/gate-status.json`, que no se edita a mano
+(lo escribe este script), y crea el punto de retorno de `.snapshots/`.
 
-**Por qué para en el primer fallo y no acumula.** Porque el segundo número deja de
-significar nada cuando el primero está mal: una cobertura medida sobre una suite que
-no pasa no es una cobertura, es un número. La Definition of Done va en ese orden por
-esa razón.
+Para en el primer fallo y no acumula porque el segundo número deja de significar
+nada cuando el primero está mal: una cobertura medida sobre una suite que no pasa
+no es una cobertura.
 
-**Lo que NO hace:** decidir. No baja umbrales, no salta pasos, no interpreta. Si una
-fase todavía no tiene una pieza, el paso correspondiente falla con el motivo, y eso
-es información, no un obstáculo.
+No decide nada: no baja umbrales, no salta pasos, no interpreta. Si a un hito le
+falta todavía una pieza, el paso correspondiente falla con el motivo.
 """
 
 from __future__ import annotations
@@ -25,13 +22,14 @@ import json
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
 import tomllib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from gatelib import ROOT, run
 
-STATE = ROOT / ".claude" / "state"
+STATE = ROOT / ".gate"
 GATE_STATUS = STATE / "gate-status.json"
 INVENTORY = STATE / "test-inventory.json"
 SNAPSHOTS = ROOT / ".snapshots"
@@ -86,9 +84,8 @@ def check_suite() -> dict[str, object]:
             "tests/property",
             "tests/contract",
             "tests/integration",
-            # `adversarial` ENTRA desde la fase 6. Estaba declarado en el mapa y no lo
-            # corría nadie: una carpeta de tests que ningún target ejecuta es peor que
-            # no tenerla, porque parece cubierta y no lo está.
+            # Una carpeta de tests que ningún target ejecuta es peor que no tenerla:
+            # parece cubierta y no lo está.
             "tests/adversarial",
         )
         if any((ROOT / p).glob("test_*.py"))
@@ -111,7 +108,7 @@ def check_holdout() -> dict[str, object]:
     holdout = ROOT / "tests" / "holdout"
     cases = list(holdout.glob("test_*.py"))
     if not cases:
-        return {"present": False, "note": "todavía no existe: fase 2, agente aislado"}
+        return {"present": False, "note": "ausente: tests/holdout/ no tiene casos"}
     code, out = run([PY, "-m", "pytest", "tests/holdout", "-q"])
     if code:
         raise GateError(f"la reserva NO pasa:\n{out[-3000:]}")
@@ -146,18 +143,17 @@ def check_coverage(milestone: int) -> dict[str, object]:
 
 
 def check_mutation(milestone: int) -> dict[str, object]:
-    """`G-MUTATION` y `G-MUT-GUARD` bloquean desde la fase 3, y se miden desde la 2."""
+    """`G-MUTATION` y `G-MUT-GUARD` bloquean desde MILESTONE=3 y se miden desde el 2."""
     if milestone < 3:
-        return {"skipped": True, "reason": "bloquea desde la fase 3 (GOALS.yaml)"}
+        return {"skipped": True, "reason": "bloquea desde MILESTONE=3 (GOALS.yaml)"}
     code, out = run([PY, "scripts/check_mutation.py"])
     if code:
         raise GateError(f"mutación:\n{out}")
     return {"measured": True}
 
 
-#: Qué se MIDE en cada fase, y desde cuándo. Un `make done` que no ejecutase la
-#: medida leería el artefacto de la vez anterior y daría por bueno un número viejo:
-#: es la forma más silenciosa de que un gate deje de significar algo.
+#: Qué se mide en cada hito y desde cuál. Un `make done` que no ejecutase la medida
+#: leería el artefacto de la vez anterior y daría por bueno un número viejo.
 MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (0, "check_gate_config.py", "I-16 · pyproject.toml y GOALS.yaml"),
     (0, "check_no_raw_sql.py", "I-02 · G-NO-RAW-SQL"),
@@ -167,8 +163,8 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (1, "check_resultset_eq.py", "G-RESULTSET-EQ"),
     (2, "check_failclosed.py", "I-04 · un solo except ancho"),
     (2, "check_role_source.py", "I-05 · el rol no sale de un dato"),
-    # Nace de la fuga del 2026-09-03: el ejecutor auditado se saltaba el anillo 4.
-    # `G-PII-LEAK` pasaba porque la suite medía otro camino. Esto impide la reincidencia.
+    # El ejecutor auditado llegó a saltarse el anillo 4 mientras `G-PII-LEAK` pasaba,
+    # porque la suite medía otro camino. Esto impide la reincidencia.
     (4, "check_mask_path.py", "el unico camino al motor pasa por el anillo 4"),
     (2, "check_rule_coverage.py", "RULES §3 · el caso es la unidad"),
     (2, "check_rules_registry.py", "I-01 · ninguna regla desaparece"),
@@ -184,16 +180,15 @@ MEASUREMENTS: tuple[tuple[int, str, str], ...] = (
     (4, "pii_suite.py", "G-PII-LEAK · axioma, tres superficies contra el dataset"),
     (5, "check_audit_coverage.py", "G-AUDIT-COV · axioma, ninguna invocación sin registro"),
     (5, "check_audit_tamper.py", "G-AUDIT-TAMPER · >= 1.000 mutaciones de byte"),
-    # La fase 6 se mide AQUÍ y no solo en `make eval-recovery`, por la regla de este
-    # paso: leer el artefacto de la vez anterior no es medir. Puede correr en el gate
-    # porque sale de las casetes —determinista y gratis, sin modelo—; lo que llama al
-    # modelo es `make eval-refresh`, que es explícito y no entra en ninguna puerta.
+    # La recuperación se mide aquí y no solo en `make eval-recovery`: leer el artefacto
+    # de la vez anterior no es medir. Puede correr en el gate porque sale de las
+    # casetes (determinista, sin modelo); lo que llama al modelo es `make eval-refresh`,
+    # que es explícito y no entra en ninguna puerta.
     (6, "eval_recovery.py", "G-RECOVERY · desde casetes, sin modelo"),
     (6, "check_recovery_coverage.py", "G-RECOVERY-COV · toda regla con caso"),
     (7, "mcp_conformance.py", "G-MCP-CONFORM · los 11 puntos de la spec 2026-07-28"),
-    # El servidor CONTESTANDO por stdio. Nace de que `mcp_conformance` daba 11/11
-    # mientras `run_query` reventaba: validaba la forma de lo publicado, no que el
-    # servidor supiera responder.
+    # El servidor contestando por stdio. `mcp_conformance` llegó a dar 11/11 mientras
+    # `run_query` fallaba: valida la forma de lo publicado, no que el servidor responda.
     (7, "check_mcp_live.py", "el servidor MCP contestando por stdio, cliente real"),
     (7, "check_role_spoof.py", "G-ROLE-SPOOF · axioma, `_meta` es dato y no autoridad"),
     (7, "eval_toolchoice.py", "G-TOOL-CHOICE · desde casetes, sin modelo"),
@@ -277,7 +272,7 @@ def check_inventory() -> dict[str, object]:
             raise GateError(
                 "el inventario de tests ha BAJADO desde el último cierre verde:\n  "
                 + "\n  ".join(regressions)
-                + "\n  Borrar o debilitar un test exige propuesta aprobada (§2.5)."
+                + "\n  Borrar o debilitar un test exige una decisión explícita y documentada."
             )
     return totals
 
@@ -314,29 +309,28 @@ def check_docs(milestone: int) -> dict[str, object]:
     if not changelog.exists():
         raise GateError("no existe CHANGELOG.md")
     text = changelog.read_text(encoding="utf-8")
-    # **Una ENTRADA, no una mención.** Esto buscaba el texto «fase N» en cualquier sitio
-    # del fichero, y la fase 8 se cerró el 2026-09-11 sin entrada propia: pasó porque las
-    # entradas de las fases 4 y 6 decían, de pasada, «…en la fase 8». Un check que
-    # aprueba por una coincidencia en la prosa de otra fase no comprueba nada. Ahora
-    # exige la cabecera con el formato de todas las demás: `## [x.y.z] · fase N · …`.
-    cabecera = re.compile(rf"^## \[[^\]]+\] · fase {milestone}\b", re.MULTILINE)
+    # Se exige una entrada, no una mención: buscar el número en cualquier parte del
+    # fichero aprobaría por una coincidencia en la prosa de otra entrada. Por eso se
+    # busca la cabecera de la versión, marcada con `<!-- milestone N -->` (invisible al
+    # renderizar).
+    cabecera = re.compile(rf"^## \[[^\]]+\].*<!-- milestone {milestone} -->", re.MULTILINE)
     if not cabecera.search(text):
         raise GateError(
-            f"CHANGELOG.md no tiene entrada para la fase {milestone} (se busca una "
-            f"cabecera `## [x.y.z] · fase {milestone} · …`, no una mención). Punto 11 de "
-            "la DoD: una fase cerrada sin entrada es una fase que nadie puede leer después."
+            f"CHANGELOG.md no tiene entrada para MILESTONE={milestone} (se busca una "
+            f"cabecera `## [x.y.z] · … <!-- milestone {milestone} -->`, no una mención). "
+            "Punto 11 de la DoD: un hito cerrado sin entrada es un hito que nadie puede "
+            "leer después."
         )
     referenced: set[str] = set()
     missing = []
-    for md in sorted((ROOT / "docs").rglob("*.md")):
+    documents = sorted((ROOT / "docs").rglob("*.md"))
+    ignored = _ignored_by_git(documents)
+    for md in documents:
         relative = md.relative_to(ROOT)
-        # Los documentos COPIADOS del directorio de contratos compartidos no son de
-        # este proyecto y llevan sus propios ejemplos: exigirles que sus ADR existan
-        # aquí sería exigir que este repositorio contenga los ADR de otro.
-        if relative.parts[1] in {"CONTRACTS", "adr"} or md.name in {
-            "CONSTITUCION.md",
-            "STACK.md",
-        }:
+        # `docs/CONTRACTS/` son contratos congelados con sus propios ejemplos y
+        # `docs/adr/` contiene la plantilla, que cita ADR ficticios. Lo que git ignora
+        # son notas locales, no documentación del proyecto.
+        if relative.parts[1] in {"CONTRACTS", "adr"} or md.name == "STACK.md" or md in ignored:
             continue
         text_md = md.read_text(encoding="utf-8")
         if md.name == "JOURNAL.md":
@@ -348,22 +342,38 @@ def check_docs(milestone: int) -> dict[str, object]:
             )
         for lineno, line in enumerate(text_md.splitlines(), start=1):
             for match in re.finditer(r"ADR-(\d{3})(\s+de\b)?", line):
-                # `ADR-002 de <otro-proyecto>` es una referencia CRUZADA a otro
-                # proyecto. Este gate no puede exigir que exista aquí.
+                # `ADR-002 de <proyecto>` es una referencia a un ADR externo; este gate
+                # no puede exigir que exista aquí.
                 if match.group(2):
                     continue
                 adr = match.group(1)
                 referenced.add(adr)
                 if not list((ROOT / "docs" / "adr").glob(f"{adr}-*.md")):
                     missing.append(f"{relative}:{lineno} cita ADR-{adr} y no existe")
-    # **Y se REPORTA.** La lista de ADR citados que no existen se calculaba y nunca se
-    # usaba: la función devolvía «ok» con la lista llena. La mitad del punto 11 de la
-    # DoD —«todo ADR referenciado existe»— era una comprobación que no podía fallar.
+    # Punto 11 de la DoD: todo ADR referenciado existe.
     if missing:
         raise GateError(
             "hay ADR citados que no existen (punto 11 de la DoD):\n  " + "\n  ".join(missing)
         )
     return {"changelog": "ok", "adr_referenced": len(referenced)}
+
+
+def _ignored_by_git(paths: list[pathlib.Path]) -> set[pathlib.Path]:
+    """Los ficheros de `paths` que git ignora. Sin git disponible, ninguno."""
+    if not paths:
+        return set()
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "--stdin"],
+            cwd=str(ROOT),
+            input="\n".join(str(p.relative_to(ROOT)) for p in paths),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return set()
+    return {ROOT / line for line in result.stdout.splitlines() if line.strip()}
 
 
 def check_secrets() -> dict[str, object]:
@@ -403,7 +413,7 @@ def main() -> int:
         ("Reserva verde", check_holdout),
         ("Cobertura por función y de línea", lambda: check_coverage(args.milestone)),
         ("Mutación", lambda: check_mutation(args.milestone)),
-        ("Mediciones de la fase", lambda: check_measurements(args.milestone)),
+        ("Mediciones del hito", lambda: check_measurements(args.milestone)),
         ("Metas activas", lambda: check_goals(args.milestone)),
         ("Umbrales intactos", check_thresholds),
         ("Inventario de tests", check_inventory),
@@ -442,9 +452,9 @@ def main() -> int:
 
 
 def _write_rules_registry(stamp: str) -> None:
-    """`.claude/state/rules-registry.json`, que **lo escribe el gate** (I-01).
+    """`.gate/rules-registry.json`, que solo escribe el gate (I-01).
 
-    Se escribe SOLO al cerrar en verde, y por eso vale: el registro guarda el estado
+    Se escribe solo al cerrar en verde, y por eso vale: el registro guarda el estado
     de un cierre que pasó, y el siguiente `make done` compara contra él. Si se
     escribiera en cada ejecución, una regla borrada quedaría registrada como
     inexistente y la comparación no detectaría nada.
@@ -473,7 +483,7 @@ def _write_status(
     results: dict[str, object],
     failed: str | None,
 ) -> None:
-    """Lo escribe el GATE, no una persona. Es el artefacto de la Definition of Done."""
+    """Lo escribe el gate, no una persona. Es el artefacto de la Definition of Done."""
     STATE.mkdir(parents=True, exist_ok=True)
     GATE_STATUS.write_text(
         json.dumps(

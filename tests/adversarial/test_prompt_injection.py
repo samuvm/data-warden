@@ -1,4 +1,4 @@
-"""Inyección de prompt. **Lo adversarial de la fase 6**, y salió una fuga real.
+"""Inyección de prompt contra el bucle de generación, y salió una fuga real.
 
 Dos preguntas distintas, y las dos hay que contestarlas midiendo:
 

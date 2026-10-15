@@ -6,7 +6,7 @@ No «casi ninguna», no «se avisa»: cero.
 
 Lo que se prueba aquí es la decisión y, sobre todo, **que el rechazo sea accionable**.
 Un «te has pasado de presupuesto» sin decir cuánto ni qué hacer es el rechazo que
-enseña a reintentar lo mismo, y `G-RECOVERY` mide justo eso en la fase 6.
+enseña a reintentar lo mismo, y `G-RECOVERY` mide justo eso.
 """
 
 from __future__ import annotations

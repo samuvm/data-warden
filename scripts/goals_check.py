@@ -1,25 +1,25 @@
 #!/usr/bin/env python
-"""Toda meta bloqueante en esta fase pasa su umbral. Punto 7 de la DoD.
+"""Toda meta bloqueante en el hito pasa su umbral. Punto 7 de la DoD.
 
-**No vuelve a medir nada.** Lee los artefactos que dejaron los `check_*.py` y las
-suites, y compara contra `docs/GOALS.yaml`. Es deliberado y es lo que hace el gate
-auditable: los números quedan en `evals/reports/` con su comando al lado, y
-cualquiera puede mirarlos después sin fiarse de que el proceso salió en verde.
+No vuelve a medir nada: lee los artefactos que dejaron los `check_*.py` y las suites
+y compara contra `docs/GOALS.yaml`. Es lo que hace el gate auditable: los números
+quedan en `evals/reports/` con su comando al lado.
 
-**Una meta bloqueante sin medida es un FALLO, nunca un aprobado.** Es la regla del
-Makefile llevada al gate: un gate que aprueba porque no encuentra nada que medir da
-una señal verde falsa, y eso es peor que no tener gate.
+Una meta bloqueante sin medida es un fallo, nunca un aprobado: un gate que aprueba
+porque no encuentra nada que medir da una señal verde falsa.
 
-**Una propuesta de bajar umbral sobre un axioma es por sí misma un fallo de gate.**
-`propuesta_admisible: false` marca las ocho metas que no se negocian; si aparece una
-propuesta `bajar-umbral` sobre cualquiera de ellas en el registro de propuestas de
-cambio (`MAILBOX`), esto sale rojo y lo registra, sin mirar siquiera el número.
+Una propuesta de bajar el umbral de un axioma es por sí misma un fallo de gate.
+`propuesta_admisible: false` marca las ocho metas que no se negocian. Si
+`DW_PROPOSALS_FILE` apunta a un registro de propuestas de cambio en Markdown y en él
+aparece una propuesta `bajar-umbral` sobre cualquiera de ellas, esto sale rojo sin
+mirar siquiera el número. Sin esa variable no hay registro que inspeccionar.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import sys
@@ -30,17 +30,23 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from gatelib import ROOT, compare, read_meta
 
 GOALS = ROOT / "docs" / "GOALS.yaml"
-MAILBOX = ROOT / "docs" / "PARA-SAMUEL.md"
+
+
+def proposals_file() -> pathlib.Path | None:
+    """El registro de propuestas de cambio, si `DW_PROPOSALS_FILE` lo declara."""
+    value = os.environ.get("DW_PROPOSALS_FILE", "").strip()
+    if not value:
+        return None
+    path = pathlib.Path(value)
+    return path if path.is_absolute() else ROOT / path
 
 
 def axiom_violations(goals: dict[str, object]) -> list[str]:
     """Propuestas `bajar-umbral` sobre metas con `propuesta_admisible: false`.
 
-    Tres precauciones, y las tres las obligó un falso positivo real: el propio registro
-    lleva al final una PLANTILLA con la línea `Tipo: bajar-umbral | cambiar-meta |
-    ...` y el párrafo que enumera los ocho axiomas. Sin filtrarlo, el gate declaraba
-    ocho intentos de bajar un axioma que nadie había hecho — y un gate que grita sin
-    causa se acaba desactivando, que es peor que uno que no grita.
+    Tres precauciones contra falsos positivos: el registro puede llevar una plantilla
+    con la línea `Tipo: bajar-umbral | cambiar-meta | ...` y un párrafo que enumere
+    los axiomas, y un gate que grita sin causa se acaba desactivando.
 
     1. Se descartan los bloques de código (la plantilla vive dentro de uno).
     2. Solo cuenta un `Tipo:` cuyo valor sea EXACTAMENTE `bajar-umbral`, no la lista
@@ -53,9 +59,10 @@ def axiom_violations(goals: dict[str, object]) -> list[str]:
         for m in goals["metas"]  # type: ignore[index]
         if not m.get("propuesta_admisible", True)
     }
-    if not MAILBOX.exists():
+    registry = proposals_file()
+    if registry is None or not registry.exists():
         return []
-    text = re.sub(r"```.*?```", "", MAILBOX.read_text(encoding="utf-8"), flags=re.DOTALL)
+    text = re.sub(r"```.*?```", "", registry.read_text(encoding="utf-8"), flags=re.DOTALL)
     found: list[str] = []
     for block in re.split(r"^#{2,3} PROPUESTA ", text, flags=re.MULTILINE)[1:]:
         tipo = re.search(r"^\*{0,2}Tipo:?\*{0,2}\s*(.+)$", block, flags=re.MULTILINE)
@@ -90,7 +97,7 @@ def main() -> int:
         measured = read_meta(artifact, meta["id"])
         if measured is None:
             problems.append(
-                f"{meta['id']} bloquea desde la fase {blocking_from} y NO tiene medida "
+                f"{meta['id']} bloquea desde MILESTONE={blocking_from} y NO tiene medida "
                 f"en evals/reports/{artifact}. Se mide con: {meta['comando']}. "
                 "Una meta bloqueante sin medida es un fallo, nunca un aprobado."
             )
@@ -153,12 +160,14 @@ def main() -> int:
         )
 
     if problems:
-        print(f"\ngoals_check: FALLO · {len(problems)} problemas en la fase {args.milestone}\n")
+        print(
+            f"\ngoals_check: FALLO · {len(problems)} problemas en MILESTONE={args.milestone}\n"
+        )
         for p in problems:
             print(f"  · {p}")
         return 1
     print(
-        f"\ngoals_check: ok · {len(evaluated)} metas bloqueantes hasta la fase "
+        f"\ngoals_check: ok · {len(evaluated)} metas bloqueantes hasta MILESTONE="
         f"{args.milestone}, todas por encima de su umbral"
     )
     return 0

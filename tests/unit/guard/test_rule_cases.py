@@ -272,7 +272,7 @@ def test_caso_del_corpus(case: Case) -> None:
             f"{case.case_id}: el rechazo sitúa el problema en "
             f"{verdict.position.value!r} y el caso dice {case.expected_position!r}. "
             "Decir la posición equivocada es peor que no decirla: manda al modelo "
-            "a corregir donde no está el fallo, y G-RECOVERY lo paga en la fase 6."
+            "a corregir donde no está el fallo, y G-RECOVERY lo paga."
         )
     if case.expected_subject is not None:
         assert str(verdict.subject) == case.expected_subject, (
@@ -303,7 +303,7 @@ def test_caso_del_corpus(case: Case) -> None:
     # sería la fragilidad que `RULES.md §2` prohíbe—: se comprueba que la frase que
     # corresponde a ESA posición aparece. Es la única coincidencia de texto que este
     # corpus admite, y la admite porque una posición mal contada manda al modelo a
-    # corregir donde no está el fallo, y `G-RECOVERY` lo paga en la fase 6.
+    # corregir donde no está el fallo, y `G-RECOVERY` lo paga.
     if case.expects_position_named:
         esperada = messages.position_text(verdict.position)
         assert esperada in verdict.message, (
@@ -328,8 +328,7 @@ def test_caso_del_corpus(case: Case) -> None:
     # frase. Asertarlas una a una lo destapó la MUTACIÓN: `position=None` y
     # `subject=None` sobrevivían en casi todas las reglas porque el corpus solo
     # miraba el `rule_id`. Un rechazo que no dice DÓNDE ni SOBRE QUÉ es la mitad de
-    # un rechazo, y `G-RECOVERY` mide en la fase 6 justo si el modelo se corrige con
-    # el mensaje.
+    # un rechazo, y `G-RECOVERY` mide justo si el modelo se corrige con el mensaje.
     assert verdict.suggestion.strip(), "un rechazo sin salida bloquea el trabajo"
     assert len(verdict.message) >= 10
     assert verdict.position is not Position.UNKNOWN, (

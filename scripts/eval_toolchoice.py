@@ -19,8 +19,8 @@ fallan justo donde importa, así que la prueba SÍ discrimina — pero el númer
 significa algo junto a su línea base, y por eso el informe publica los dos y el
 margen.
 
-**La procedencia se publica y no se adorna.** La columna «correcta» la propuso un
-agente y queda pendiente de revisión humana externa; mientras no la tenga, el
+**La procedencia se publica y no se adorna.** La columna «correcta» se propuso con
+asistencia de IA y queda pendiente de revisión humana externa; mientras no la tenga, el
 informe dice `agente_propuesto`. Un número medido contra una respuesta correcta que
 nadie ha revisado es una autoevaluación, y decirlo es la diferencia entre una
 evaluación y una demostración.

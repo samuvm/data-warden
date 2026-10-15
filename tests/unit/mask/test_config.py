@@ -11,8 +11,8 @@ sesión»—.
 Manda el contrato firmado, porque su motivo es verificable: con sal
 por sesión, el resultset de toda consulta con una columna `mask` deja de ser
 comparable entre ejecuciones, y **las preguntas del banco de 60 que toquen una
-columna enmascarada no podrían tener respuesta de referencia**. Se descubriría en la
-fase 8, con el banco ya escrito y 10-20 horas gastadas.
+columna enmascarada no podrían tener respuesta de referencia**. Se descubriría con
+el banco ya escrito y 10-20 horas gastadas.
 
 Para que esa decisión no pueda volver por la puerta de atrás, el enmascarador
 **comprueba el contrato al cargarse y se niega a funcionar si no dice lo que decía**.

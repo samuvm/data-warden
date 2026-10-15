@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""I-01 · **Ninguna regla se borra, se debilita ni se retira. Nunca.**
+"""I-01 · ninguna regla del guard se borra, se debilita ni se retira.
 
-Y un `rule_id` **no se reutiliza jamás**. Es la invariante que impide el atajo más
-tentador de todo el proyecto: el día que una regla estorbe, quitarla y que la suite
-pase. Con esto, quitarla es un fallo de gate; retirarla exige un ADR y una propuesta
-aprobada, y el id queda como `RETIRED` con sus casos migrados.
+Y un `rule_id` no se reutiliza. Es la invariante que cierra el atajo más tentador
+del proyecto: el día que una regla estorbe, quitarla y que la suite pase. Con esto,
+quitarla es un fallo de gate; retirarla exige un ADR, y el id queda como `RETIRED`
+con sus casos migrados.
 
 Falla si, respecto del registro guardado:
 
@@ -14,8 +14,8 @@ Falla si, respecto del registro guardado:
   lo que antes se rechazaba ahora se acepta. Es la forma más silenciosa de las tres
   y la que ninguna cuenta de casos detectaría.
 
-El registro vive en `.claude/state/rules-registry.json`, que **lo escribe el gate**
-y el entorno de desarrollo tiene en `deny`. Aquí se compara; escribirlo es cosa de `make done`.
+El registro vive en `.gate/rules-registry.json` y solo lo escribe el gate al cerrar
+en verde. Aquí se compara; escribirlo es cosa de `make done`.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 from datawarden.guard.registry import RULES
 from gatelib import ROOT, record
 
-REGISTRY = ROOT / ".claude" / "state" / "rules-registry.json"
+REGISTRY = ROOT / ".gate" / "rules-registry.json"
 CASES = ROOT / "tests" / "unit" / "guard" / "cases"
 
 
@@ -64,7 +64,7 @@ def main() -> int:
             if after is None:
                 problems.append(
                     f"{rule_id} HA DESAPARECIDO del registro de reglas. Retirar una "
-                    "regla exige ADR y propuesta aprobada, y el id queda como RETIRED "
+                    "regla exige un ADR, y el id queda como RETIRED "
                     "con sus casos migrados. Nunca se borra"
                 )
                 continue

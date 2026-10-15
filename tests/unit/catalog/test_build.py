@@ -6,8 +6,8 @@ el único con «sin tests» en `evals/reports/mutation.json`. La cobertura de l�
 `G-MUTATION` existe para encontrar: el código se ejecutaba de paso y nadie asertaba
 sobre lo que hacía.
 
-**Ni una línea de estos tests toca DuckDB.** I-13 y el criterio de salida de la
-fase 0 lo exigen —«unit de `catalog/` contra esquema fixture en memoria»— y aquí se
+**Ni una línea de estos tests toca DuckDB.** I-13 lo exige —«unit de `catalog/`
+contra esquema fixture en memoria»— y aquí se
 cumple sustituyendo `introspect_duckdb` por un espía que registra con qué se le
 llamó. Lo que `generate()` tiene que acertar no es leer un motor: es traducir dos
 contratos compilados a los dos argumentos correctos, y eso no necesita una fila.

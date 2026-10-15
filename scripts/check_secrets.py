@@ -8,7 +8,7 @@ seguido el script comparaba contra el fichero ya actualizado y anunciaba «0
 hallazgos nuevos». Verificado plantando una clave RSA privada en un fichero
 rastreado: salida `ok`, código 0, y la huella de la clave escrita en la línea base.
 
-Todo `make done` verde desde la fase 0 certificaba «cero secretos» con un check
+Todo `make done` verde hasta entonces certificaba «cero secretos» con un check
 incapaz de dar rojo. Es el peor sitio donde puede estar un fallo: no en una defensa,
 sino en la medida que dice que la defensa funciona.
 

@@ -93,7 +93,7 @@ reject:
     menciona_rol: true
     menciona_posicion: true
     por_que: >-
-      LA EXPRESIÓN DERIVADA que `PROJECT.md` describe. Dentro de una función es
+      LA EXPRESIÓN DERIVADA que `docs/DESIGN.md` describe. Dentro de una función es
       posición prohibida para una columna enmascarada, aunque la función esté en la
       proyección.
   - id: R008-R4

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-"""`G-EVAL-REPORT` · todo informe de evaluación cumple el contrato transversal.
+"""`G-EVAL-REPORT` · todo informe de evaluación cumple su contrato congelado.
 
 **Por qué esto es una meta y no una convención.** `docs/CONTRACTS/eval-report.schema.json`
-es una copia literal del contrato compartido y un acuerdo con los paneles que leen
-estos ficheros desde otro proyecto. Un informe que se desvía no da un error aquí, da
-un panel vacío allí, y la desviación se descubre semanas después mirando una gráfica
-plana.
+es el acuerdo con cualquier panel o puerta de calidad que lea estos ficheros. Un informe
+que se desvía no da un error aquí, da un panel vacío allí, y la desviación se descubre
+semanas después mirando una gráfica plana.
 
 Se comprueban cuatro cosas, y las cuatro nacen de una forma distinta de romperlo:
 

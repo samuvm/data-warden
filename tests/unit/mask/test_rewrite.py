@@ -2,7 +2,7 @@
 
 FASE ROJA.
 
-El plan de la fase 4 lo exige con esas palabras: **reescribiendo el AST antes de ejecutar,
+El diseño lo exige con esas palabras: **reescribiendo el AST antes de ejecutar,
 nunca post-procesando el DataFrame por nombre de columna.** La diferencia no es de
 estilo. Post-procesar por nombre falla en cuanto hay un alias, una vista que renombra
 o dos columnas con el mismo nombre en dos tablas; y sobre todo, deja el valor real
@@ -167,7 +167,7 @@ def test_las_cuatro_transformaciones_preservan_null(sql: str, rol: Role, columna
     nombres no tiene segundo apellido» —o sea, es un DATO— y
     `resultset-equality.md` decide que NULL y cadena vacía son DISTINTOS y tienen
     motivo propio en el informe. Una máscara que convirtiera NULL en `'***'`
-    INVENTARÍA un valor donde no lo había, y el banco de 60 preguntas de la fase 8
+    INVENTARÍA un valor donde no lo había, y el banco de 60 preguntas de evaluación
     tendría respuestas de referencia falsas sin que nadie lo notara.
     """
     expresion = _proyecciones(_enmascarada(sql, rol))[columna]
@@ -445,7 +445,7 @@ def test_una_pimienta_con_comilla_no_rompe_la_macro() -> None:
 
 
 def test_no_se_inventa_una_macro_para_un_dialecto_que_no_se_ha_probado() -> None:
-    """Athena es la fase 9, y hasta entonces no hay macro que ofrecer.
+    """Athena no está implementado, y hasta entonces no hay macro que ofrecer.
 
     Devolver la de DuckDB para otro motor sería inventar un dialecto, que es
     justamente lo que este proyecto no hace. El mensaje dice qué hacer en su lugar.

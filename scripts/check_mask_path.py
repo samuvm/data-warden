@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """El ÚNICO camino al motor pasa por el anillo 4. Hecho ejecutable.
 
-**Esto nace de una fuga real, encontrada el 2026-09-03 construyendo la fase 7.**
+**Esto nace de una fuga real, encontrada el 2026-09-03 construyendo el transporte MCP.**
 `AuditedExecutor` es el único camino sancionado a `Engine.execute()` (I-06) y
 llamaba a `screen()` —anillos 2 y 3, guard y presupuesto— saltándose el 4. El
 sistema entero devolvía **nombres y correos reales** a `analyst`, un rol para el que

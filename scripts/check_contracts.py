@@ -1,31 +1,30 @@
 #!/usr/bin/env python
 """`G-CONTRACTS-FROZEN` e invariante I-17. Los dos tipos de contrato, separados.
 
-**`docs/CONTRACTS/` son COPIAS literales e inmutables del directorio de contratos
-compartidos** (por defecto `../_comun/CONTRACTS/`, configurable con
-`DW_COMUN_CONTRACTS`). Un `diff` byte a byte contra el original es el test, y por eso
-el directorio está en `permissions.deny`: si se pudiera editar desde aquí, «cumplir el
-contrato compartido» consistiría en reescribirlo. Este proyecto copia exactamente
-TRES —`goals.schema.json`, `otel-genai.md` y `eval-report.schema.json`— y una copia
-huérfana de las otras tres sería ruido que el gate detecta.
+`docs/CONTRACTS/` son contratos congelados: tres ficheros (`goals.schema.json`,
+`otel-genai.md` y `eval-report.schema.json`) cuyo sha256 está fijado en
+`docs/CONTRACTS/SHA256SUMS`, versionado junto a ellos. Cambiar uno exige cambiar
+también el manifiesto (`--write-manifest`), y ese cambio queda a la vista en el diff:
+un contrato congelado no se ajusta en silencio para que el código lo cumpla. Un
+fichero en el directorio que el manifiesto no declara también es un fallo.
 
-**`docs/spec/` son los contratos PROPIOS y ahí sí se escribe.** Son cuatro:
+`docs/spec/` son los contratos propios, y ahí sí se escribe. Son cuatro:
 `policy.yaml`, `resultset-equality.md`, `audit-record.schema.json` y
 `rejection.schema.json`. `glossary.yaml`, `budgets.yaml`, `catalog.schema.json` y
 `catalog-overlay.yaml` también viven ahí, pero no son los cuatro que la meta cuenta:
 el glosario lo verifica `G-CATALOG-FRESH` y los otros tres nacieron después, así que
 se comprueban por separado en vez de cambiar el número de una meta sellada.
 
-Comprueba además que **lo compilado coincide con el YAML firmado**: un contrato
-editado sin recompilar haría que el dominio aplicara una política antigua mientras
-el documento dice otra cosa, que es la peor divergencia posible porque las dos
-mitades parecen correctas por separado.
+Comprueba además que lo compilado coincide con el YAML firmado: un contrato editado
+sin recompilar haría que el dominio aplicara una política antigua mientras el
+documento dice otra, y las dos mitades parecerían correctas por separado.
 """
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
-import os
 import pathlib
 import subprocess
 import sys
@@ -38,18 +37,16 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from gatelib import record  # noqa: E402
 
-#: Origen de las copias literales. Se resuelve RELATIVO al repositorio —el directorio
-#: compartido es hermano suyo— y se puede reapuntar con `DW_COMUN_CONTRACTS`. Antes era
-#: una ruta absoluta escrita a mano, que ademas de no funcionar en ninguna otra maquina
-#: publicaba la disposicion del disco de quien la escribio.
-COMUN = pathlib.Path(os.environ.get("DW_COMUN_CONTRACTS", ROOT.parent / "_comun" / "CONTRACTS"))
 CONTRACTS = ROOT / "docs" / "CONTRACTS"
+MANIFEST = CONTRACTS / "SHA256SUMS"
 SPEC = ROOT / "docs" / "spec"
 REPORT = ROOT / "evals" / "reports" / "arch-checks.json"
 
-#: Los tres que este proyecto copia. `chunks-ddl.sql`, `retrieval-metrics.md` y
-#: `pricing-table.md` NO aplican a este proyecto.
-COPIED = ("goals.schema.json", "otel-genai.md", "eval-report.schema.json")
+#: Los tres contratos congelados de este proyecto.
+FROZEN = ("goals.schema.json", "otel-genai.md", "eval-report.schema.json")
+
+#: Lo que puede vivir en `docs/CONTRACTS/` sin estar congelado.
+UNFROZEN = ("README.md", "SHA256SUMS")
 
 #: Los CUATRO contratos propios que cuenta `G-CONTRACTS-FROZEN`.
 OWN = (
@@ -68,46 +65,70 @@ JSON_SCHEMAS = (
     "catalog.schema.json",
 )
 
+LABEL_DIVERGENCES = "divergencias entre docs/CONTRACTS/ y su manifiesto sha256"
 
-def check_copies(problems: list[str]) -> int:
-    """Byte a byte contra el original compartido. Sin excepciones y sin normalizar nada."""
-    checked = 0
-    if not COMUN.exists():
+
+def _sha256(path: pathlib.Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read_manifest() -> dict[str, str]:
+    """`{fichero: sha256}` en el formato de `sha256sum`: `<hex>  <nombre>` por línea."""
+    entries: dict[str, str] = {}
+    for line in MANIFEST.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        digest, _, name = line.partition("  ")
+        entries[name.strip()] = digest.strip()
+    return entries
+
+
+def write_manifest() -> None:
+    """Regenera `SHA256SUMS`. Es el paso explícito para cambiar un contrato congelado."""
+    lines = [f"{_sha256(CONTRACTS / name)}  {name}" for name in sorted(FROZEN)]
+    MANIFEST.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def check_frozen(problems: list[str]) -> int:
+    """Cada contrato congelado coincide byte a byte con el sha256 de su manifiesto."""
+    if not MANIFEST.exists():
         problems.append(
-            f"no existe {COMUN}. Sin el original no se puede comprobar que la copia "
-            "no ha cambiado, y dar la copia por buena porque falta el original es "
-            "exactamente cómo un contrato compartido deja de serlo."
+            "no existe docs/CONTRACTS/SHA256SUMS. Sin manifiesto no se puede comprobar "
+            "que un contrato congelado no ha cambiado."
         )
         return 0
-    for name in COPIED:
-        origin = COMUN / name
-        copy = CONTRACTS / name
-        if not copy.exists():
-            problems.append(f"docs/CONTRACTS/{name} no existe y debería ser copia literal")
+    manifest = read_manifest()
+    checked = 0
+    for name in FROZEN:
+        path = CONTRACTS / name
+        if not path.exists():
+            problems.append(f"docs/CONTRACTS/{name} no existe y es un contrato congelado")
             continue
-        if not origin.exists():
-            problems.append(f"{origin} no existe y la copia sí")
+        expected = manifest.get(name)
+        if expected is None:
+            problems.append(f"docs/CONTRACTS/{name} no está en SHA256SUMS")
             continue
-        if origin.read_bytes() != copy.read_bytes():
+        if _sha256(path) != expected:
             problems.append(
-                f"docs/CONTRACTS/{name} DIFIERE de {origin}. Es una "
-                "copia literal: si el contrato transversal tiene que cambiar, se edita "
-                "el original compartido, se sube su versión y se vuelve a copiar. Nunca "
-                "al revés."
+                f"docs/CONTRACTS/{name} DIFIERE de su sha256 en SHA256SUMS. Es un "
+                "contrato congelado: cambiarlo es una decisión explícita que sube su "
+                "versión y regenera el manifiesto (--write-manifest)."
             )
         checked += 1
 
-    # Una copia huérfana también es un fallo: significa que este proyecto arrastra
-    # un contrato que no le aplica, y eso confunde a quien lo lea.
+    stale = sorted(set(manifest) - set(FROZEN))
+    if stale:
+        problems.append(f"SHA256SUMS declara ficheros que no son contratos congelados: {stale}")
+
+    # Un fichero suelto en el directorio confunde a quien lo lea: o es un contrato
+    # congelado y va en el manifiesto, o no pertenece aquí.
     extra = {
         p.name
         for p in CONTRACTS.glob("*")
-        if p.is_file() and p.name not in {*COPIED, "README.md"}
+        if p.is_file() and p.name not in {*FROZEN, *UNFROZEN}
     }
     if extra:
-        problems.append(
-            f"docs/CONTRACTS/ tiene ficheros que este proyecto no copia: {sorted(extra)}"
-        )
+        problems.append(f"docs/CONTRACTS/ tiene ficheros fuera del manifiesto: {sorted(extra)}")
     return checked
 
 
@@ -174,8 +195,19 @@ def check_compiled(problems: list[str]) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--write-manifest",
+        action="store_true",
+        help="regenera docs/CONTRACTS/SHA256SUMS a partir de los contratos actuales",
+    )
+    args = parser.parse_args()
+    if args.write_manifest:
+        write_manifest()
+        print(f"check_contracts: manifiesto regenerado · {len(FROZEN)} contratos congelados")
+
     problems: list[str] = []
-    copies = check_copies(problems)
+    frozen = check_frozen(problems)
     own = check_own(problems)
     check_examples(problems)
     check_compiled(problems)
@@ -189,12 +221,10 @@ def main() -> int:
         value=len(problems),
         adicionales={
             "contratos propios válidos en docs/spec/": own,
-            "divergencias byte a byte entre docs/CONTRACTS/ y _comun/CONTRACTS/": sum(
-                1 for p in problems if "DIFIERE" in p
-            ),
+            LABEL_DIVERGENCES: sum(1 for p in problems if "DIFIERE" in p),
             "claves de docs/spec/policy.yaml ausentes del catálogo generado": 0,
         },
-        detail={"copies_verified": copies, "own_contracts": own, "problems": problems},
+        detail={"frozen_verified": frozen, "own_contracts": own, "problems": problems},
         command="python scripts/check_contracts.py",
     )
 
@@ -204,7 +234,7 @@ def main() -> int:
             print(f"  · {p}")
         return 1
     print(
-        f"check_contracts: ok · {copies} copias idénticas al original compartido, "
+        f"check_contracts: ok · {frozen} contratos congelados idénticos a su manifiesto, "
         f"{own} contratos propios firmados, {len(OWN_EXTRA)} propios adicionales"
     )
     return 0

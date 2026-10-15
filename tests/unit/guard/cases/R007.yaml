@@ -3,7 +3,7 @@ nombre: "Profundidad máxima de anidamiento"
 familias: [anidamiento_excesivo]
 por_que: >-
   Cada nivel de subconsulta correlacionada multiplica el trabajo del motor por las
-  filas del nivel de arriba, y el estimador de la fase 3 mira bytes escaneados, que
+  filas del nivel de arriba, y el estimador de coste mira bytes escaneados, que
   no capturan nada de eso. Es la clase de consulta cuyo coste no se puede estimar.
 accept:
   - id: R007-A1

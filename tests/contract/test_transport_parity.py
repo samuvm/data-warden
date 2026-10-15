@@ -1,7 +1,7 @@
 """Los dos transportes dan LO MISMO. Nivel 3, contrato.
 
-**Esta es la prueba de que `http/` sirve para lo que dice servir.** La fase 7 lo
-pone antes que `mcp/` con un argumento: si las mismas cuatro operaciones se
+**Esta es la prueba de que `http/` sirve para lo que dice servir.** Se construyó
+antes que `mcp/` con un argumento: si las mismas cuatro operaciones se
 sirven por dos transportes sin tocar `guard/`, `cost/`, `mask/` ni `audit/`, entonces
 «el dominio no depende del transporte» deja de ser una frase del README.
 
@@ -117,7 +117,7 @@ def test_los_dos_transportes_responden_lo_mismo(
 
     Es exactamente lo que `docs/spec/resultset-equality.md` existe para evitar, y por
     lo que I-11 prohíbe asertar sobre la cadena de SQL: **la verdad se establece sobre
-    el resultset normalizado.** Usar aquí el mismo contrato que usará la fase 8 es
+    el resultset normalizado.** Usar aquí el mismo contrato que usa `G-EXEC-ACC` es
     además la forma de que ese contrato se ejercite antes de que dependa de él una
     métrica insignia.
     """

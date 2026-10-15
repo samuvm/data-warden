@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://day-300.local/contracts/eval-report/v1",
-  "title": "Informe de evaluación · contrato transversal v1",
-  "description": "Formato del informe que producen 01, 02 y 03. Es el sexto contrato del ecosistema y el mapa de conjunto no lo declara, pero existe: el 02 pretende ser la puerta de calidad de los otros dos, y no puede comparar informes que no comparten esquema. Se copia a los tres proyectos, no se importa. Cambiarlo sube contract_version y se anota en el CHANGELOG de cada repo afectado.",
+  "$id": "urn:datawarden:contracts:eval-report:v1",
+  "title": "Informe de evaluación · contrato v1",
+  "description": "Formato de los informes de evaluación de evals/reports/. Una puerta de calidad o un panel externo solo puede comparar informes que comparten esquema. Cambiarlo sube contract_version y se anota en el CHANGELOG.",
   "type": "object",
   "required": [
     "contract_version",
@@ -18,14 +18,14 @@
   "properties": {
     "contract_version": {
       "const": 1,
-      "description": "Versión de ESTE contrato, no del proyecto."
+      "description": "Versión de este contrato, no del proyecto."
     },
     "run_id": {
       "type": "string",
       "description": "Identificador único de la ejecución. Determinista si la ejecución lo es."
     },
     "project": {
-      "enum": ["citebound", "evalgate", "datawarden", "indexkeeper"]
+      "enum": ["datawarden"]
     },
     "suite": {
       "type": "string",
@@ -53,19 +53,17 @@
         "models": {
           "type": "object",
           "additionalProperties": { "type": "string" },
-          "description": "Modelos usados por rol. El juez NUNCA puede ser el mismo que el generador.",
+          "description": "Modelos usados por rol. El juez no puede ser el mismo modelo que el generador.",
           "examples": [
             {
-              "generator": "qwen3.5:9b-mlx",
-              "judge": "gemma4:12b-mlx",
-              "embeddings": "Qwen3-Embedding-0.6B",
-              "reranker": "Qwen3-Reranker-0.6B"
+              "generator": "gemma4:26b-mlx",
+              "judge": "gemma4:12b-mlx"
             }
           ]
         },
         "index_version": {
           "type": "string",
-          "description": "Sólo 01 y 04. Índice activo durante la evaluación."
+          "description": "Versión del índice activo durante la evaluación, si el sistema usa uno."
         },
         "seed": {
           "type": "integer",
@@ -83,7 +81,7 @@
         "n_cases": { "type": "integer", "minimum": 1 },
         "n_negative_cases": {
           "type": "integer",
-          "description": "Casos sin respuesta en el corpus. Sin ellos no se puede calcular abstención incorrecta."
+          "description": "Casos cuya respuesta correcta es abstenerse o rechazar. Sin ellos no se puede medir una abstención incorrecta."
         },
         "sha256": {
           "type": "string",
@@ -93,7 +91,7 @@
     },
     "prompts": {
       "type": "array",
-      "description": "Todo prompt que participó, con su versión y hash. Es lo que permite correlacionar un cambio de métrica con un cambio de prompt concreto, que es medio argumento del proyecto 02.",
+      "description": "Todo prompt que participó, con su versión y hash. Es lo que permite correlacionar un cambio de métrica con un cambio de prompt concreto.",
       "items": {
         "type": "object",
         "required": ["id", "version", "sha256"],
@@ -120,12 +118,12 @@
           "id": {
             "type": "string",
             "description": "Debe coincidir exactamente con un id de docs/GOALS.yaml.",
-            "examples": ["G-CITA-PRECISION", "G-ALUCINACION-ART"]
+            "examples": ["G-EXEC-ACC", "G-RECOVERY"]
           },
           "value": { "type": "number" },
           "n": {
             "type": "integer",
-            "description": "Casos que entraron en el denominador de ESTA métrica. Puede diferir del total: las abstenciones salen del denominador de precisión de cita, y los casos negativos del de recall."
+            "description": "Casos que entraron en el denominador de esta métrica. Puede diferir del total cuando la métrica solo aplica a un subconjunto de casos."
           },
           "unit": {
             "type": "string",
@@ -166,13 +164,13 @@
             "kind": { "const": "bootstrap" },
             "paired": {
               "const": true,
-              "description": "SIEMPRE pareado, sobre los mismos casos. El no pareado tiene mucha más varianza y hace la puerta insensible o ruidosa. La decisión está cerrada en retrieval-metrics.md §4."
+              "description": "Siempre pareado, sobre los mismos casos. El no pareado tiene mucha más varianza y hace la puerta insensible o ruidosa."
             },
             "replicates": { "type": "integer", "minimum": 1000 },
             "multiple_comparison_correction": {
               "type": ["string", "null"],
               "enum": ["holm", "benjamini-hochberg", "bonferroni", null],
-              "description": "Obligatorio si se vigilan más de 3 métricas bloqueantes. Por defecto 'holm': controla la tasa de error por familia, que es lo que importa en una puerta de calidad (un falso bloqueo es caro y erosiona la confianza en el gate), y es uniformemente más potente que Bonferroni sin supuestos adicionales. 'benjamini-hochberg' controla FDR y es preferible cuando se exploran muchas métricas informativas y un falso positivo aislado no bloquea nada. Ver retrieval-metrics.md §4."
+              "description": "Obligatorio si se vigilan más de 3 métricas bloqueantes. Por defecto 'holm': controla la tasa de error por familia, que es lo que importa en una puerta de calidad (un falso bloqueo es caro y erosiona la confianza en el gate), y es uniformemente más potente que Bonferroni sin supuestos adicionales. 'benjamini-hochberg' controla FDR y es preferible cuando se exploran muchas métricas informativas y un falso positivo aislado no bloquea nada."
             }
           }
         },

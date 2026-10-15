@@ -330,8 +330,8 @@ def main() -> int:
         ],
         "notes": (
             f"provenance del banco: {raw.get('provenance')}. "
-            "Mientras no diga `revisado_humano`, el banco lo escribió un agente "
-            "transcribiendo el glosario firmado y no tiene revisión humana externa: "
+            "Mientras no diga `revisado_humano`, el banco se escribió con asistencia "
+            "de IA transcribiendo el glosario firmado y no tiene revisión humana externa: "
             "el número es autoevaluado contra su propia respuesta correcta."
         ),
     }

@@ -1,7 +1,7 @@
 """`G-BUDGET-ESCAPE` · **ninguna consulta cara llega al motor.** Es un AXIOMA.
 
 La meta dice literalmente «Consultas que exceden presupuesto y llegan a ejecutarse:
-0 %», y en `PROJECT.md` la celda «Cómo se mide» de esa métrica **está en blanco**.
+0 %», y en `docs/DESIGN.md` la celda «Cómo se mide» de esa métrica **está en blanco**.
 `GOALS.yaml` la redefinió como invariante estructural más CONTADOR, y esto es ese
 contador: no se mira el veredicto —eso sería comprobar que el código dice lo que
 dice—, se mira si **el motor se movió**.

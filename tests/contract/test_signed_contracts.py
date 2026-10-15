@@ -133,7 +133,7 @@ def test_el_linaje_sin_resolver_esta_acotado_y_declarado(catalog) -> None:
     """Un límite contado vale más que un límite escondido, y este se puede contar.
 
     Si crece, es que alguien añadió una vista que sqlglot no sabe seguir, y eso
-    hay que verlo cuando pasa y no en la fase 8.
+    hay que verlo cuando pasa y no al medir el banco de evaluación.
     """
     sin_resolver = [
         f"{t.name}.{c.name}"

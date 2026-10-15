@@ -70,8 +70,7 @@ dev = [
   # porque parsear YAML dentro del camino crítico de `G-GUARD-P95` sería tiempo
   # tirado en el peor sitio posible—. Declarada el 2026-09-02.
   "pyyaml==6.0.3",
-  # El generador del dataset sintético. Vive hoy en `datagen/` y se porta a
-  # `scripts/` como trabajo de la fase 0.
+  # El generador del dataset sintético, en `datagen/`.
   "Faker==40.37.0",
 ]
 
@@ -113,8 +112,8 @@ cobertura_linea_min = 90            # G-COV-LINE
 cobertura_linea_min_critica = 95    # G-COV-LINE adicional: guard, mask, audit, principal
 paquetes_criticos = ["guard", "mask", "audit", "principal"]
 funciones_sin_cubrir_max = 0        # G-COV-FUNC
-mutantes_muertos_min = 70           # G-MUTATION, bloqueante desde la fase 3
-mutantes_muertos_min_guard = 85     # G-MUT-GUARD, bloqueante desde la fase 3
+mutantes_muertos_min = 70           # G-MUTATION, bloqueante desde MILESTONE=3
+mutantes_muertos_min_guard = 85     # G-MUT-GUARD, bloqueante desde MILESTONE=3
 secretos_nuevos_max = 0             # G-SECRETS
 deuda_max = 10                      # TODO/FIXME/XXX/NotImplementedError en src/
 
@@ -129,7 +128,7 @@ markers = [
   "slow: tarda más de un segundo; fuera del gate rápido",
   "integration: necesita DuckDB real o contenedores",
   "adversarial: cuaderno de ataque de desarrollo",
-  "holdout: SOLO se ejecuta en `make done`. El agente no lo lee",
+  "holdout: solo se ejecuta en `make done`; no se lee durante el desarrollo",
 ]
 filterwarnings = ["error"]
 

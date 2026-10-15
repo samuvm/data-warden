@@ -2,7 +2,7 @@
 """La tabla de números de los README, GENERADA desde los artefactos. Nunca escrita a mano.
 
 **Existe porque el README llegó a ir meses por detrás del código.** Publicaba la mutación
-en rojo cuando llevaba dos fases en verde, 427 tests cuando había 820, y decía que dos de
+en rojo cuando ya estaba en verde, 427 tests cuando había 820, y decía que dos de
 los cinco anillos «todavía no existían» con los cinco funcionando. Ninguna de esas frases
 era mentira el día que se escribió; todas lo eran el día que alguien las leyó. Un número
 copiado a mano en un documento es un número con fecha de caducidad y sin etiqueta.

@@ -1,4 +1,4 @@
-"""Los tipos congelados del dominio. Fase 1, `G-CONTRACTS-FROZEN`.
+"""Los tipos congelados del dominio. `G-CONTRACTS-FROZEN`.
 
 FASE ROJA. Estos tests se escriben ANTES de la implementación y contra los dos
 contratos que ya existen —`docs/spec/rejection.schema.json` y

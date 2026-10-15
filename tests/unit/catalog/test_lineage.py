@@ -4,7 +4,7 @@
 `dim_customer.birth_date`. Existe una vista `v_customer` que la reexpone con otro
 nombre de tabla, y una columna `full_name` que es `concat(first_name, last_name)`.
 Sin linaje, una política que casa por `tabla.columna` no ve ninguna de las dos, y el
-ataque por expresión derivada que `PROJECT.md` describe lo sirve el propio catálogo.
+ataque por expresión derivada que `docs/DESIGN.md` describe lo sirve el propio catálogo.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ def test_una_vista_que_renombra_la_tabla_no_esconde_la_columna() -> None:
 
 
 def test_una_expresion_derivada_arrastra_todas_sus_fuentes() -> None:
-    """El ataque de `PROJECT.md`: `CONCAT(nombre, apellido)` sobre columnas marcadas.
+    """El ataque de `docs/DESIGN.md`: `CONCAT(nombre, apellido)` sobre columnas marcadas.
 
     Basta con que UNA de las fuentes esté restringida para que la derivada lo esté,
     y por eso se guardan todas y no solo la primera.

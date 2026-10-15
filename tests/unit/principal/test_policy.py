@@ -366,7 +366,7 @@ def test_los_campos_descriptivos_ausentes_quedan_en_none_y_no_en_cadena_vacia(
 ) -> None:
     """`None` significa «no declarado» y `''` significaría «declarado vacío».
 
-    La fase 4 va a ramificar sobre `transformation`: con `None` no hay
+    El enmascarado ramifica sobre `transformation`: con `None` no hay
     transformación y hay que rechazar o tachar; con `''` habría una transformación
     llamada «» y el reescritor la buscaría en su tabla.
     """

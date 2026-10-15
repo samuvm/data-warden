@@ -42,7 +42,7 @@ reject:
     posicion: projection
     sujeto: "*"
     reintentable: true
-    por_que: "Una estrella que llega a la fase posterior sin expandir."
+    por_que: "Una estrella que llega a la etapa posterior sin expandir."
   - id: R009-R0b
     nivel: regla
     rol: admin

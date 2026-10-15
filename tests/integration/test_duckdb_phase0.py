@@ -1,7 +1,7 @@
-"""Nivel 2 · DuckDB de verdad. Criterio de salida de la fase 0.
+"""Nivel 2 · DuckDB de verdad, sobre el dataset sintético.
 
-El criterio de salida de esta fase pide «integración: DuckDB con 1 mes de datos y
-`row_count`» y «tres consultas SQL a mano». Aquí están las dos cosas, y una
+El criterio es «integración: DuckDB con 1 mes de datos y `row_count`» y «tres
+consultas SQL a mano». Aquí están las dos cosas, y una
 tercera que vale más que las dos: **las tres consultas comprueban los números que
 el glosario declara**, en vez de limitarse a no dar error.
 

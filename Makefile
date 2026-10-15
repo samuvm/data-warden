@@ -1,14 +1,12 @@
 # =============================================================================
 # Data Warden · Makefile canónico
 #
-# COMPATIBLE CON GNU MAKE 3.81, que es el que trae macOS y es de 2006. Sin
-# `.ONESHELL`, sin `$(file ...)`, sin `!=`. Comprobado en la línea base del
-# 2026-08-28 y anotado en JOURNAL.md, porque descubrirlo a mitad de la fase 2
-# habría costado una tarde.
+# Compatible con GNU Make 3.81, el que trae macOS: sin `.ONESHELL`, sin
+# `$(file ...)`, sin `!=`.
 #
-# REGLA DE ESTE FICHERO: un target que todavía no se puede cumplir FALLA con un
-# mensaje que dice por qué. No pasa en vacío. Un gate que aprueba porque no
-# encuentra nada que medir es peor que no tener gate: da una señal verde falsa.
+# Regla de este fichero: un target que todavía no se puede cumplir falla con un
+# mensaje que dice por qué; no pasa en vacío. Un gate que aprueba porque no
+# encuentra nada que medir da una señal verde falsa.
 # =============================================================================
 
 SHELL := /bin/bash
@@ -16,14 +14,14 @@ UV    := uv run
 PKG   := src/datawarden
 PROFILE ?= dev
 MODEL_ROLE ?= generador
-# MODO RAZONADOR APAGADO POR DEFECTO, y es una decisión MEDIDA el 2026-09-03, no una
-# preferencia: sobre cinco correcciones reales del corpus el modelo recuperó 5/5 en
-# los dos modos, y tardó 6 s sin razonar contra 407 s razonando. El modo va al
+# Modo razonador apagado por defecto, por medida y no por preferencia: sobre cinco
+# correcciones reales del corpus el modelo recuperó 5/5 en los dos modos, y tardó
+# 6 s sin razonar contra 407 s razonando. El modo va al
 # informe porque cambia el número; para volver a medirlo con razonador:
 #   make eval-refresh REFRESH_FLAGS=
 REFRESH_FLAGS ?= --no-think
-# El JUEZ NUNCA es el modelo que genera: usar el mismo infla la métrica de forma
-# sistemática, y en `models.lock` está evitado por diseño y no por disciplina.
+# El juez no es nunca el modelo que genera: usar el mismo infla la métrica de forma
+# sistemática, y `models.lock` lo evita por diseño.
 JUDGE_ROLE ?= juez
 
 .DEFAULT_GOAL := help
@@ -38,22 +36,23 @@ JUDGE_ROLE ?= juez
 
 # -----------------------------------------------------------------------------
 help:
-	@echo "Data Warden · fase 6"
+	@echo "Data Warden"
 	@echo ""
-	@echo "  Funciona hoy:"
-	@echo "    lint typecheck imports test-fast test coverage secrets"
+	@echo "  Targets:"
+	@echo "    lint typecheck imports test-fast test test-int coverage secrets"
 	@echo "    contracts catalog arch-checks goals gate-fast gate-full done"
-	@echo "    dataset dataset-full report clean mutation bench bench-guard"
+	@echo "    dataset dataset-full report readme clean mutation bench bench-guard"
 	@echo "    attack-dev attack-mut attack-holdout pii-suite guard-property"
-	@echo "    cost-calibration budget-invariant dataset-traps eval-recovery"
-	@echo "    eval-refresh (necesita Ollama en el host)"
+	@echo "    cost-calibration budget-invariant dataset-traps"
+	@echo "    eval eval-recovery eval-toolchoice mcp-conformance mcp-live"
+	@echo "    eval-refresh eval-refresh-exec eval-toolchoice-refresh (necesitan Ollama en el host)"
 	@echo ""
-	@echo "  Declarado y todavía sin implementar (falla con su motivo):"
-	@echo "    up down warm test-int eval eval-toolchoice mcp-conformance test-parity"
+	@echo "  Declarado y sin implementar (falla con su motivo):"
+	@echo "    up down warm test-parity"
 
 # --- infraestructura ---------------------------------------------------------
 up down warm:
-	@echo "FASE 0: no hay compose.yaml todavía. DuckDB es embebido y no necesita"
+	@echo "No hay compose.yaml: DuckDB es embebido y no necesita"
 	@echo "levantar nada; el contenedor de exploración está en datagen/docker/."
 	@exit 1
 
@@ -78,17 +77,14 @@ test-fast:
 	$(UV) pytest tests/unit tests/property -m "not slow and not integration" \
 		-p no:cacheprovider --hypothesis-profile=dev
 
-# `tests/adversarial` ENTRA aquí desde la fase 6. Estaba declarado en el mapa de
-# docs/RULES.md y no lo corría ningún target: una carpeta de tests que nadie ejecuta
-# es peor que no tenerla, porque parece cubierta. Cuesta milisegundos y es donde vive
-# la inyección de prompt.
+# `tests/adversarial` entra aquí: una carpeta de tests que nadie ejecuta es peor que
+# no tenerla, porque parece cubierta. Cuesta milisegundos y es donde vive la
+# inyección de prompt.
 test:
 	$(UV) pytest tests/unit tests/property tests/contract tests/adversarial \
 		--hypothesis-profile=gate
 
-# Los que tocan el motor y el catálogo de verdad. `scripts/done.py` ya los corre
-# desde la fase 5; este atajo se había quedado en el tapón de la fase 0 y decía que
-# no existían cuando llevaban dos fases existiendo.
+# Los que tocan el motor y el catálogo de verdad. `scripts/done.py` también los corre.
 test-int:
 	$(UV) pytest tests/integration tests/contract -m "integration or not integration" \
 		--hypothesis-profile=gate
@@ -199,8 +195,8 @@ freeze:
 	$(UV) python scripts/freeze_questions.py
 
 # --- rendimiento -------------------------------------------------------------
-# AVISO: UN solo proyecto encendido cada vez en la máquina. Un p95 medido con
-# otro proyecto compitiendo por la memoria NO vale y hay que repetirlo.
+# Un p95 medido con otra carga pesada compitiendo por la memoria de la máquina no
+# vale y hay que repetirlo.
 bench bench-guard:
 	$(UV) python scripts/bench_guard.py
 
@@ -247,20 +243,19 @@ mcp-conformance:
 	$(UV) python scripts/mcp_conformance.py
 	$(UV) python scripts/check_mcp_live.py
 
-# El servidor CONTESTANDO por stdio, con un cliente MCP de verdad. Existe porque
-# `mcp-conformance` daba 11/11 mientras `run_query` reventaba en todas las llamadas:
-# validaba la forma de lo que el servidor publica, no que supiera responder.
+# El servidor contestando por stdio, con un cliente MCP de verdad. `mcp-conformance`
+# llegó a dar 11/11 mientras `run_query` fallaba en todas las llamadas: valida la
+# forma de lo que el servidor publica, no que sepa responder.
 mcp-live:
 	$(UV) python scripts/check_mcp_live.py
 
 test-parity:
-	@echo "FASE 9: no hay segundo motor todavía."
+	@echo "test-parity: no hay segundo motor todavía."
 	@exit 1
 
-# Las nueve trampas del glosario, MEDIDAS. Nace de una corrección al revisar el
-# glosario: «una trampa cuyo número no se ha vuelto a medir desde que se escribió
-# es folclore». Salían 7 de 9; las dos que discrepaban se corrigieron en el glosario
-# el 2026-09-02.
+# Las nueve trampas del glosario, medidas: una trampa cuyo número no se ha vuelto a
+# medir desde que se escribió es folclore. La primera medida dio 7 de 9; las dos que
+# discrepaban se corrigieron en el glosario.
 dataset-traps:
 	$(UV) python scripts/measure_traps.py --profile $(PROFILE)
 
@@ -274,34 +269,30 @@ dataset-full:
 # --- puertas -----------------------------------------------------------------
 # gate-fast: lo que tiene que pasar en cada turno. Segundos, no minutos.
 #
-# `imports` ENTRA aquí desde el 2026-09-06, y entra por un fallo real: al escribir
-# el servidor MCP se rompió el contrato I-06 y no salió hasta que corrí
-# `make done` dos días después, porque el contrato de capas solo se comprobaba en
-# `gate-full` y en `done`. Cuesta **0,08 s**. Un contrato de arquitectura que solo
-# corre al cerrar una fase se rompe al principio y se descubre al final, que es
-# cuando más caro sale arreglarlo.
+# `imports` entra aquí porque cuesta 0,08 s: un contrato de capas que solo se
+# comprueba en `gate-full` y en `done` se rompe al principio y se descubre al final,
+# que es cuando más caro sale arreglarlo. Así pasó con I-06 al escribir el servidor MCP.
 gate-fast: lint typecheck imports test-fast
 	@echo ""
 	@echo "gate-fast VERDE"
 
-# gate-full: lo que tiene que pasar para cerrar una fase.
-# gate-full: lo que tiene que pasar para cerrar una fase, sin el peso de `done`.
+# gate-full: lo que tiene que pasar antes de `make done`, sin su peso.
 # No incluye mutación ni snapshot: eso es `done`, y mezclarlos haría que nadie
 # corriera gate-full por lo que tarda.
 gate-full: lint typecheck imports arch-checks test coverage secrets attack-dev attack-mut
 	@echo ""
 	@echo "gate-full VERDE"
 
-# La ÚNICA definición de "hecho". Doce condiciones, parando en la primera que
-# falla, y el resultado en .claude/state/gate-status.json, que lo escribe el GATE
-# y no una persona.
+# La única definición de "hecho". Doce condiciones, parando en la primera que
+# falla, y el resultado en .gate/gate-status.json, que lo escribe el gate y no una
+# persona.
 done:
 	@test -n "$(MILESTONE)" || { echo "falta MILESTONE=N"; exit 2; }
 	$(UV) python scripts/done.py --milestone $(MILESTONE)
 
 # --- varios ------------------------------------------------------------------
-# La tabla de números del README sale de `evals/reports/`, nunca se escribe a mano: el
-# README llegó a publicar la mutación en rojo dos fases después de ponerse en verde.
+# La tabla de números del README sale de `evals/reports/` y no se escribe a mano: una
+# tabla copiada a mano llegó a publicar la mutación en rojo cuando ya estaba en verde.
 readme:
 	$(UV) python scripts/readme_numbers.py
 

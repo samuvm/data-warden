@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """`G-CATALOG-FRESH`: el catálogo generado coincide con el esquema vivo.
 
-`PROJECT.md` §2 exige «catálogo autogenerado desde el esquema real, no escrito a
+`docs/DESIGN.md` exige «catálogo autogenerado desde el esquema real, no escrito a
 mano» y no daba forma de comprobarlo. Esto la da: se regenera el catálogo AHORA
 contra el motor y se compara byte a byte con el que está en el árbol. Cero
 divergencias.

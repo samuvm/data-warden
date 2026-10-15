@@ -1,7 +1,7 @@
 """El catálogo, contra un esquema fixture EN MEMORIA. Nunca contra DuckDB (I-13).
 
-El criterio de salida de la fase 0 lo exige literalmente: «unit de
-`catalog/` contra esquema fixture en memoria (no contra DuckDB)». La razón es que un
+I-13 lo exige literalmente: «unit de `catalog/` contra esquema fixture en memoria
+(no contra DuckDB)». La razón es que un
 catálogo que solo se pudiera probar con 7,4 GB delante no se probaría nunca, y la
 lógica que importa —familias de tipo, orden determinista, exclusión, linaje— no
 necesita ni una fila para equivocarse.
@@ -230,7 +230,7 @@ def test_la_familia_no_depende_de_como_escriba_el_motor_el_tipo(escrito: str) ->
     DuckDB devuelve `VARCHAR`, Athena devuelve `string` y un `information_schema`
     ajeno puede devolver cualquiera de las dos con espacios. Una familia que
     dependiera de eso haría que la MISMA columna cambiara de familia al cambiar de
-    motor, y `G-ENGINE-PARITY` de la fase 9 existe justamente para que no pase.
+    motor, y `G-ENGINE-PARITY` existe justamente para que no pase.
     """
     assert family_of(escrito) == family_of("VARCHAR")
 
@@ -310,7 +310,7 @@ def test_una_columna_sin_vista_deriva_de_si_misma() -> None:
 
 
 def test_una_vista_no_abre_una_puerta_trasera_a_una_columna_excluida() -> None:
-    """**REGRESIÓN · la encontró en la fase 2 el agente aislado que escribió la reserva.**
+    """REGRESIÓN · la encontró la reserva de ataques, escrita sin acceso al código.
 
     `dim_merchant.traffic_weight` salía con `published: false`, como manda la política, y
     `v_merchant_current.traffic_weight` —la MISMA columna a través de la vista—

@@ -263,7 +263,7 @@ def test_el_resultado_dice_de_que_modelo_salio() -> None:
     assert resultado.provider == "scripted"
 
 
-# ------------------------------------------------- el rechazo SEMBRADO (fase 6) ---
+# --------------------------------------------------------- el rechazo SEMBRADO ---
 
 
 def test_un_rechazo_sembrado_entra_en_la_historia_como_primer_intento() -> None:

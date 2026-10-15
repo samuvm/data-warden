@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """`G-WRITE-BLOCK` · la RESERVA. Es el único número publicable de seguridad.
 
-**Quien escribió el guard no ha visto ni un solo caso de este fichero.** Los
-escribió un agente aislado contra la ESPECIFICACIÓN —`docs/spec/policy.yaml`
+**Quien escribió el guard no ha visto ni un solo caso de este fichero.** Se
+escribieron en una sesión aislada contra la ESPECIFICACIÓN —`docs/spec/policy.yaml`
 firmado, el glosario y el catálogo generado— y sin acceso a `src/datawarden/guard/`,
 a `attacks/` ni a `tests/unit/guard/cases/`. Esa separación es la primera condición
 del método, y es lo que convierte «bloqueo del 100 %» en evidencia en vez de en
@@ -55,7 +55,7 @@ def main() -> int:
     if not CASES.exists():
         print(
             "attack_holdout: FALLO · no existe tests/holdout/cases.yaml.\n"
-            "  La reserva la escribe un agente aislado, sin acceso al guard. Sin ella no\n"
+            "  La reserva se escribe en una sesión aislada, sin acceso al guard. Sin ella no\n"
             "  hay número publicable, y contarlo como aprobado sería exactamente el\n"
             "  número inflado que la separación dev/holdout existe para evitar."
         )

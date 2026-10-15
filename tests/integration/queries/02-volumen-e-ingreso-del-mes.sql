@@ -1,4 +1,4 @@
--- Consulta 2 de la fase 0. Las tres métricas de dinero con su nombre canónico.
+-- Consulta 2 de 3. Las tres métricas de dinero con su nombre canónico.
 --
 -- La firma del glosario partió «ingreso» en tres, porque llamar «ingreso» a dos
 -- cosas distintas es lo que produce el error. Aquí salen las tres a la vez, sobre

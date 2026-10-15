@@ -1,7 +1,7 @@
 """La cadena de auditoría: JCS, hash encadenado y verificación. Zona TDD, 95 %.
 
-FASE ROJA. Escritos contra `docs/spec/audit-record.schema.json`, que está congelado
-desde la fase 1, y no contra una implementación imaginada.
+FASE ROJA. Escritos contra `docs/spec/audit-record.schema.json`, que se congeló antes
+que el código, y no contra una implementación imaginada.
 
 **Ni una línea de este fichero toca SQLite.** Lo de aquí es PURO: canonicalizar,
 hashear y verificar. El almacén vive en `test_store.py` y se prueba contra

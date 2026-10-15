@@ -24,7 +24,7 @@ accept:
       SELECT a.geo_country,
              row_number() OVER (PARTITION BY a.geo_country ORDER BY a.event_date) AS rn
       FROM fact_payment_attempt a
-    por_que: "Ventana, partición y orden: la fase 8 exige quince preguntas así."
+    por_que: "Ventana, partición y orden: el banco de evaluación tiene quince preguntas así."
   - id: R002-A4
     rol: analyst
     sql: "SELECT CAST(amount_minor AS DOUBLE) AS importe FROM fact_payment_attempt"

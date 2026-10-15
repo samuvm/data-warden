@@ -1,4 +1,4 @@
--- Consulta 3 de la fase 0. La trampa del SCD tipo 2, esquivada a propósito.
+-- Consulta 3 de 3. La trampa del SCD tipo 2, esquivada a propósito.
 --
 -- `dim_merchant` es una dimensión de cambio lento tipo 2: un comercio tiene VARIAS
 -- filas, una por versión, y `fact_settlement_batch` guarda la clave NATURAL

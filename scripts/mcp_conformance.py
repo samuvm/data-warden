@@ -6,10 +6,9 @@ las sesiones (`Mcp-Session-Id`), el handshake `initialize`, `ping` y la resumibi
 SSE; `sampling`, `roots` y `logging` quedaron deprecados; `FastMCP` pasó a
 `MCPServer`. El código de ejemplo de 2025 no compila.
 
-**Los once puntos no se inventan aquí:** salen de `docs/STACK.md §7`, que es donde la
-investigación previa los dejó escritos, y de los requisitos de la fase 7. Este script los
-comprueba sobre los artefactos REALES —el contrato firmado y lo que el servidor
-publica— y no sobre una lista de deseos.
+**Los once puntos no se inventan aquí:** salen de `docs/STACK.md §7`, donde quedaron
+escritos con su fuente. Este script los comprueba sobre los artefactos REALES —el
+contrato firmado y lo que el servidor publica— y no sobre una lista de deseos.
 
 **Se comprueban las AUSENCIAS igual que las presencias**, y eso es la mitad del
 valor: un servidor que arrastre `initialize` de la generación anterior «funciona»
