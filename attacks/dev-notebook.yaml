@@ -1,21 +1,20 @@
 # =============================================================================
-# Cuaderno de ataque de DESARROLLO · 25 intentos de evasión
+# Cuaderno de ataque de desarrollo · intentos de evasión
 #
-# **HIGIENE, NO EVIDENCIA.** `G-WRITE-BLOCK-DEV` lo dice literalmente y hay que
-# repetirlo cada vez que se mire este fichero: **este número NO se publica como
-# número de seguridad.** Las reglas se escribieron PARA parar estos casos, así que
-# pasar el 100 % es medir sobre el conjunto de entrenamiento. Es exactamente lo que
-# `PROJECT.md` pedía —«suite de 40 intentos»— y exactamente por lo que `GOALS.yaml`
-# lo partió en dos.
+# Higiene, no evidencia. `G-WRITE-BLOCK-DEV` lo dice literalmente: este número no se
+# publica como número de seguridad. Las reglas se escribieron para parar estos casos,
+# así que pasar el 100 % es medir sobre el conjunto de entrenamiento. Es lo que la
+# especificación de diseño (`docs/DESIGN.md`) pedía como suite de intentos, y es
+# exactamente por lo que `GOALS.yaml` lo partió en dos.
 #
-# El número publicable es el del HOLDOUT (`G-WRITE-BLOCK`): quince casos escritos
-# por un agente aislado que no ha visto `src/datawarden/guard/` ni este fichero, más la
+# El número publicable es el del holdout (`G-WRITE-BLOCK`): quince casos escritos en
+# una sesión aislada, sin acceso a `src/datawarden/guard/` ni a este fichero, más la
 # mutación de AST. Aquí se mide que no hay regresiones; allí se mide si el guard
 # sirve.
 #
-# **Regla de oro del repo, adaptada:** `make done` falla si el sha de cualquier
-# fichero de `guard/rules/` cambió desde el último snapshot verde y `attacks/` no
-# ganó ningún caso. Añadir una evasión son seis líneas de YAML.
+# Regla del repositorio: `make done` falla si el sha de cualquier fichero de
+# `guard/rules/` cambió desde el último snapshot verde y `attacks/` no ganó ningún
+# caso. Añadir una evasión son seis líneas de YAML.
 # =============================================================================
 
 version: 1
@@ -258,28 +257,22 @@ ataques:
       regla que solo mirase escrituras lo dejaría pasar.
 
 # -----------------------------------------------------------------------------
-# SON VEINTICINCO, NI UNO MÁS, Y ESO ES UN PROBLEMA DE DISEÑO DE LA META.
-#
-# `G-WRITE-BLOCK-DEV` tiene umbral `== 25`. Pero la regla de oro de este repositorio
-# dice que **el cuaderno crece con cada evasión que se descubre**, y un umbral `==`
-# convierte «hemos encontrado una evasión nueva y le hemos puesto su caso» en un
-# fallo de gate. Es exactamente al revés de lo que se quiere premiar.
-#
-# Se respetó el número sellado —`GOALS.yaml` manda y está sellado por
-# `thresholds.lock`— y se propuso cambiarlo a `>= 25`. Mientras tanto, las
-# evasiones nuevas se convirtieron en casos del CORPUS por regla
-# (`tests/unit/guard/cases/RNNN.yaml`), que es donde de todos modos tienen que estar
-# para que se asierta el `rule_id` exacto.
+# El umbral de `G-WRITE-BLOCK-DEV` era `== 25`, y eso chocaba con la regla de que el
+# cuaderno crece con cada evasión descubierta: un umbral `==` convertía "hemos
+# encontrado una evasión nueva y le hemos puesto su caso" en un fallo de gate. El
+# umbral pasó a `>= 25` el 2026-09-02. Mientras fue `== 25`, las evasiones nuevas se
+# registraron como casos del corpus por regla (`tests/unit/guard/cases/RNNN.yaml`),
+# que es donde de todos modos tienen que estar para asertar el `rule_id` exacto.
 # -----------------------------------------------------------------------------
 
   # ===========================================================================
-  # A-26 · La evasion que encontro la MUTACION DE AST, no una revision.
+  # A-26 · La evasión que encontró la mutación de AST, no una revisión.
   #
-  # Vuelve al cuaderno el 2026-09-02, cuando el umbral de G-WRITE-BLOCK-DEV
-  # paso de `== 25` a `>= 25`. Hasta entonces anadirla ROMPIA
-  # el gate: el cuaderno tenia que crecer segun RULES.md —«una evasion se
-  # convierte en rule_id nuevo y caso permanente»— y crecer era un fallo. Las dos
-  # frases se contradecian dentro del mismo documento.
+  # Entró en el cuaderno el 2026-09-02, cuando el umbral de G-WRITE-BLOCK-DEV
+  # pasó de `== 25` a `>= 25`. Hasta entonces, añadirla rompía el gate: el
+  # cuaderno tenía que crecer según RULES.md ("una evasión se convierte en
+  # rule_id nuevo y caso permanente") y crecer era un fallo. Las dos frases se
+  # contradecían dentro del mismo documento.
   # ===========================================================================
   - id: A-26
     familia: desplazamiento_excesivo
@@ -287,7 +280,7 @@ ataques:
     sql: "SELECT * FROM (SELECT customer_sk FROM dim_customer OFFSET 9000000) s"
     espera: R006
     idea: >-
-      El OFFSET escondido dentro de una subconsulta. R006 solo miraba la raiz, asi
-      que el motor producia y tiraba nueve millones de filas sin que ninguna regla
-      lo viera. Lo encontro la mutacion de AST y no una revision: la regla estaba
-      bien escrita para el caso que alguien penso, y mal para el que no.
+      El OFFSET escondido dentro de una subconsulta. R006 solo miraba la raíz, así
+      que el motor producía y tiraba nueve millones de filas sin que ninguna regla
+      lo viera. Lo encontró la mutación de AST y no una revisión: la regla estaba
+      bien escrita para el caso que alguien pensó, y mal para el que no.

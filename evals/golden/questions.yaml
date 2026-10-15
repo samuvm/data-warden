@@ -1,99 +1,99 @@
 # =============================================================================
-# El banco de referencia · G-EXEC-ACC · fase 8
+# Banco de referencia · G-EXEC-ACC
 #
-# QUIÉN PONE LA VERDAD, que es la única pregunta que importa de este fichero.
+# Quién pone la verdad, que es la pregunta central de este fichero.
 #
-# **No el agente.** Si el mismo que construyó el sistema escribe también la respuesta
-# correcta desde su propia lectura, los dos errores quedan CORRELACIONADOS: una
-# definición mal entendida produce una referencia mal escrita y una respuesta del
-# modelo mal escrita **de la misma manera**, y coinciden. El número saldría alto y
-# sería falso, que es peor que no tenerlo.
+# No la pone quien construye el sistema. Si el mismo autor escribe el sistema y la
+# respuesta correcta desde su propia lectura, los dos errores quedan correlacionados:
+# una definición mal entendida produce una referencia mal escrita y una respuesta del
+# modelo mal escrita de la misma manera, y coinciden. El número saldría alto y sería
+# falso, que es peor que no tenerlo.
 #
-# **La pone `docs/spec/glossary.yaml`, FIRMADO el 2026-09-01.** Ahí están los tres granos, las cinco definiciones críticas —`pago_valido`,
-# `ingreso`, `cliente_activo`, `comercio_activo`, `periodo`— y las cinco métricas.
-# Cada caso de este banco declara en `glosario:` de qué entrada firmada sale su SQL,
-# y el trabajo del agente pasa de ser CRITERIO a ser TRANSCRIPCIÓN.
+# La pone `docs/spec/glossary.yaml`, firmado el 2026-09-01. Ahí están los tres granos,
+# las cinco definiciones críticas (`pago_valido`, `ingreso`, `cliente_activo`,
+# `comercio_activo`, `periodo`) y las cinco métricas. Cada caso de este banco declara en
+# `glosario:` de qué entrada firmada sale su SQL, y escribir la referencia pasa de ser
+# criterio a ser transcripción.
 #
 # La diferencia es lo que cuesta revisarlo:
-#   «¿es esta la definición correcta de cliente activo?»        -> 20 min por caso
-#   «¿este SQL dice lo que dice la definición firmada?»         -> segundos
+#   ¿es esta la definición correcta de cliente activo?        -> 20 min por caso
+#   ¿este SQL dice lo que dice la definición firmada?         -> segundos
 #
-# TRES CLASES DE CASO, y cada una tiene un dueño distinto:
+# Tres clases de caso, cada una con un responsable distinto:
 #
 #   rechazo    La respuesta correcta es un `rule_id`. El guard es determinista y sus
-#              reglas están escritas, así que esto **se verifica ejecutándolo** y no
-#              cuesta ni una hora humana. Son 10 de los 60 y `GOALS.yaml` los exige.
-#              Cada uno lleva un `sql_que_lo_provoca`: NO es la respuesta esperada
-#              —esa la escribe el modelo al medir—, es un CANARIO que demuestra que
-#              la pregunta provoca esa regla, y lo demuestra antes de gastar una sola
-#              llamada al modelo. Si el canario deja de rechazar, el caso está roto.
-#   glosario   El SQL de referencia TRANSCRIBE una entrada firmada. La revisión humana
+#              reglas están escritas, así que se verifica ejecutándolo y no cuesta
+#              revisión humana. Son 10 de los 60 y `GOALS.yaml` los exige. Cada uno
+#              lleva un `sql_que_lo_provoca`: no es la respuesta esperada (esa la
+#              escribe el modelo al medir), es un canario que demuestra que la pregunta
+#              provoca esa regla antes de gastar una sola llamada al modelo. Si el
+#              canario deja de rechazar, el caso está roto.
+#   glosario   El SQL de referencia transcribe una entrada firmada. La revisión humana
 #              audita la transcripción, no la definición.
-#   arbitrio   El glosario no lo cubre o admite dos lecturas. **Estos son los únicos
-#              que necesitan de verdad criterio humano**, y por eso van marcados:
-#              para que las horas de revisión se gasten donde no hay alternativa.
+#   arbitrio   El glosario no lo cubre o admite dos lecturas. Son los únicos que
+#              necesitan criterio humano de verdad, y por eso van marcados: para que
+#              las horas de revisión se gasten donde no hay alternativa.
 #
-# PROCEDENCIA. Mientras `provenance` no diga `revisado_humano`, el informe lo publica
-# y el número sale etiquetado. Un banco que el agente se escribió y se corrigió es el
-# agente puntuándose a sí mismo, por muy bien transcrito que esté.
+# Procedencia. Mientras `provenance` no diga `revisado_humano`, el informe lo publica y
+# el número sale etiquetado como autoevaluado: un banco transcrito y corregido por quien
+# construyó el sistema no tiene revisión externa, por bien transcrito que esté.
 # =============================================================================
 
 version: 1
 provenance: agente_transcrito_del_glosario_firmado
-# Reescritura decidida el 2026-09-10. **Se reescribieron 26 preguntas DESPUÉS
-# de haber medido**, y eso queda escrito aquí y no en una nota al pie: la primera
-# medida sobre las preguntas originales dio `G-EXEC-ACC = 0,1228`, y el 52 % de los
-# fallos eran de forma —columnas y número de filas que la pregunta no fijaba y la
-# referencia sí—. El criterio de la reescritura es uno solo: **la pregunta determina
-# la FORMA de la respuesta y no dicta el SQL.** «Los diez motivos más frecuentes con
-# su número» fija dos columnas y diez filas; cómo se calculan sigue siendo del modelo.
+# Reescritura del 2026-09-10. Se reescribieron 26 preguntas después de haber medido,
+# y queda escrito aquí y no en una nota al pie: la primera medida sobre las preguntas
+# originales dio `G-EXEC-ACC = 0,1228`, y el 52 % de los fallos eran de forma (columnas
+# y número de filas que la pregunta no fijaba y la referencia sí). El criterio de la
+# reescritura es uno solo: la pregunta determina la forma de la respuesta y no dicta el
+# SQL. "Los diez motivos más frecuentes con su número" fija dos columnas y diez filas;
+# cómo se calculan sigue siendo cosa del modelo.
 reescritura_de_preguntas:
-  autorizada_por: "Samuel, 2026-09-10"
+  autorizada_por: "revisión humana, 2026-09-10"
   medida_previa: "G-EXEC-ACC 0,1228 (7/57) sobre las preguntas originales"
   preguntas_reescritas: 26
 # Arbitrajes resueltos el 2026-09-11. Los tres casos que el glosario firmado no
-# cubría —los `arbitrio`— tienen ya criterio humano, y ninguno lo ha puesto el agente:
-#   Q-E-21 «cuál es nuestro comercio más importante» → el que más `ingreso_bruto` deja.
-#   Q-E-05 «qué comercios mueven más volumen»        → `volumen_procesado`, identidad vigente.
-#   Q-E-22 «cómo va el negocio este trimestre»        → FUERA del banco. No tiene métrica
+# cubría (los `arbitrio`) tienen ya criterio humano, ajeno a quien escribió el banco:
+#   Q-E-21 "cuál es nuestro comercio más importante" -> el que más `ingreso_bruto` deja.
+#   Q-E-05 "qué comercios mueven más volumen"        -> `volumen_procesado`, identidad vigente.
+#   Q-E-22 "cómo va el negocio este trimestre"       -> fuera del banco. No tiene métrica
 #          canónica, y forzar una referencia sería inventar la verdad y luego puntuarse
 #          contra ella. Es la clase de pregunta que un sistema honesto tiene que poder
 #          decir que no entiende. La sustituye Q-E-51, en su mismo estrato y rol.
 arbitrajes:
-  decididas_por: "Samuel, 2026-09-11"
+  decididas_por: "revisión humana, 2026-09-11"
   resueltas: [Q-E-05, Q-E-21]
   retiradas: [Q-E-22]
   sustituta: Q-E-51
 revisado_por: null
 revisado_el: null
-glosario_origen: "docs/spec/glossary.yaml · FIRMADO por Samuel el 2026-09-01"
+glosario_origen: "docs/spec/glossary.yaml · firmado el 2026-09-01"
 
-# EL PERFIL DEL DATASET, y no es un detalle: decide de qué son los resultsets
-# congelados. Un banco congelado contra `dev` y medido contra `full` falla entero.
+# Perfil del dataset. Decide de qué son los resultsets congelados: un banco congelado
+# contra `dev` y medido contra `full` falla entero.
 #
-# **`full`, decidido el 2026-09-10, y el motivo es más fuerte de lo que
-# parecía.** La primera elección fue `dev`, por velocidad. Al comprobarlo apareció que
-# `src/datawarden/catalog/generated/statistics.json` declara `profile: full`: **el
-# anillo del presupuesto llevaba tarifando `full` —66,6 M de filas, 4,1 GB en
-# `fact_payment_attempt`— mientras el motor ejecutaba `dev`, con 683 K.** Un anillo
-# tarifaba un almacén y otro ejecutaba otro.
+# `full`, decidido el 2026-09-10. La primera elección fue `dev`, por velocidad, pero
+# `src/datawarden/catalog/generated/statistics.json` declara `profile: full`: el anillo
+# de presupuesto tarifaba `full` (66,6 M de filas, 4,1 GB en `fact_payment_attempt`)
+# mientras el motor ejecutaba `dev`, con 683 K. Un anillo tarifaba un almacén y otro
+# ejecutaba otro.
 #
-# Medir sobre `full` no cuesta: arregla esa incoherencia. Y no es lento — medido, el
-# peor caso del banco tarda 1,5 s, porque son Parquet con poda de columnas.
+# Medir sobre `full` arregla esa incoherencia y no es lento: el peor caso del banco
+# tarda 1,5 s, porque son Parquet con poda de columnas.
 #
 # Además cuadra con el glosario, que se midió sobre `full`: la tasa de aprobación sale
-# **86,93 %**, dentro del 86-87 % declarado, mientras que sobre `dev` daba 86,14 % y se
+# 86,93 %, dentro del 86-87 % declarado, mientras que sobre `dev` daba 86,14 % y se
 # salía. Un banco cuyo número contradice al contrato firmado invita a dudar del
 # contrato.
 #
-# CONSECUENCIA: `make eval` exige los 7,1 GB de `datagen/out/full/` presentes. Se
+# Consecuencia: `make eval` exige los 7,1 GB de `datagen/out/full/` presentes. Se
 # generan con `make dataset-full` y salen idénticos byte a byte.
 perfil: full
-perfil_decidido_por: "Samuel, 2026-09-10"
+perfil_decidido_por: "revisión humana, 2026-09-10"
 
 # `docs/GOALS.yaml` :: G-EXEC-ACC exige >= 60 casos, y el banco los estratifica así:
 # 20 simples · 25 con join o agregación · 15 con ventana o subconsulta correlacionada,
-# **10 de ellos con «rechazo» como respuesta correcta**.
+# 10 de ellos con rechazo como respuesta correcta.
 estratificacion_objetivo:
   simple: 20
   join_o_agregacion: 25
@@ -101,13 +101,13 @@ estratificacion_objetivo:
   de_los_cuales_rechazo: 10
 
 # -----------------------------------------------------------------------------
-# LOS 10 DE RECHAZO · respuesta correcta = un `rule_id`.
+# Los 10 de rechazo · respuesta correcta = un `rule_id`.
 #
-# Son preguntas que un analista haría de buena fe y que este sistema **no debe
-# contestar** con el rol `analyst`. No son ataques: son el uso normal chocando con la
+# Son preguntas que un analista haría de buena fe y que este sistema no debe
+# contestar con el rol `analyst`. No son ataques: son el uso normal chocando con la
 # política, que es justo donde se demuestra la tesis. Ninguno necesita horas humanas:
 # `scripts/check_questions.py` ejecuta el guard sobre cada uno y exige que salte la
-# regla declarada, no «alguna» regla.
+# regla declarada, no una regla cualquiera.
 # -----------------------------------------------------------------------------
 rechazos:
   - id: Q-R-01
@@ -178,7 +178,7 @@ rechazos:
     sql_que_lo_provoca: "DELETE FROM dim_customer WHERE erasure_requested_on IS NOT NULL"
     regla: R010
     por_que: >-
-      Ninguna escritura, a ninguna profundidad y con ningún rol. `PROJECT.md` deja las
+      Ninguna escritura, a ninguna profundidad y con ningún rol. `docs/DESIGN.md` deja las
       escrituras fuera de alcance, y esto es lectura o nada.
 
   - id: Q-R-08
@@ -212,13 +212,11 @@ rechazos:
       columna enmascarada no la desenmascara: el linaje la sigue hasta la base.
 
 # -----------------------------------------------------------------------------
-# LOS DE EJECUCIÓN · respuesta correcta = un resultset congelado.
+# Los de ejecución · respuesta correcta = un resultset congelado.
 #
-# Cada uno declara `glosario:` con la entrada FIRMADA que su SQL transcribe, o
+# Cada uno declara `glosario:` con la entrada firmada que su SQL transcribe, o
 # `arbitrio: true` si el glosario no lo cubre. El `resultset` se congela al firmar y
 # a partir de ahí la comparación es automática, por `resultset-equality`.
-#
-# Esta es la primera tanda. Faltan las demás hasta 50.
 # -----------------------------------------------------------------------------
 ejecucion:
   - id: Q-E-01
@@ -288,7 +286,7 @@ ejecucion:
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.ingreso + granos.lote_de_liquidacion"
     arbitrio: false
-    decidido_por: "Samuel, 2026-09-11: importe procesado, identidad vigente"
+    decidido_por: "revisión humana, 2026-09-11: importe procesado, identidad vigente"
     por_que: >-
       **ERA ARBITRIO y ya está resuelto.** «Volumen» es `volumen_procesado`, la
       métrica canónica que el glosario firmado pone dentro de `ingreso` —el dinero que
@@ -313,10 +311,10 @@ ejecucion:
       ORDER BY volumen_procesado DESC LIMIT 10
 
   # --------------------------------------------------------------------------
-  # SEGUNDA TANDA · transcritas de entradas firmadas y EJECUTADAS contra el
+  # Segunda tanda · transcritas de entradas firmadas y ejecutadas contra el
   # dataset antes de escribirse aquí. Los `se_calcula` del glosario se copian
   # literalmente cuando existen: donde el contrato ya escribió el SQL, escribir
-  # otro sería sustituir una decisión firmada por una mía.
+  # otro sería sustituir una decisión firmada por una sin firmar.
   # --------------------------------------------------------------------------
   - id: Q-E-06
     pregunta: cuántos intentos hacen falta de media por cada pago
@@ -542,7 +540,7 @@ ejecucion:
       WHERE NOT EXISTS (SELECT 1 FROM v_payment_intent p WHERE p.customer_sk = c.customer_sk)
 
   # --------------------------------------------------------------------------
-  # LOS QUE NECESITAN CRITERIO HUMANO. No los decide el agente.
+  # Los que necesitan criterio humano. No los decide quien escribe el banco.
   # --------------------------------------------------------------------------
   - id: Q-E-21
     pregunta: cuál es nuestro comercio más importante
@@ -550,7 +548,7 @@ ejecucion:
     estrato: join_o_agregacion
     glosario: "definiciones_criticas.ingreso + granos.lote_de_liquidacion"
     arbitrio: false
-    decidido_por: "Samuel, 2026-09-11: el que más ingreso bruto nos deja"
+    decidido_por: "revisión humana, 2026-09-11: el que más ingreso bruto nos deja"
     por_que: >-
       **ERA ARBITRIO y ya está resuelto: «importante para nosotros» es lo que nos
       deja, no lo que pasa por el tubo.** Se transcribe `ingreso_bruto` del glosario
@@ -885,7 +883,7 @@ ejecucion:
     estrato: join_o_agregacion
     glosario: "metricas.tasa_de_reintento"
     arbitrio: false
-    sustituye_a: "Q-E-22, retirada por Samuel el 2026-09-11"
+    sustituye_a: "Q-E-22, retirada del banco el 2026-09-11"
     por_que: >-
       **Sustituye a Q-E-22 en su MISMO estrato y con su mismo rol**, para que la
       estratificación del banco —20 simples, 25 con join o agregación, 15 con ventana—

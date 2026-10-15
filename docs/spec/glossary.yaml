@@ -1,58 +1,56 @@
 # =============================================================================
 # Glosario de negocio de CIERZO
 #
-# FIRMADO el 2026-09-01, con cinco correcciones sobre el borrador, aplicadas el
+# Firmado el 2026-09-01, con cinco correcciones sobre el borrador, aplicadas el
 # 2026-09-02 y marcadas `correccion_firmada:` en la entrada que tocan. El borrador
 # se generó el 2026-08-31 desde el catálogo real.
 #
-# LAS CINCO CORRECCIONES:
-#   G-1  `pago_valido`: un pago aprobado y luego DEVUELTO sigue siendo válido.
-#   G-2  `ingreso`: se parte en tres métricas con nombre propio —volumen_procesado,
-#        ingreso_bruto y margen_neto— porque llamar «ingreso» a dos cosas es lo que
+# Las cinco correcciones de la firma:
+#   G-1  `pago_valido`: un pago aprobado y luego devuelto sigue siendo válido.
+#   G-2  `ingreso`: se parte en tres métricas con nombre propio (volumen_procesado,
+#        ingreso_bruto y margen_neto) porque llamar "ingreso" a dos cosas es lo que
 #        produce el error, y la tercera faltaba.
-#   G-3  `cliente_activo`: 90 días anclados a `max(date)` del dataset, NUNCA a
+#   G-3  `cliente_activo`: 90 días anclados a `max(date)` del dataset, nunca a
 #        `current_date`. Con un dataset congelado, `current_date` es un bug con
-#        fecha de explosión.
-#   G-4  entrada nueva `periodo`: qué es «el mes pasado» sobre un dataset congelado.
-#   G-5  las nueve trampas se firman sin cambios, pero hay que MEDIRLAS de nuevo:
-#        una trampa cuyo número no se ha vuelto a medir desde que se escribió es
-#        folclore. `make dataset-traps` las comprueba y falla si alguna discrepa.
+#        fecha de caducidad.
+#   G-4  entrada nueva `periodo`: qué es "el mes pasado" sobre un dataset congelado.
+#   G-5  las nueve trampas se firman sin cambios, pero hay que medirlas de nuevo:
+#        una trampa cuyo número no se ha vuelto a medir desde que se escribió no es
+#        evidencia. `make dataset-traps` las comprueba y falla si alguna discrepa.
 #
-# LO QUE G-5 ENCONTRÓ, Y SU CORRECCIÓN (aplicada el 2026-09-02).
+# Lo que encontró G-5, y su corrección (aplicada el 2026-09-02).
 # Se midieron las nueve sobre el perfil `full` (294,7 M de filas) el 2026-09-02.
-# **Siete reproducen, cuatro de ellas con tres decimales.** Dos no, y van marcadas
-# abajo `correccion_medida:`. Ninguna trampa desaparece: las dos siguen siendo
-# reales y graves; lo que estaba mal era la cifra.
-#   P-003-a  SCD tipo 2 por clave natural: **+53 % → +32 %**. Ninguna lectura del
-#            dataset llega a 53 (full +31,94 · demo +30,32 · dev +37,87; y las
-#            versiones sobre entidades, +31,31). El 53 se midió sobre una versión
-#            anterior del generador y se quedó escrito.
-#   P-003-b  Clientes que nunca compraron: **4,3 % → 6,2 %**. Y el error no estaba
-#            aquí, estaba en el generador: `MANIFEST.json` publicaba el OBJETIVO de
-#            diseño (4,3 %) con nombre de medida. Contra los hechos son 570.895 de
-#            9.200.000 = 6,205 %, porque al 4,3 % apartado a propósito se suma un
-#            ~1,9 % que la cola Zipf deja sin ningún pago. `datagen/` ya separa
-#            `never_paid_target` de `never_paid_measured`.
+# Siete reproducen, cuatro de ellas con tres decimales. Dos no, y van marcadas abajo
+# `correccion_medida:`. Ninguna trampa desaparece: las dos siguen siendo reales y
+# graves; lo que estaba mal era la cifra.
+#   SCD tipo 2 por clave natural: +53 % -> +32 %. Ninguna lectura del dataset llega
+#     a 53 (full +31,94 · demo +30,32 · dev +37,87; y las versiones sobre entidades,
+#     +31,31). El 53 se midió sobre una versión anterior del generador y se quedó
+#     escrito.
+#   Clientes que nunca compraron: 4,3 % -> 6,2 %. El error no estaba aquí, estaba en
+#     el generador: `MANIFEST.json` publicaba el objetivo de diseño (4,3 %) con
+#     nombre de medida. Contra los hechos son 570.895 de 9.200.000 = 6,205 %, porque
+#     al 4,3 % apartado a propósito se suma un ~1,9 % que la cola Zipf deja sin
+#     ningún pago. `datagen/` ya separa `never_paid_target` de `never_paid_measured`.
 #
-# LA CONDICIÓN QUE SE AÑADIÓ AL CORREGIRLAS, y es la que más valía: las nueve
-# tolerancias de `scripts/measure_traps.py` estaban puestas a ojo (±6 sobre un 24 %,
-# ±12 sobre un 60 %, ±1 sobre un 4,3 %), y una tolerancia por trampa es el mando con
-# el que se pone verde el script sin tocar el dato. Ahora hay **una sola regla,
-# ±20 % RELATIVO, aplicada a las nueve por igual**, y CERO excepciones. Si alguna vez
-# hiciera falta una, se declara aquí con su motivo — y como este fichero está
-# FIRMADO, eso es una decisión nueva y justificada, no una línea que se cambia.
+# La condición que se añadió al corregirlas, y la que más valía: las nueve tolerancias
+# de `scripts/measure_traps.py` estaban puestas a ojo (±6 sobre un 24 %, ±12 sobre un
+# 60 %, ±1 sobre un 4,3 %), y una tolerancia por trampa es el mando con el que se pone
+# verde el script sin tocar el dato. Ahora hay una sola regla, ±20 % relativo,
+# aplicada a las nueve por igual, y cero excepciones. Si alguna vez hiciera falta una,
+# se declara aquí con su motivo, y como este fichero está firmado, eso es una
+# decisión nueva y justificada, no una línea que se cambia.
 #
-# QUÉ ES ESTO Y POR QUÉ EXISTE. Se expone como recurso MCP de solo lectura, y es
-# lo único que evita que el modelo ADIVINE la semántica. Sin él, «ingresos del
-# mes» se traduce a `sum(amount_minor)` sobre la tabla de intentos, que es la
-# respuesta equivocada por un 24 %, y la exactitud de la fase 8 baja por razones
-# que no son culpa del sistema.
+# Qué es esto y por qué existe. Se expone como recurso MCP de solo lectura, y es lo
+# único que evita que el modelo adivine la semántica. Sin él, "ingresos del mes" se
+# traduce a `sum(amount_minor)` sobre la tabla de intentos, que es la respuesta
+# equivocada por un 24 %, y la exactitud medida en `G-EXEC-ACC` baja por razones que
+# no son culpa del sistema.
 #
-# LO IMPORTANTE SIGUEN SIENDO LAS `definiciones_criticas`: son ahora CINCO
-# preguntas de criterio de negocio, no de cálculo, y todo lo demás se deriva de
-# ellas. La quinta —`periodo`— se exigió al firmar, y sin ella entre 15 y 20
-# de las 60 preguntas del banco de referencia tendrían dos resultsets igual de
-# legítimos, lo cual se descubre al escribir la número cuarenta.
+# Lo importante siguen siendo las `definiciones_criticas`: son cinco preguntas de
+# criterio de negocio, no de cálculo, y todo lo demás se deriva de ellas. La quinta,
+# `periodo`, se exigió al firmar: sin ella, entre 15 y 20 de las 60 preguntas del
+# banco de referencia tendrían dos resultsets igual de legítimos.
 # =============================================================================
 
 version: 1
@@ -65,12 +63,14 @@ correcciones_aplicadas_por: agente
 correcciones_aplicadas_el: 2026-09-02
 correcciones_de_la_firma: [G-1, G-2, G-3, G-4, G-5]
 # Correcciones posteriores a la firma, cada una con su medida y su autorización detrás.
-correcciones_medidas: [P-003-a, P-003-b]
+correcciones_medidas:
+  - "trampa SCD tipo 2 por clave natural: +53 % -> +32 %"
+  - "trampa de clientes que nunca compraron: 4,3 % -> 6,2 %"
 correcciones_medidas_por: agente
 correcciones_medidas_el: 2026-09-02
 correcciones_medidas_autorizadas_por: >-
-  Samuel, 2026-09-02, al revisar la nueva medición de las trampas. Este fichero
-  está FIRMADO: se edita SOLO bajo autorización expresa y nunca de paso.
+  Revisión humana, 2026-09-02, sobre la nueva medición de las trampas. Este fichero
+  está firmado: se edita solo bajo autorización expresa y nunca de paso.
 # La regla única de tolerancia con la que `make dataset-traps` juzga las nueve.
 tolerancia_de_las_trampas:
   relativa: 0.20            # ±20 % del valor declarado, para las nueve por igual
@@ -84,7 +84,7 @@ dominio: >-
   consecuencia de esa frase.
 
 # =============================================================================
-# LOS TRES GRANOS. Confundirlos es el error más caro que se comete contra este
+# Los tres granos. Confundirlos es el error más caro que se comete contra este
 # almacén, y el motivo de que las tres primeras entradas del glosario sean estas.
 # =============================================================================
 granos:
@@ -116,8 +116,8 @@ granos:
     usar_para: Ingresos reales, comisiones, conciliación.
 
 # =============================================================================
-# LAS DEFINICIONES QUE SOLO NEGOCIO PUEDE FIRMAR
-# Son criterio de negocio, no cálculo. Todo lo demás se deriva de estas cuatro.
+# Las definiciones que solo negocio puede firmar.
+# Son criterio de negocio, no cálculo. Todo lo demás se deriva de estas cinco.
 # =============================================================================
 definiciones_criticas:
 
@@ -194,20 +194,20 @@ definiciones_criticas:
       serie demasiado ruidosa con la estacionalidad semanal que el generador inyecta
       a propósito.
     nunca_current_date: >-
-      G-3, DE LA FIRMA: «últimos 90 días» se ancla a `max(date)` del dataset y
-      **NUNCA a `current_date`**. Con un dataset sintético congelado, `current_date`
-      hace que la métrica se vacíe sola con el paso del tiempo y que el resultset de
-      referencia de la fase 8 caduque sin que nadie toque una línea. **Es un bug con
-      fecha de explosión, no un matiz.**
+      G-3, de la firma: «últimos 90 días» se ancla a `max(date)` del dataset y nunca
+      a `current_date`. Con un dataset sintético congelado, `current_date` hace que
+      la métrica se vacíe sola con el paso del tiempo y que los resultsets de
+      referencia del banco de evaluación caduquen sin que nadie toque una línea. Es
+      un bug con fecha de caducidad, no un matiz.
     ojo: >-
       El 6,2 % de los clientes de `dim_customer` NO TIENEN NINGÚN PAGO: están
       dados de alta y nunca compraron. Un `INNER JOIN` los pierde en silencio, y
       cualquier tasa calculada así sale inflada.
-      P-003-b, DE LA CORRECCIÓN MEDIDA: aquí ponía 4,3 %, que es el OBJETIVO de
-      diseño del generador y no una medida. Contra los hechos son 570.895 de
-      9.200.000 = 6,205 % sobre el perfil `full`. La corrección se aplicó el
-      2026-09-02 a la sección `trampas` y **este párrafo se quedó sin actualizar**,
-      que es justo el sitio donde lo lee quien va a escribir una consulta.
+      Corrección medida: aquí ponía 4,3 %, que es el objetivo de diseño del
+      generador y no una medida. Contra los hechos son 570.895 de 9.200.000 =
+      6,205 % sobre el perfil `full`. La corrección se aplicó el 2026-09-02 a la
+      sección `trampas` y este párrafo se quedó sin actualizar, que es justo el
+      sitio donde lo lee quien va a escribir una consulta.
 
   comercio_activo:
     pregunta: ¿Cuándo un comercio está «activo»?
@@ -233,7 +233,8 @@ definiciones_criticas:
       se_calcula: SELECT max(event_date) FROM fact_payment_attempt
       por_que_no_max_de_dim_date: >-
         `dim_date` es un calendario y llega más lejos que los hechos. Anclar ahí
-        produciría un «mes pasado» vacío y nadie lo notaría hasta la fase 8.
+        produciría un «mes pasado» vacío y nadie lo notaría hasta medir el banco
+        de evaluación.
     zona_horaria: Europe/Madrid
     limites: cerrado_por_abajo_abierto_por_arriba     # [inicio, fin)
     ejemplos:
@@ -253,7 +254,7 @@ definiciones_criticas:
       y eso se descubre al escribir la número cuarenta.
 
 # =============================================================================
-# MÉTRICAS ESTÁNDAR. Cómo se calcula cada una, y con qué NO confundirla.
+# Métricas estándar. Cómo se calcula cada una, y con qué no confundirla.
 # =============================================================================
 metricas:
 
@@ -308,7 +309,7 @@ metricas:
       porque la cola es larga. Publicar solo la media engaña.
 
 # =============================================================================
-# LAS TABLAS, EN UNA FRASE CADA UNA
+# Las tablas, en una frase cada una.
 # =============================================================================
 tablas:
   fact_payment_attempt: Un intento de cobrar una tarjeta. La tabla grande.
@@ -337,27 +338,25 @@ tablas:
   ref_currency: Divisas, con sus decimales. El forinto húngaro tiene CERO.
 
 # =============================================================================
-# G-5, DE LA FIRMA: las nueve trampas se firman SIN CAMBIOS, y por eso mismo hay
-# que volver a medirlas. Cada porcentaje de abajo es comprobable con una consulta
-# contra `datagen/out/full`, y `make dataset-traps` las mide las nueve y falla si
-# alguna discrepa de lo escrito.
-#
-# «Una trampa cuyo número no se ha vuelto a medir desde que se escribió es
-# folclore.» El fichero de verificación es `evals/reports/dataset-traps.json`.
+# G-5, de la firma: las nueve trampas se firman sin cambios, y por eso mismo hay que
+# volver a medirlas. Cada porcentaje de abajo es comprobable con una consulta contra
+# `datagen/out/full`, y `make dataset-traps` las mide las nueve y falla si alguna
+# discrepa de lo escrito. El fichero de verificación es
+# `evals/reports/dataset-traps.json`.
 # =============================================================================
 
 # =============================================================================
-# TRAMPAS DECLARADAS. Están puestas a propósito: son errores reales de negocio
+# Trampas declaradas. Están puestas a propósito: son errores reales de negocio
 # con una respuesta correcta, no ruido. Quien pregunte al sistema se va a topar
 # con ellas, así que el glosario las nombra.
 # =============================================================================
 trampas:
   - "Contar ingresos contando filas de `fact_payment_attempt`: **+24 %**."
-  # correccion_medida: P-003-a · era +53 %, medido +31,94 % sobre `full` el 2026-09-02.
+  # correccion_medida: era +53 %, medido +31,94 % sobre `full` el 2026-09-02.
   - "Unir con `dim_merchant` por `merchant_id` en vez de por `merchant_sk`: **+32 % de filas**."
   - "Unir con `ref_fx_rate_daily` por igualdad de fecha: pierde el **24 %** de los pagos no euro, porque los fines de semana no hay cotización. Se usa el último tipo publicado."
   - "Sumar `disputed_eur_minor` sin filtrar por `is_final_stage`: **+60 %**."
-  # correccion_medida: P-003-b · era 4,3 %, que es el OBJETIVO del generador y no la
+  # correccion_medida: era 4,3 %, que es el objetivo del generador y no la
   # medida. Contra los hechos son 570.895 de 9.200.000 = 6,205 %. El 6,1 % de invitado
   # sí reproduce (6,103 %) y no se toca.
   - "`INNER JOIN` contra `dim_customer` donde iba `LEFT JOIN`: pierde el **6,2 %** de clientes que nunca compraron y el **6,1 %** de pagos de invitado (`customer_sk = -1`, que sí tiene su fila)."

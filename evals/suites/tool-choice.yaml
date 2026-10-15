@@ -1,49 +1,47 @@
 # =============================================================================
 # Los 20 escenarios de elección de herramienta · G-TOOL-CHOICE
 #
-# QUÉ PRUEBA ESTO, y es la prueba que casi nadie hace: se le dan a un modelo
-# **solo las descripciones de las cuatro herramientas** —sin catálogo, sin
-# glosario, sin ejemplos, sin el esquema— y se comprueba que elige bien. Si hace
-# falta más contexto para acertar, el defecto está en la descripción.
+# Qué prueba: se le dan a un modelo solo las descripciones de las cuatro
+# herramientas (sin catálogo, sin glosario, sin ejemplos, sin el esquema) y se
+# comprueba que elige bien. Si hace falta más contexto para acertar, el defecto está
+# en la descripción.
 #
-# LA REGLA DE REACCIÓN, escrita en `docs/GOALS.yaml` :: G-TOOL-CHOICE: **si sale
-# por debajo de 18, se reescribe la DESCRIPCIÓN de la herramienta, no el umbral ni
-# el escenario.** El defecto es de diseño del MCP, que
-# es justo lo que esta prueba existe para medir.
+# Regla de reacción, escrita en `docs/GOALS.yaml` :: G-TOOL-CHOICE: si sale por
+# debajo de 18, se reescribe la descripción de la herramienta, no el umbral ni el
+# escenario. El defecto es de diseño del MCP, que es justo lo que esta prueba mide.
 #
-# PROCEDENCIA, declarada y sin adornos. El agente escribe los 20 candidatos y **la
-# revisión humana corrige la columna «correcta»** donde no esté de acuerdo, que es
-# donde está el criterio. Sin esa revisión, el campo `provenance` dice
-# `agente_propuesto` y NO `agente_propuesto_revisado_humano`, y el informe lo
-# publica así: un número medido contra una respuesta correcta que nadie ha
-# revisado no es una prueba de diseño, es el agente puntuándose a sí mismo.
+# Procedencia. Los 20 candidatos se escribieron junto con el sistema y la revisión
+# humana corrige la columna `correcta` donde no esté de acuerdo, que es donde está el
+# criterio. Sin esa revisión, `provenance` dice `agente_propuesto` y no
+# `agente_propuesto_revisado_humano`, y el informe lo publica así: un número medido
+# contra una respuesta correcta sin revisar no es una prueba de diseño, es una
+# autoevaluación.
 #
-# Los enunciados y sus «correctas» son literalmente los fijados el 2026-09-02. No
-# se ha cambiado ninguno.
+# Los enunciados y sus respuestas correctas son literalmente los fijados el
+# 2026-09-02. No se ha cambiado ninguno.
 # =============================================================================
 
 version: 1
 provenance: agente_propuesto_revisado_humano        # revisión hecha: ver revisado_por y revisado_el
 revisado_por: Samuel Viciana Moreno
 revisado_el: 06/09/2026:20:54_55
-origen: "escenarios fijados por Samuel el 2026-09-02"
+origen: "escenarios fijados el 2026-09-02"
 
 herramientas: [run_query, describe_table, sample_table, explain_cost]
 
 # -----------------------------------------------------------------------------
-# EL CONTROL NEGATIVO, y es lo que impide que este número sea decorativo.
+# El control negativo, que es lo que impide que este número sea decorativo.
 #
-# Medido el 2026-09-03: estas cuatro descripciones —una línea cada una, sin un solo
-# desempate escrito, sin decir cuándo NO usar la herramienta— sacan **18 de 20**,
-# que es EXACTAMENTE el umbral de `G-TOOL-CHOICE`. Es decir: la meta se cumple sin
-# haber hecho ningún diseño de MCP.
+# Medido el 2026-09-03: estas cuatro descripciones (una línea cada una, sin un solo
+# desempate escrito, sin decir cuándo no usar la herramienta) sacan 18 de 20, que es
+# exactamente el umbral de `G-TOOL-CHOICE`. Es decir, la meta se cumple sin haber hecho
+# ningún diseño de MCP.
 #
-# La conclusión no es que la prueba no sirva: las descripciones de verdad sacan
-# 20/20 y las pobres fallan justo donde importa —TC-06, el grano de una tabla, y
-# TC-17, el ambiguo del conteo publicado—. Lo que la conclusión dice es que **el
-# número solo significa algo junto a su línea base**, y por eso el informe publica
-# los dos y el margen. Un 20/20 a secas se lee como un triunfo cuando la señal real
-# es «+2 sobre no hacer nada».
+# La conclusión no es que la prueba no sirva: las descripciones de verdad sacan 20/20
+# y las pobres fallan justo donde importa (TC-06, el grano de una tabla, y TC-17, el
+# ambiguo del conteo publicado). Lo que dice es que el número solo significa algo
+# junto a su línea base, y por eso el informe publica los dos y el margen. Un 20/20 a
+# secas se lee como un triunfo cuando la señal real es +2 sobre no hacer nada.
 #
 # Subir el umbral sería la consecuencia lógica, pero no se hace aquí: `docs/GOALS.yaml`
 # está sellado por `thresholds.lock` y cambiar un umbral rompe el gate.

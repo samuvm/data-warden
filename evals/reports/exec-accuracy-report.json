@@ -1,11 +1,11 @@
 {
   "contract_version": 1,
-  "created_at": "2026-10-14T18:56:23.013905Z",
+  "created_at": "2026-10-15T22:23:36.711043Z",
   "dataset": {
     "n_cases": 60,
     "n_negative_cases": 10,
     "name": "cierzo-full",
-    "sha256": "sha256:5a03f2b01586364b2e80b82033bdf3add958d18a901ca2e4ed390a7e380f5f35",
+    "sha256": "sha256:cc8ecbc676f7a20790836fe40568a6da2b0c90fbb66d60569bc6518ff7d1dce4",
     "version": 1
   },
   "environment": {
@@ -35,7 +35,7 @@
       "value": 0.5167
     }
   ],
-  "notes": "provenance del banco: agente_transcrito_del_glosario_firmado. Mientras no diga `revisado_humano`, el banco lo escribió un agente transcribiendo el glosario firmado y no tiene revisión humana externa: el número es autoevaluado contra su propia respuesta correcta.",
+  "notes": "provenance del banco: agente_transcrito_del_glosario_firmado. Mientras no diga `revisado_humano`, el banco se escribió con asistencia de IA transcribiendo el glosario firmado y no tiene revisión humana externa: el número es autoevaluado contra su propia respuesta correcta.",
   "project": "datawarden",
   "prompts": [
     {
@@ -45,6 +45,6 @@
       "version": 2
     }
   ],
-  "run_id": "exec-20261014T185623Z",
+  "run_id": "exec-20261015T222336Z",
   "suite": "exec-accuracy"
 }

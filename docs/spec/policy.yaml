@@ -1,31 +1,30 @@
 # =============================================================================
 # Política de acceso a columnas · rol × columna × nivel
 #
-# FIRMADO el 2026-09-01, CON SIETE CAMBIOS (C-1..C-7) sobre el borrador, aplicados
-# el 2026-09-02 y anotados uno a uno en la fila que tocan, con la etiqueta
+# Firmada el 2026-09-01 con siete cambios (C-1..C-7) sobre el borrador, aplicados el
+# 2026-09-02 y anotados uno a uno en la fila que tocan, con la etiqueta
 # `cambio_firmado:`. Nada más se ha tocado.
 #
-# El borrador se generó el 2026-08-31 desde el catálogo REAL
-# del dataset CIERZO (`datagen/out/full`), no de memoria: las 28 columnas de
-# `dim_customer`, las 13 de `dim_card` y las 36 de `fact_payment_attempt` están
-# inventariadas una a una.
+# El borrador se generó el 2026-08-31 desde el catálogo real del dataset CIERZO
+# (`datagen/out/full`), no de memoria: las 28 columnas de `dim_customer`, las 13 de
+# `dim_card` y las 36 de `fact_payment_attempt` están inventariadas una a una.
 #
-# LOS SIETE CAMBIOS DE LA FIRMA, en una línea cada uno:
+# Los siete cambios de la firma, en una línea cada uno:
 #   C-1  dim_customer.national_id · finance: mask(ultimos_n:1) -> deny. Una máscara
 #        que no sirve para el caso de uso que la justifica es peor que un deny.
 #   C-2  dim_employee.salary_band · admin sigue deny, pero la excepción al invariante
-#        «admin lo ve todo» pasa a ser un DATO (`excepcion_admin`), no prosa.
-#   C-3  dim_merchant.traffic_weight · además de deny, SALE del catálogo publicado.
+#        "admin lo ve todo" pasa a ser un dato (`excepcion_admin`), no prosa.
+#   C-3  dim_merchant.traffic_weight · además de deny, sale del catálogo publicado.
 #   C-4  dim_customer.birth_date · ops: mask -> deny.
 #   C-5  regla de composición: `derivada_de` en las columnas compuestas, y un test
 #        que falla si una columna `allow` deriva de otra que no lo es para ese rol.
 #   C-6  dim_customer.support_note · confirmado deny salvo ops, y la columna
-#        redactada queda anclada a la FASE 4 con dueño, no huérfana.
+#        redactada queda registrada como trabajo pendiente con plan concreto.
 #   C-7  los presupuestos por rol salen de aquí a `docs/spec/budgets.yaml`: la matriz
-#        la firma negocio y no se toca; los presupuestos se recalibran en la fase 3.
+#        la firma negocio y no se toca; los presupuestos se recalibran con medidas.
 #
-# Esta matriz bloquea la regla R008 de la fase 2, la fase 4 entera y la meta
-# `G-PII-LEAK`.
+# De esta matriz dependen la regla R008, el enmascarado por reescritura del AST y la
+# meta `G-PII-LEAK`.
 # =============================================================================
 
 version: 1
@@ -81,8 +80,8 @@ enmascarado:
   por_que_determinista: >-
     Si la máscara llevara sal por sesión, el resultset de toda consulta con una
     columna `mask` dejaría de ser comparable entre ejecuciones, y las preguntas
-    del banco de 60 que tocan una columna enmascarada NO PODRÍAN TENER RESPUESTA
-    DE REFERENCIA. Se descubriría en la fase 8, con el banco ya escrito.
+    del banco de 60 que tocan una columna enmascarada no podrían tener respuesta
+    de referencia. Se descubriría al medir, con el banco ya escrito.
   transformaciones:
     generalizar: Sustituir por la columna generalizada declarada en la propia fila.
     tachar: Sustituir por un literal fijo ('***'), sin conservar longitud.
@@ -90,8 +89,8 @@ enmascarado:
     hash_estable: SHA-256 con pimienta, truncado a 12 hex. Estable entre ejecuciones.
 
 # -----------------------------------------------------------------------------
-# INVARIANTE DEL CONTRATO, y es comprobable por un test:
-# toda columna `mask` o `deny` para `analyst` DEBE declarar una alternativa
+# Invariante del contrato, comprobable por un test:
+# toda columna `mask` o `deny` para `analyst` debe declarar una alternativa
 # generalizada, o justificar por escrito por qué es una excepción legítima.
 #
 # Un rechazo sin salida no redirige el trabajo: lo bloquea. Y un guard que
@@ -99,10 +98,10 @@ enmascarado:
 # -----------------------------------------------------------------------------
 exige_alternativa_generalizada: true
 
-# C-7: `presupuesto_gb` y `limite_filas` ya NO viven aquí. Son dos contratos con
+# C-7: `presupuesto_gb` y `limite_filas` ya no viven aquí. Son dos contratos con
 # dos ritmos de cambio distintos: esta matriz la firma negocio y no se toca; los
-# presupuestos se recalibran con `make cost-calibration` en la fase 3. Mezclarlos
-# significaba que cada recalibración tocaba el fichero firmado.
+# presupuestos se recalibran con `make cost-calibration`. Mezclarlos significaba que
+# cada recalibración tocaba el fichero firmado.
 presupuestos_en: docs/spec/budgets.yaml
 
 roles:
@@ -134,7 +133,7 @@ roles:
       REPUDIO: cada consulta suya entra en la auditoría encadenada.
 
 # -----------------------------------------------------------------------------
-# C-3: columnas que EXISTEN en el esquema y NO se publican en el catálogo del
+# C-3: columnas que existen en el esquema y no se publican en el catálogo del
 # anillo 1. Siguen teniendo su fila `deny` abajo: son dos anillos distintos y el
 # segundo no depende de que el primero se haya aplicado bien.
 # -----------------------------------------------------------------------------
@@ -145,7 +144,7 @@ columnas_excluidas_del_catalogo:
       respuesta del examen.
 
 # =============================================================================
-# LA MATRIZ
+# La matriz
 # =============================================================================
 columnas:
 
@@ -349,8 +348,7 @@ columnas:
         Producir `dim_customer.support_note_redacted` fuera de línea, con las
         entidades sustituidas, y relajar entonces el nivel para analyst. Hasta que
         exista, el límite se declara aquí en vez de fingir que la política lo cubre.
-      fase: 4
-      dueno: agente
+      estado: pendiente     # no implementado; el límite sigue declarado en `limites_declarados`
       como: >-
         REDACCIÓN EXACTA, NO UN MODELO DE NER. La ventaja de que el dataset sea
         sintético es que el generador SABE qué entidades metió en cada nota, porque
@@ -358,8 +356,9 @@ columnas:
         misma fila. Sustituirlas es una búsqueda exacta, no una inferencia, y hay
         que cobrarse esa ventaja en vez de montar un NER que acierta el 95 %.
       por_que_con_fecha: >-
-        C-6, DE LA FIRMA: el trabajo pendiente del borrador era correcto pero estaba
-        huérfano. Sin dueño ni fase, no se hace.
+        C-6, de la firma: el trabajo pendiente del borrador era correcto pero estaba
+        huérfano. Sin un plan concreto no se hace, y mientras no se haga, el hueco
+        se publica como límite en vez de darse por cubierto.
 
   - columna: dim_customer.kyc_status
     tipo_dato: cumplimiento
@@ -719,10 +718,10 @@ columnas:
       segundo nivel.
 
 # =============================================================================
-# LÍMITES DECLARADOS. Lo que esta política NO cierra.
+# Límites declarados. Lo que esta política no cierra.
 #
-# Publicarlos gana más credibilidad de la que cuesta, y evita que el primer
-# revisor que encuentre el hueco crea que lo ha encontrado él.
+# Publicarlos cuesta menos credibilidad de la que gana, y evita que el primer
+# revisor que encuentre el hueco crea que nadie lo había visto.
 # =============================================================================
 limites_declarados:
 

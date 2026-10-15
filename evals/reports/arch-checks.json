@@ -37,11 +37,11 @@
       "adicionales": {
         "claves de docs/spec/policy.yaml ausentes del catálogo generado": 0,
         "contratos propios válidos en docs/spec/": 4,
-        "divergencias byte a byte entre docs/CONTRACTS/ y _comun/CONTRACTS/": 0
+        "divergencias entre docs/CONTRACTS/ y su manifiesto sha256": 0
       },
       "command": "python scripts/check_contracts.py",
       "detail": {
-        "copies_verified": 3,
+        "frozen_verified": 3,
         "own_contracts": 4,
         "problems": []
       },

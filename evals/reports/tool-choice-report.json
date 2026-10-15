@@ -1,11 +1,11 @@
 {
   "contract_version": 1,
-  "created_at": "2026-10-14T13:25:04.108031Z",
+  "created_at": "2026-10-15T22:36:22.250554Z",
   "dataset": {
     "n_cases": 20,
     "n_negative_cases": 4,
     "name": "tool-choice-suite",
-    "sha256": "sha256:25cff746af75a7806ff9b7db33f966903b3ca091e2c28f1c15198d4f837e2525",
+    "sha256": "sha256:ca645286a2223a8714ce962944e36675cc0cc710c4576d55a89e745be302de53",
     "version": 1
   },
   "environment": {
@@ -27,6 +27,6 @@
   ],
   "notes": "Al modelo se le dan SOLO las cuatro descripciones de docs/spec/tools.yaml. Mide si un cliente elige bien la herramienta con lo que el servidor publica, no si el sistema responde bien una vez elegida.",
   "project": "datawarden",
-  "run_id": "tool-choice-20261014T132504Z",
+  "run_id": "tool-choice-20261015T223622Z",
   "suite": "tool-choice"
 }

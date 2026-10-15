@@ -1,24 +1,24 @@
 # =============================================================================
 # Presupuestos por rol · contrato propio, separado de la matriz de columnas
 #
-# NACE DEL CAMBIO C-7 DE LA POLÍTICA FIRMADA. `presupuesto_gb` y `limite_filas`
-# vivían dentro de `docs/spec/policy.yaml`, junto a la matriz rol × columna. Son
-# dos contratos con dos ritmos de cambio distintos:
+# Nace del cambio C-7 de la política firmada. `presupuesto_gb` y `limite_filas`
+# vivían dentro de `docs/spec/policy.yaml`, junto a la matriz rol × columna. Son dos
+# contratos con dos ritmos de cambio distintos:
 #
-#   · la MATRIZ la firma negocio y no se toca;
-#   · los PRESUPUESTOS se recalibran con `make cost-calibration` en la fase 3.
+#   · la matriz la firma negocio y no se toca;
+#   · los presupuestos se recalibran con medidas (`make cost-calibration`).
 #
 # Mezclarlos significaba que cada recalibración tocaba un fichero firmado, y un
 # fichero firmado que se toca cada semana deja de estar firmado.
 #
-# QUÉ ESTÁ FIRMADO Y QUÉ NO, dicho explícitamente porque son cosas distintas:
-#   · `hard_gb` y `max_rows` se firmaron junto con la política, con estas
-#     palabras: «ops 0,05 GB / 2.000 filas es agresivo y correcto: ops mira un
-#     pago concreto; si necesita más, es que está haciendo análisis y ese no es
-#     su rol».
-#   · `soft_gb` NO está firmado. Es una propuesta técnica y se calibra en la fase 3.
-#     Va marcado `origen: agente_por_calibrar` en cada fila para que nadie lo
-#     publique como si fuera una decisión de negocio.
+# Qué está firmado y qué no, dicho explícitamente porque son cosas distintas:
+#   · `hard_gb` y `max_rows` se firmaron junto con la política, con estas palabras:
+#     "ops 0,05 GB / 2.000 filas es agresivo y correcto: ops mira un pago concreto;
+#     si necesita más, es que está haciendo análisis y ese no es su rol".
+#   · `soft_gb` no está firmado. Es una propuesta técnica pendiente de calibrar. Va
+#     marcado `origen_soft: agente_por_calibrar` en cada fila para que nadie lo
+#     publique como si fuera una decisión de negocio; el compilador lo lee y lo
+#     publica como `soft_is_calibrated: false`.
 # =============================================================================
 
 version: 1
@@ -35,27 +35,28 @@ extraido_el: 2026-09-02
 # -----------------------------------------------------------------------------
 significado:
   soft_gb: >-
-    Por encima de esto la consulta NO se rechaza: se pide confirmación. En la
-    fase 7 eso es un `InputRequiredResult` de MRTR; hasta entonces es un aviso en
-    el resultado. Existe porque un guardián que solo sabe decir «no» se desactiva.
+    Por encima de esto la consulta no se rechaza: se pide confirmación. Por MCP es
+    un `InputRequiredResult` de MRTR si el cliente declara que sabe confirmar; si
+    no, se ejecuta con un aviso en el resultado. Existe porque un guardián que solo
+    sabe decir «no» se desactiva.
   hard_gb: >-
-    Por encima de esto la consulta NO SE EJECUTA. Es el número que hace verdadera
+    Por encima de esto la consulta no se ejecuta. Es el número que hace verdadera
     la meta `G-BUDGET-ESCAPE`, que es un axioma: cero consultas por encima del
     presupuesto llegan al motor. No se negocia en caliente.
   max_rows: >-
-    Tope de filas DEVUELTAS, aplicado por el dominio y nunca por el motor (I-12).
+    Tope de filas devueltas, aplicado por el dominio y nunca por el motor (I-12).
     Un engine que aplicara su propio `LIMIT` haría que el número dependiera del
     motor, y entonces DuckDB y Athena darían resultados distintos con el mismo rol.
 
 # -----------------------------------------------------------------------------
 # Cómo se comparan estos gigabytes con lo que mide el estimador, porque si no se
-# dice aquí, cada fase lo entiende de una manera.
+# dice aquí, cada componente lo entiende de una manera.
 # -----------------------------------------------------------------------------
 unidad:
   que_se_mide: bytes_escaneados_estimados
   como: >-
-    Suma de los bytes de las columnas PROYECTADAS en los ficheros que sobreviven a
-    la poda de particiones, leída de los metadatos de Iceberg. NUNCA con
+    Suma de los bytes de las columnas proyectadas en los ficheros que sobreviven a
+    la poda de particiones, leída de los metadatos de Iceberg. Nunca con
     `EXPLAIN ANALYZE`, que ejecuta la consulta y por tanto es inútil para un
     guardián preventivo (docs/RULES.md §7, error 11).
   base: 1000000000        # GB decimal, no GiB. Se declara para que no se discuta
@@ -77,7 +78,7 @@ roles:
     max_rows: 2000
     origen_soft: agente_por_calibrar
     justificacion: >-
-      FIRMADO CON ESTAS PALABRAS: «es agresivo y correcto: ops mira un pago
+      Firmado con estas palabras: «es agresivo y correcto: ops mira un pago
       concreto; si necesita más, es que está haciendo análisis y ese no es su
       rol». El límite bajo no es una restricción de confianza, es la forma de que
       el sistema empuje a ops hacia la consulta con predicado que le corresponde.
@@ -98,11 +99,11 @@ roles:
     origen_soft: agente_por_calibrar
     justificacion: >-
       Atiende un derecho de acceso o un requerimiento judicial: consulta poco y
-      cuando consulta necesita el expediente entero. El control sobre este rol NO
-      es el presupuesto ni la máscara, es el NO REPUDIO de la auditoría encadenada.
+      cuando consulta necesita el expediente entero. El control sobre este rol no
+      es el presupuesto ni la máscara, es el no repudio de la auditoría encadenada.
 
 # -----------------------------------------------------------------------------
-# Lo que este contrato NO dice, declarado en vez de descubierto
+# Lo que este contrato no dice, declarado en vez de descubierto
 # -----------------------------------------------------------------------------
 limites_declarados:
   - limite: El presupuesto es por consulta, no por sesión ni por día
@@ -114,14 +115,14 @@ limites_declarados:
     fuera_de_alcance_hoy: true
     regla_candidata: >-
       Ventana deslizante por `principal_id` sobre la propia cadena de auditoría,
-      que ya registra los bytes de cada invocación. Barata de construir el día que
-      la fase 5 esté cerrada, y hasta entonces no se finge que existe.
+      que ya registra los bytes de cada invocación. Barata de construir sobre la
+      auditoría encadenada, y mientras no exista no se finge que existe.
 
   - limite: "`soft_gb` no está calibrado"
     descripcion: >-
-      Es la mitad del duro, elegido a ojo y no por medida. Hasta que
-      `make cost-calibration` corra sobre 60 consultas reales en la fase 3, el
-      número es una hipótesis con forma de contrato.
+      Es la mitad del duro, elegido a ojo y no por medida. `make cost-calibration`
+      mide el error del estimador, no el coste típico de las consultas legítimas de
+      cada rol, así que el número sigue siendo una hipótesis con forma de contrato.
     fuera_de_alcance_hoy: true
     regla_candidata: >-
       Fijar `soft_gb` en el p50 del coste real de las consultas legítimas de cada

@@ -36,7 +36,7 @@
   },
   "signed_by": "Samuel",
   "source": "docs/spec/budgets.yaml",
-  "source_sha256": "ab5923f23916b7e36dfcadb47eea325a5a9a98901925b6e519928ba36fe71ae6",
+  "source_sha256": "9f9f01b7e5eb78ec73d936d6f9f9bed3c8e8ea6e629e16749b01e0d4ecb5648b",
   "unit_base": 1000000000,
   "version": 1
 }

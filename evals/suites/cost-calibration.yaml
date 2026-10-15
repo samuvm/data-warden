@@ -1,15 +1,15 @@
 # =============================================================================
 # Banco de calibración del estimador de coste · `G-COST-CALIB`
 #
-# Sesenta consultas contra `datagen/out/full`, como exige `G-COST-CALIB` en la
-# fase 3. No son sesenta variaciones de la misma: la mitad del valor está en que el
-# banco cubra los dos ejes donde el estimador puede equivocarse, que son los dos que
-# separan un lakehouse de una base de datos de filas:
+# Sesenta consultas contra `datagen/out/full`, como exige `G-COST-CALIB`. No son
+# sesenta variaciones de la misma: la mitad del valor está en que el banco cubra los
+# dos ejes donde el estimador puede equivocarse, que son los dos que separan un
+# lakehouse de una base de datos de filas:
 #
-#   · **poda de PARTICIONES** — con predicado de fecha y sin él, un día, una semana,
-#     un mes, un rango abierto, y predicados que el estimador NO sabe leer;
-#   · **poda de COLUMNAS** — una columna, cinco, la tabla entera, y `count(*)`, que
-#     no proyecta ninguna y aun así obliga a abrir los ficheros.
+#   · poda de particiones: con predicado de fecha y sin él, un día, una semana, un
+#     mes, un rango abierto, y predicados que el estimador no sabe leer;
+#   · poda de columnas: una columna, cinco, la tabla entera, y `count(*)`, que no
+#     proyecta ninguna y aun así obliga a abrir los ficheros.
 #
 # Y las dos tablas grandes, las medianas y las de referencia, porque el error
 # relativo de un estimador se ve en las pequeñas: sobre 4 GB, equivocarse en 10 MB
@@ -17,7 +17,8 @@
 #
 # La fecha de referencia del almacén es 2026-08-31 (`glossary.periodo`), y todos los
 # literales de este banco se anclan a ella. Con `current_date` el banco caducaría
-# solo, que es el bug con fecha de explosión que la corrección G-3 del glosario evita.
+# solo, que es el bug con fecha de caducidad que la entrada `periodo` del glosario
+# evita.
 # =============================================================================
 
 version: 1
@@ -53,7 +54,7 @@ consultas:
   - {id: C-19, rol: finance, sql: "SELECT currency_code, sum(amount_eur_minor) AS v FROM fact_payment_attempt GROUP BY currency_code"}
   - {id: C-20, rol: analyst, sql: "SELECT channel, count(*) AS n FROM fact_payment_attempt GROUP BY channel"}
 
-  # -------------------------------- predicados que el estimador NO sabe podar
+  # -------------------------------- predicados que el estimador no sabe podar
   - {id: C-21, rol: analyst, sql: "SELECT auth_status, count(*) AS n FROM fact_payment_attempt WHERE date_trunc('month', event_date) = DATE '2026-08-01' GROUP BY auth_status"}
   - {id: C-22, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE event_date = DATE '2026-08-31' OR amount_minor > 100000"}
   - {id: C-23, rol: analyst, sql: "SELECT count(*) AS n FROM fact_payment_attempt WHERE auth_status = 'approved'"}

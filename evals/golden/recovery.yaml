@@ -1,34 +1,34 @@
 # =============================================================================
-# Corpus de rechazos SEMBRADOS · G-RECOVERY y G-RECOVERY-COV
+# Corpus de rechazos sembrados · G-RECOVERY y G-RECOVERY-COV
 #
-# QUÉ MIDE ESTO, dicho con precisión: no si el modelo acierta a la primera, sino
-# si **se corrige con el mensaje de rechazo**. Es la tesis del proyecto puesta a
-# prueba —*el valor no está en la tasa de acierto, está en la garantía sobre el
-# fallo*—, y por eso el rechazo se SIEMBRA en vez de esperarse.
+# Qué mide: no si el modelo acierta a la primera, sino si se corrige con el mensaje
+# de rechazo. Es la tesis del proyecto puesta a prueba (el valor no está en la tasa
+# de acierto, está en la garantía sobre el fallo), y por eso el rechazo se siembra
+# en vez de esperarse.
 #
-# POR QUÉ SEMBRADO Y NO ESPERADO. Si el corpus fueran solo preguntas y se dejara
-# que el modelo produjera por su cuenta el SQL rechazable, el número mediría dos
-# cosas mezcladas: cuántas veces el modelo se equivoca del modo previsto y
-# cuántas veces se corrige después. Las dos varían con el modelo, y la primera
-# ni siquiera es interesante. Con la semilla, el rechazo está garantizado y el
-# denominador es fijo: lo único que se mide es la corrección.
+# Por qué sembrado y no esperado. Si el corpus fueran solo preguntas y se dejara que
+# el modelo produjera por su cuenta el SQL rechazable, el número mediría dos cosas
+# mezcladas: cuántas veces el modelo se equivoca del modo previsto y cuántas veces se
+# corrige después. Las dos varían con el modelo, y la primera ni siquiera es
+# interesante. Con la semilla, el rechazo está garantizado y el denominador es fijo:
+# lo único que se mide es la corrección.
 #
-# Y ADEMÁS ES LO QUE HACE POSIBLE `G-RECOVERY-COV`. Exigir que TODA regla activa
-# tenga un caso de recuperación solo se puede cumplir si el rechazo no depende de
-# lo que el modelo decida escribir ese día.
+# Es también lo que hace posible `G-RECOVERY-COV`. Exigir que toda regla activa tenga
+# un caso de recuperación solo se puede cumplir si el rechazo no depende de lo que el
+# modelo decida escribir ese día.
 #
-# CADA SEMILLA SE REVALIDA CONTRA EL GUARD EN CADA MEDIDA. Si una semilla deja de
-# rechazar —porque la regla cambió, porque el catálogo cambió, porque sqlglot
-# renombró una clave—, `scripts/check_recovery_coverage.py` sale ROJO. Un corpus
-# cuyas semillas ya no siembran nada es folclore, no evidencia; es la misma
-# corrección G-5 que obligó a volver a medir las nueve trampas del glosario.
+# Cada semilla se revalida contra el guard en cada medida. Si una semilla deja de
+# rechazar (porque la regla cambió, porque el catálogo cambió, porque sqlglot renombró
+# una clave), `scripts/check_recovery_coverage.py` falla. Un corpus cuyas semillas ya
+# no siembran nada no es evidencia; es la misma razón por la que se volvieron a medir
+# las nueve trampas del glosario.
 #
-# LAS PREGUNTAS VAN EN ESPAÑOL porque el prompt va en español y quien pregunta
-# habla español. El SQL, los identificadores y los `rule_id`, en inglés.
+# Las preguntas van en español porque el prompt va en español y quien pregunta habla
+# español. El SQL, los identificadores y los `rule_id`, en inglés.
 #
-# 42 rechazos sembrados sobre 13 reglas. La catorceava, R009, NO PUEDE sembrarse
-# de punta a punta y tiene su sección aparte al final, con el motivo escrito y
-# tres casos que lo COMPRUEBAN en vez de afirmarlo.
+# 42 rechazos sembrados sobre 13 reglas. La decimocuarta, R009, no puede sembrarse de
+# punta a punta y tiene su sección aparte al final, con el motivo escrito y tres casos
+# que lo comprueban en vez de afirmarlo.
 # =============================================================================
 
 version: 1
@@ -42,7 +42,7 @@ rol_por_defecto: analyst
 # -----------------------------------------------------------------------------
 # Los 42 rechazos sembrados. Cada uno lleva:
 #   pregunta  · lo que alguien preguntaría de verdad
-#   semilla   · el SQL que un modelo produciría y que el guard PARA
+#   semilla   · el SQL que un modelo produciría y que el guard para
 #   regla     · qué regla tiene que dispararlo, comprobado en cada medida
 #   familia   · la familia de ataque que la regla declara defender
 # -----------------------------------------------------------------------------
@@ -361,23 +361,23 @@ casos:
     semilla: "SELECT customer_sk FROM dim_customer LIMIT 10 OFFSET (SELECT 1)"
 
 # -----------------------------------------------------------------------------
-# R009 · LA EXCEPCIÓN, y no se afirma: se comprueba.
+# R009 · la excepción, comprobada en vez de afirmada.
 #
-# `SELECT *` NO PUEDE sembrar un rechazo de R009 de punta a punta, porque
-# `qualify()` expande la estrella contra el catálogo ANTES de que R009 corra. La
-# regla existe como defensa en profundidad para el caso en que `qualify()` no
-# expanda y devuelva el árbol con la estrella dentro sin error, y se ejercita a
-# nivel de regla en `tests/unit/guard/cases/R009.yaml`. Es la misma exención que
+# `SELECT *` no puede sembrar un rechazo de R009 de punta a punta, porque `qualify()`
+# expande la estrella contra el catálogo antes de que R009 corra. La regla existe como
+# defensa en profundidad para el caso en que `qualify()` no expanda y devuelva el árbol
+# con la estrella dentro sin error, y se ejercita a nivel de regla en
+# `tests/unit/guard/cases/R009.yaml`. Es la misma exención que
 # `scripts/check_attack_coverage.py` ya lleva escrita, con el mismo motivo.
 #
-# UNA EXENCIÓN EN PROSA NO VALE NADA, así que estos tres casos la convierten en
-# una medida: el check EXIGE que las tres se ACEPTEN, es decir, que la estrella
-# se haya expandido de verdad. El día que `qualify()` deje de expandir, estas
-# tres dejarán de aceptarse y la exención saldrá roja en vez de seguir tapando
-# una regla que ya no se cumple.
+# Una exención en prosa no se puede verificar, así que estos tres casos la convierten
+# en una medida: el check exige que los tres se acepten, es decir, que la estrella se
+# haya expandido de verdad. El día que `qualify()` deje de expandir, dejarán de
+# aceptarse y la exención fallará en vez de seguir tapando una regla que ya no se
+# cumple.
 #
-# NO CUENTAN en los 42 ni en el ratio de `G-RECOVERY`: no hay rechazo del que
-# recuperarse. Contarlas sería inflar el corpus con casos gratis.
+# No cuentan en los 42 ni en el ratio de `G-RECOVERY`: no hay rechazo del que
+# recuperarse, y contarlos inflaría el corpus con casos gratis.
 # -----------------------------------------------------------------------------
 expansion_de_estrella:
   - id: EXP-R009-1

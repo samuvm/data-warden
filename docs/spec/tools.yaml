@@ -1,34 +1,32 @@
 # =============================================================================
 # Las cuatro herramientas MCP · contrato propio del proyecto
 #
-# ESTE FICHERO ES LO QUE `G-TOOL-CHOICE` MIDE. La prueba es esta: se le dan a un
-# modelo SOLO las descripciones de abajo —sin catálogo, sin glosario, sin ejemplos—
-# y se comprueba que elige la herramienta correcta en >= 18 de 20 escenarios. Casi
-# nadie hace esa prueba, y es puro diseño de MCP.
+# Este fichero es lo que `G-TOOL-CHOICE` mide. La prueba: se le dan a un modelo solo
+# las descripciones de abajo (sin catálogo, sin glosario, sin ejemplos) y se comprueba
+# que elige la herramienta correcta en >= 18 de 20 escenarios. Es diseño de MCP puro.
 #
-# LA REGLA DE REACCIÓN, que está en `GOALS.yaml` y conviene repetir en voz alta:
-# **si el número sale por debajo de 18, lo que se arregla es la DESCRIPCIÓN, no el
-# umbral ni el escenario.** El defecto está en el diseño del servidor, que es justo
-# lo que la prueba existe para medir. Por eso la meta es «negociable hacia arriba
-# solo».
+# Regla de reacción, recogida en `GOALS.yaml`: si el número sale por debajo de 18, lo
+# que se arregla es la descripción, no el umbral ni el escenario. El defecto está en
+# el diseño del servidor, que es justo lo que la prueba mide. Por eso la meta solo es
+# negociable hacia arriba.
 #
-# CÓMO ESTÁ ESCRITA CADA DESCRIPCIÓN, y las tres reglas salen de que el modelo no
-# ve nada más que esto:
-#   1. Dice qué DEVUELVE, no qué hace por dentro. «Ejecuta SQL» no ayuda a elegir;
-#      «devuelve filas agregadas» sí.
-#   2. Dice cuándo NO usarla y a cuál ir en su lugar. La mitad de los errores de
+# Cómo está escrita cada descripción. Las tres reglas salen de que el modelo no ve
+# nada más que esto:
+#   1. Dice qué devuelve, no qué hace por dentro. "Ejecuta SQL" no ayuda a elegir;
+#      "devuelve filas agregadas" sí.
+#   2. Dice cuándo no usarla y a cuál ir en su lugar. La mitad de los errores de
 #      elección son entre dos herramientas vecinas, y el desempate tiene que estar
 #      escrito en las dos.
-#   3. No usa la palabra que el enunciado usaría. Si `explain_cost` dijera «úsala
-#      cuando pregunten por el coste», la prueba mediría la coincidencia de una
-#      palabra y no la comprensión de la intención — y el escenario 20 («¿merece la
-#      pena que lance esto?») existe precisamente para cazar eso.
+#   3. No usa la palabra que el enunciado usaría. Si `explain_cost` dijera "úsala
+#      cuando pregunten por el coste", la prueba mediría la coincidencia de una
+#      palabra y no la comprensión de la intención; el escenario 20 ("¿merece la
+#      pena que lance esto?") existe precisamente para cazar eso.
 #
 # La spec MCP 2026-07-28 exige `inputSchema` y `outputSchema` en JSON Schema
-# 2020-12. El `outputSchema` usa `oneOf` entre `rows` y `rejected`: **un rechazo no
-# es un error del protocolo, es una respuesta legítima del sistema**, y modelarlo
-# como error haría que un cliente lo tratara como un fallo que reintentar en vez de
-# como un motivo que leer.
+# 2020-12. El `outputSchema` usa `oneOf` entre `rows` y `rejected`: un rechazo no es
+# un error del protocolo, es una respuesta legítima del sistema, y modelarlo como
+# error haría que un cliente lo tratara como un fallo que reintentar en vez de como
+# un motivo que leer.
 # =============================================================================
 
 version: 2
@@ -36,7 +34,7 @@ estado: BORRADOR          # BORRADOR | FIRMADO — FIRMADO solo tras revisión h
 generado_por: agente
 generado_el: 2026-09-03
 
-# El orden de `tools/list` es DETERMINISTA y es este. La spec lo exige y además es
+# El orden de `tools/list` es determinista y es este. La spec lo exige y además es
 # un check de CI barato: un orden que depende de un diccionario cambia entre
 # ejecuciones y convierte cualquier snapshot en ruido.
 orden: [run_query, describe_table, sample_table, explain_cost]
@@ -104,15 +102,15 @@ herramientas:
     resultado: estimación
 
 # -----------------------------------------------------------------------------
-# El recurso. El catálogo COMPLETO se sirve como recurso MCP y no dentro del
+# El recurso. El catálogo completo se sirve como recurso MCP y no dentro del
 # prompt: 32 tablas y 428 columnas no caben cómodas en un prompt, y meterlas
 # obligaría a recortarlas justo cuando el modelo necesita el esquema entero.
 #
-# `ttlMs` y `cacheScope` son OBLIGATORIOS en los `list` de la spec 2026-07-28.
-# El TTL es de una hora porque el catálogo se REGENERA (I-07) y `G-CATALOG-FRESH`
+# `ttlMs` y `cacheScope` son obligatorios en los `list` de la spec 2026-07-28.
+# El TTL es de una hora porque el catálogo se regenera (I-07) y `G-CATALOG-FRESH`
 # ya vigila que no se quede viejo; el ámbito es `public` porque el catálogo
-# publicado es el mismo para todos los roles — lo que cambia por rol es la
-# POLÍTICA sobre las columnas, no la lista de tablas.
+# publicado es el mismo para todos los roles; lo que cambia por rol es la
+# política sobre las columnas, no la lista de tablas.
 # -----------------------------------------------------------------------------
 recursos:
   - uri: "warden://catalog"

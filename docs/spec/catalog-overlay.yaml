@@ -1,19 +1,19 @@
 # =============================================================================
-# Lo poco del catálogo que el motor NO puede decir
+# Lo poco del catálogo que el motor no puede decir
 #
-# I-07 dice que el catálogo se GENERA y nunca se escribe a mano, y eso sigue
-# siendo cierto: `catalog/generated/schema.json` sale entero de
-# `information_schema`. Pero hay una cosa que ningún motor sabe y que el anillo 1
-# tiene que publicar porque `PROJECT.md` §2 la pide: **qué columnas están
-# deprecadas**. Una columna obsoleta EXISTE, tiene su tipo y responde a un
-# `SELECT`; que no haya que usarla es conocimiento de negocio.
+# I-07 dice que el catálogo se genera y nunca se escribe a mano, y eso sigue siendo
+# cierto: `catalog/generated/schema.json` sale entero de `information_schema`. Pero
+# hay una cosa que ningún motor sabe y que el anillo 1 tiene que publicar porque la
+# especificación de diseño (`docs/DESIGN.md`) la pide: qué columnas están
+# deprecadas. Una columna obsoleta existe, tiene su tipo y responde a un `SELECT`;
+# que no haya que usarla es conocimiento de negocio.
 #
-# ESTE FICHERO NO PUEDE AÑADIR NADA. Solo anota columnas que ya existen, y
+# Este fichero no puede añadir nada. Solo anota columnas que ya existen, y
 # `scripts/check_catalog_fresh.py` falla si alguna clave de aquí no está en el
-# esquema generado. Es lo que impide que se convierta en un catálogo paralelo
-# escrito a mano, que es exactamente lo que I-07 existe para prohibir.
+# esquema generado. Es lo que impide que se convierta en un catálogo paralelo escrito
+# a mano, que es exactamente lo que I-07 prohíbe.
 #
-# LAS EXCLUSIONES NO ESTÁN AQUÍ. `dim_merchant.traffic_weight` sale del catálogo
+# Las exclusiones no están aquí. `dim_merchant.traffic_weight` sale del catálogo
 # publicado por el cambio C-3 de la política firmada, y por tanto vive en
 # `docs/spec/policy.yaml`, que es donde vive lo que firma negocio. Dos ficheros
 # diciendo qué se publica serían dos sitios donde equivocarse.
@@ -49,17 +49,17 @@ deprecadas:
 clasificacion_por_defecto:
   nivel: allow
   por_que: >-
-    `docs/spec/policy.yaml` inventaría las 40 columnas SENSIBLES del almacén, no
+    `docs/spec/policy.yaml` inventaría las 40 columnas sensibles del almacén, no
     las ~300 que tiene. Una columna sin fila —`amount_minor`, `auth_status`,
     `event_date`— es una columna de negocio ordinaria, y denegarla por defecto
-    dejaría el sistema sin nada que responder. El guard es allowlist sobre NODOS y
-    FUNCIONES del árbol, que es donde vive el ataque; sobre columnas la lista es de
+    dejaría el sistema sin nada que responder. El guard es allowlist sobre nodos y
+    funciones del árbol, que es donde vive el ataque; sobre columnas la lista es de
     lo protegido, y eso es otra cosa.
   limite_declarado: >-
-    UNA COLUMNA SENSIBLE NUEVA QUE NADIE CLASIFIQUE QUEDA EN `allow`. Es el hueco
+    Una columna sensible nueva que nadie clasifique queda en `allow`. Es el hueco
     real de este diseño y se declara aquí en vez de descubrirse. Lo que lo acota:
-    el esquema se GENERA, así que una columna nueva cambia el sha de
+    el esquema se genera, así que una columna nueva cambia el sha de
     `catalog/generated/schema.json` y `G-CATALOG-FRESH` obliga a regenerarlo en un
-    turno que un humano revisa. Lo que NO hace: avisar por sí solo de que la
-    columna nueva es sensible. Eso sigue siendo criterio, y va al modelo de
-    amenaza de la fase 10 con estas palabras.
+    cambio que un humano revisa. Lo que no hace: avisar por sí solo de que la
+    columna nueva es sensible. Eso sigue siendo criterio, y está recogido en el
+    modelo de amenaza (`docs/threat-model.md`).

@@ -28,13 +28,13 @@
           {
             "file": "query_lineage.py",
             "function": "resolve",
-            "line": 51,
+            "line": 45,
             "returns": true
           },
           {
             "file": "validator.py",
             "function": "validate",
-            "line": 68,
+            "line": 65,
             "returns": true
           }
         ],
