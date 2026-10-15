@@ -5,21 +5,21 @@
         --with 'pyiceberg[sql-sqlite,pyarrow]==0.11.1' \
         python datagen/build_iceberg.py --data datagen/out/dev
 
-QUÉ AÑADE ICEBERG QUE NO TENÍA EL PARQUET SUELTO. Hasta aquí el almacén era «una
+Qué añade Iceberg sobre el Parquet suelto. Hasta aquí el almacén era «una
 carpeta con ficheros»: para leer una tabla había que confiar en un `glob`, y
 cualquiera que dejara un fichero de más la cambiaba sin querer. Iceberg pone un
-MANIFIESTO por encima: la lista exacta de ficheros que forman la tabla en cada
-instante. De ahí salen las cuatro cosas que `PROJECT.md` llama lakehouse —
-evolución de esquema, viaje en el tiempo, instantáneas atómicas y poda de
-particiones fiable— y ninguna de ellas es posible sobre un `glob`.
+manifiesto por encima: la lista exacta de ficheros que forman la tabla en cada
+instante. De ahí salen las cuatro propiedades de un lakehouse (evolución de
+esquema, viaje en el tiempo, instantáneas atómicas y poda de particiones
+fiable), y ninguna de ellas es posible sobre un `glob`.
 
-**SPEC V2, NO V3, Y NO ES UN DETALLE.** `docs/STACK.md` lo dice: Athena no
-soporta v3. El criterio de aceptación nº 5 de `PROJECT.md` es que el mismo caso
-funcione en DuckDB y en Athena; si el dataset se escribe en v3, ese criterio falla
-por el FORMATO y no por la abstracción de motor, que es justo lo que se quería
-demostrar. El script lo comprueba y aborta si no sale v2.
+Spec v2, no v3: Athena no soporta v3 (`docs/STACK.md` §3). El criterio de
+aceptación nº 5 de `docs/DESIGN.md` es que el mismo caso funcione en DuckDB y en
+Athena; si el dataset se escribe en v3, ese criterio falla por el formato y no por
+la abstracción de motor, que es lo que se quiere demostrar. El script lo comprueba
+y aborta si no sale v2.
 
-NO SE COPIA UN SOLO BYTE. `add_files` registra el Parquet que ya existe. Un
+No se copia un solo byte: `add_files` registra el Parquet que ya existe. Un
 `full` son 7,46 GB: reescribirlos costaría minutos y espacio para obtener
 exactamente los mismos ficheros.
 """

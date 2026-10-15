@@ -1,12 +1,8 @@
 # Data Warden · modelo de amenaza
 
-> **Qué es este documento.** Lo que este sistema protege, contra quién, y —sobre todo— **qué NO
-> protege**. La tercera parte es la que importa: una defensa cuyo límite no se publica se lee como
-> una promesa que no es, y quien la despliegue creyendo esa promesa acabará confiando en algo que
-> nunca prometió.
->
-> Se escribe en la fase 5 porque es cuando la cadena de auditoría existe y su límite se puede
-> declarar con precisión, y se completa en la fase 10 con las superficies de las fases 6 y 7.
+> Lo que este sistema protege, contra quién y, sobre todo, **qué no protege**. La tercera parte es la
+> que importa: una defensa cuyo límite no se publica se lee como una promesa que no es, y quien la
+> despliegue acabará confiando en algo que nunca se prometió.
 
 ---
 
@@ -38,7 +34,7 @@ que se porte bien: se valida lo que produce.
 
 **C · Quien tiene acceso al proceso o al disco.** Puede leer el almacén de auditoría, borrar sus
 triggers y reescribir la cadena. **Contra este actor el sistema no defiende**, y la sección 4 lo
-dice con todas sus letras.
+declara.
 
 ## 3. Qué se defiende, y con qué
 
@@ -71,7 +67,7 @@ con lista negra, lo nuevo entra; con allowlist, lo nuevo se para hasta que algui
 
 ## 4. Qué NO se protege · el límite honesto
 
-Esta sección es obligatoria y su contenido no es negociable.
+Los límites conocidos de cada defensa, y lo que queda fuera del alcance del sistema.
 
 ### 4.1 · La cadena de auditoría
 
@@ -115,7 +111,7 @@ ejecuciones. El precio es que **el mismo valor produce el mismo hash siempre**, 
 conozca un valor puede reconocerlo en el resultset. Quien tenga acceso a la pimienta puede además
 construir un diccionario y revertir cualquier columna de cardinalidad baja.
 
-**Y hay una segunda pérdida, que se acepta a sabiendas.** El plan original pedía **sal por sesión**,
+**Y hay una segunda pérdida, que se acepta a sabiendas.** El diseño inicial usaba **sal por sesión**,
 que impedía correlacionar dos sesiones distintas del mismo usuario. La pimienta fija no lo impide:
 dos sesiones producen los mismos hashes y se pueden cruzar. Se cambió porque con sal por sesión el
 resultset de toda consulta con columna `mask` deja de ser comparable entre ejecuciones, y entonces
@@ -133,9 +129,9 @@ que se instala al abrir la conexión, y el árbol solo dice `warden_hash(...)`.
 | Dónde | Antes | Ahora |
 |---|---|---|
 | Campo `sql` del registro de auditoría | la pimienta, en cada registro | **no aparece** |
-| Logs del motor | una vez por CONSULTA | **una vez por CONEXIÓN**, en el `CREATE MACRO` |
+| Logs del motor | una vez por consulta | **una vez por conexión**, en el `CREATE MACRO` |
 
-**La macro NO elimina la pimienta de los logs del motor: la reduce.** Se dice con esas palabras
+**La macro no elimina la pimienta de los logs del motor: la reduce.** Se dice con esas palabras
 porque un límite declarado a medias es peor que uno que no se declara, ya que parece cerrado. Quien
 pueda leer los logs del motor sigue pudiendo obtener la pimienta, y con ella revertir las dos
 columnas hasheadas —`dim_device.device_fingerprint` y `fact_payment_attempt.ip_address_int`— por
@@ -146,23 +142,22 @@ clave: necesitan un **pseudónimo estable**, que es el patrón que este almacén
 `dim_card.card_token` (denegada) y su alternativa publicada `card_sk`. Generando
 `device_fingerprint_sk` e `ip_address_sk` en tiempo de construcción, la capacidad de contar sesiones
 distintas se conserva entera y **la pimienta deja de existir para ellas**: un problema de gestión de
-claves se convierte en uno de modelado de datos, que es mucho más barato de tener. Va cuando se
-regenere el dataset, porque hacerlo hoy invalida el `MANIFEST` contra el que cerraron las fases 0, 1
-y 2.
+claves se convierte en uno de modelado de datos, que es mucho más barato de tener. Se aplicará en la
+próxima regeneración del dataset, porque hacerlo ahora invalida el `MANIFEST` contra el que están
+medidas las metas publicadas.
 
 ### 4.3 · El modelo
 
 El modelo puede generar SQL correcto y **semánticamente equivocado**: la consulta pasa los cinco
 anillos y responde a otra pregunta. Ningún anillo de este sistema defiende contra eso. Es lo que
-mide `G-EXEC-ACC` en la fase 8, y es la razón de la tesis del proyecto: **el valor no está en la
+mide `G-EXEC-ACC`, y es la razón de la tesis del proyecto: **el valor no está en la
 tasa de acierto, está en la garantía sobre el fallo.**
 
 ### 4.3.1 · Inyección de prompt · el canal era el mensaje del propio guard
 
 **El modelo nunca ve una fila del almacén.** El prompt lleva la instrucción, el resumen del
 catálogo, la pregunta y el rechazo anterior; ninguna fila. La inyección «vía fila del dataset» que
-la fase 6 pedía atacar no tiene camino por diseño, y decirlo así ya sería suficiente para muchos
-documentos. No lo es aquí, porque midiendo apareció otro camino que nadie había mirado.
+el diseño pedía atacar no tiene camino por construcción. Pero al medirla apareció otro camino.
 
 **El mensaje de rechazo echa texto que escribe quien pregunta.** R004 dice *«relation `X` is not in
 the generated catalog»*, y `X` sale del SQL. Una tabla llamada así:
@@ -180,11 +175,11 @@ documento con la misma estructura que las auténticas, y un modelo no tiene form
 1. **Los datos no pueden falsificar la estructura del documento que los contiene.** Todo campo no
    de confianza que entra en el prompt —la pregunta, los cuatro campos del rechazo y el SQL
    anterior— se aplana a una sola línea, pierde los acentos graves y se acota en longitud. Sin
-   saltos de línea no hay encabezado de markdown posible. Esto quita el CANAL.
+   saltos de línea no hay encabezado de markdown posible. Esto quita el canal.
 2. **Lo que el modelo escriba vuelve a pasar por el guard.** Aunque obedeciera la inyección entera
    —y `tests/adversarial/test_prompt_injection.py` lo prueba con el peor modelo posible, uno que
    obedece al pie de la letra en los tres intentos—, un `DELETE` sigue siendo un `DELETE` y R010 lo
-   para. Esto quita la CONSECUENCIA.
+   para. Esto quita la consecuencia.
 
 **El límite honesto:** la capa 1 es higiene y se puede rodear; nadie debería confiar en ella. La
 garantía es la capa 2, y es la misma de siempre: *no hace falta que el modelo se porte bien.*
@@ -205,11 +200,9 @@ garantía es la capa 2, y es la misma de siempre: *no hace falta que el modelo s
 Un modelo de amenaza que solo enumera defensas se lee como publicidad. Estos son dos fallos que el
 proyecto tuvo, medidos y corregidos. El segundo es el que más enseña.
 
-### 5.1 · El estimador de coste cobraba CERO por una tabla de 4,1 GB
+### 5.1 · El estimador de coste cobraba cero por una tabla de 4,1 GB
 
-
-
-**El estimador de coste cobraba CERO por una tabla de 4,1 GB.** El `repr` de un `Record` de
+El `repr` de un `Record` de
 pyiceberg tiene la forma `Record[19967]`, y usarlo como clave de partición producía particiones
 contra las que ningún literal de fecha casaba jamás. La poda devolvía el conjunto vacío, el coste
 salía cero, y **`G-BUDGET-ESCAPE` —que es un axioma— habría dejado pasar cualquier consulta con un
@@ -224,15 +217,15 @@ anillo.**
 
 ### 5.2 · El anillo 4 no estaba en el camino, y el axioma lo certificaba igual
 
-**`AuditedExecutor` es el ÚNICO camino sancionado a `Engine.execute()` (I-06) y llamaba a
-`screen()`** —anillos 2 y 3, guard y presupuesto—, saltándose el 4. Es decir: el sistema entero
+**`AuditedExecutor` es el único camino sancionado a `Engine.execute()` (I-06) y llamaba a
+`screen()`**, que aplica el guard y el presupuesto, saltándose el enmascarado. Es decir: el sistema entero
 devolvía **nombres y direcciones de correo reales** al rol `analyst`, para el que la política dice
 `mask`. El registro de auditoría lo estaba diciendo en cada línea, con un `columns_masked: []` que
 era exacto y que nadie leía.
 
-**Y `G-PII-LEAK` —que es un AXIOMA, `propuesta_admisible: false`— pasaba con 0 fugas en 177
+**Y `G-PII-LEAK`, que es un axioma (`propuesta_admisible: false`), pasaba con 0 fugas en 177
 comprobaciones.** No por un fallo de la suite: `scripts/pii_suite.py` medía `screen_and_mask()`,
-que enmascara perfectamente. Medía **un camino que el sistema no usa para ejecutar**.
+que enmascara correctamente. Medía **un camino que el sistema no usa para ejecutar**.
 
 Eso es peor que el fallo del estimador de coste de §5.1, y por un motivo concreto: allí el anillo no
 se medía contra la realidad; aquí **se medía muy bien, contra la realidad equivocada**. Un número
@@ -244,7 +237,7 @@ verde salido de una ruta paralela es más difícil de dudar que un número que f
    **después** de presupuestar, porque reescribir antes cambiaría el árbol que el estimador tarifó.
 2. **`mask` es un argumento obligatorio y sin valor por defecto.** Con uno opcional, el fallo vuelve
    el día que alguien construya un ejecutor y se olvide de pasarlo — y vuelve en silencio.
-3. **`scripts/pii_suite.py` mide ahora POR el ejecutor**, y `scripts/check_mask_path.py` comprueba
+3. **`scripts/pii_suite.py` mide ahora a través del ejecutor**, y `scripts/check_mask_path.py` comprueba
    sobre el AST que quien llega al motor llama a `screen_and_mask` y no tiene `screen` a mano. El
    contrato de import-linter no podía expresarlo: `audit` puede importar `cost`, y debe.
 

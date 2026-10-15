@@ -8,7 +8,6 @@
 </p>
 
 <p align="center">
-  <img alt="fases" src="https://img.shields.io/badge/fases-0%E2%80%938%20cerradas-brightgreen">
   <img alt="metas" src="https://img.shields.io/badge/metas-26%2F26%20en%20verde-brightgreen">
   <img alt="tests" src="https://img.shields.io/badge/tests-820-informational">
   <img alt="mcp" src="https://img.shields.io/badge/MCP-2026--07--28-7c3aed">
@@ -233,7 +232,7 @@ escribe a mano**: la genera `make readme` desde `evals/reports/`.
 
 | Qué se mide | Umbral | Medido | Comando |
 |---|---|---|---|
-| Latencia del guard | p95 ≤ 25 ms | **p95 0,85 ms** · p99 1,17 · máx. 4,20 | `make bench-guard` |
+| Latencia del guard | p95 ≤ 25 ms | **p95 1,01 ms** · p99 1,31 · máx. 4,82 | `make bench-guard` |
 | Error del estimador de coste | p95(real/est.) ≤ 1,5 | **1,077** | `make cost-calibration` |
 | Manipulaciones de la auditoría detectadas | 100 % | **100 %** de 1.299 bytes alterados | `pytest tests/property/test_audit_chain.py` |
 
@@ -293,6 +292,10 @@ Es el número más fácil de malinterpretar, así que va con todo el contexto:
 | **MCP sin sesión, con MRTR** | El presupuesto blando pide confirmación con el patrón de petición de entrada de la especificación 2026-07-28. Si el cliente no sabe contestar, se ejecuta con un aviso en la respuesta, y el presupuesto duro sigue rechazando solo |
 | **Evaluaciones grabadas** | Temperatura 0, semilla fija y respuestas grabadas por modelo y por petición. Un número que no se puede volver a obtener no es un número |
 | **Telemetría con modelo propio** | Ningún atributo `gen_ai.*` de OpenTelemetry es estable todavía. El dominio usa su propio modelo y un traductor es el único módulo que conoce los nombres del estándar: la próxima ruptura de la especificación es un fichero, no una migración |
+
+Las estructurales están escritas como registros de decisión de arquitectura en
+[`docs/adr/`](docs/adr/), con las opciones consideradas y los números medidos. La especificación
+completa está en [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## Lo que encontraron las comprobaciones
 
@@ -390,15 +393,20 @@ src/datawarden/
   audit/         cadena de auditoría · el único camino al motor
   principal/     rol, política y presupuesto por rol
   nl2sql/        generación, ciclo de corrección y proveedores de modelo
+  agent/         adaptador delgado de LangGraph sobre el ciclo
   service/       las cuatro operaciones, sin transporte
   mcp/  http/    los dos transportes, que no se conocen entre sí
   telemetry/     modelo interno de llamadas a modelo y traductor a OpenTelemetry
+  evalsupport/   comparación de resultsets, mutación de AST, corpus de recuperación
   engines/       adaptador de DuckDB
 
 tests/     unit · property · contract · integration · adversarial · holdout
 attacks/   el cuaderno de evasiones, que crece con cada una encontrada
 evals/     banco de preguntas · respuestas grabadas · informes
 datagen/   el generador del dataset y su semilla
+prompts/   prompts versionados con frontmatter
+docs/      DESIGN.md (especificación de diseño) · GOALS.yaml · RULES.md · STACK.md
+           threat-model.md · adr/ (decisiones de arquitectura) · spec/ (contratos)
 ```
 
 **Cada zona tiene su régimen de prueba, y son distintos a propósito.** El guard exige TDD
@@ -429,8 +437,10 @@ código; lo que no puede hacer es mover el listón contra el que se le mide.
   cada una se corrigió demostrando primero que ahora sí fallaba —por ejemplo, plantando una
   clave falsa para el check de secretos—.
 
-[`docs/JOURNAL.md`](docs/JOURNAL.md) es la bitácora: las decisiones, los números antes y
-después, y los errores.
+[`docs/JOURNAL.md`](docs/JOURNAL.md) es la bitácora de ingeniería: las decisiones, los números
+antes y después, y los errores.
+
+`src/` está en inglés; la documentación de `docs/`, los scripts y los tests, en español.
 
 ## Licencia
 

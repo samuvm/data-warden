@@ -8,7 +8,6 @@
 </p>
 
 <p align="center">
-  <img alt="phases" src="https://img.shields.io/badge/phases-0%E2%80%938%20closed-brightgreen">
   <img alt="goals" src="https://img.shields.io/badge/goals-26%2F26%20green-brightgreen">
   <img alt="tests" src="https://img.shields.io/badge/tests-820-informational">
   <img alt="mcp" src="https://img.shields.io/badge/MCP-2026--07--28-7c3aed">
@@ -236,7 +235,7 @@ written by hand**: `make readme` generates it from `evals/reports/`.
 
 | What is measured | Threshold | Measured | Command |
 |---|---|---|---|
-| Guard latency | p95 ≤ 25 ms | **p95 0.85 ms** · p99 1.17 · max 4.20 | `make bench-guard` |
+| Guard latency | p95 ≤ 25 ms | **p95 1.01 ms** · p99 1.31 · max 4.82 | `make bench-guard` |
 | Cost estimator error | p95(actual/est.) ≤ 1.5 | **1.077** | `make cost-calibration` |
 | Audit tampering detected | 100 % | **100 %** of 1,299 altered bytes | `pytest tests/property/test_audit_chain.py` |
 
@@ -296,6 +295,10 @@ It is the easiest number to misread, so here it is with all its context:
 | **Stateless MCP, with MRTR** | The soft budget asks for confirmation using the input-request pattern of the 2026-07-28 spec. If the client cannot answer, the query runs with a warning in the response, and the hard budget still rejects on its own |
 | **Recorded evaluations** | Temperature 0, fixed seed and answers recorded per model and per request. A number that cannot be obtained again is not a number |
 | **Telemetry with its own model** | No OpenTelemetry `gen_ai.*` attribute is stable yet. The domain uses its own model and a translator is the only module that knows the standard's names: the next spec break is one file, not a migration |
+
+The structural ones are written up as architecture decision records in [`docs/adr/`](docs/adr/),
+with the options considered and the numbers measured. The full specification is in
+[`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## What the checks found
 
@@ -393,15 +396,20 @@ src/datawarden/
   audit/         audit chain · the only path to the engine
   principal/     role, policy and per-role budget
   nl2sql/        generation, correction loop and model providers
+  agent/         thin LangGraph adapter over the loop
   service/       the four operations, transport-agnostic
   mcp/  http/    the two transports, which do not know about each other
   telemetry/     internal model of model calls and OpenTelemetry translator
+  evalsupport/   resultset comparison, AST mutation, recovery corpus
   engines/       DuckDB adapter
 
 tests/     unit · property · contract · integration · adversarial · holdout
 attacks/   the evasion notebook, which grows with every one found
 evals/     question bank · recorded answers · reports
 datagen/   the dataset generator and its seed
+prompts/   versioned prompts with frontmatter
+docs/      DESIGN.md (design spec) · GOALS.yaml · RULES.md · STACK.md
+           threat-model.md · adr/ (architecture decisions) · spec/ (contracts)
 ```
 
 **Each zone has its own testing regime, and they differ on purpose.** The guard requires pure
@@ -433,8 +441,10 @@ cannot do is move the bar it is measured against.
   check.
 
 [`docs/JOURNAL.md`](docs/JOURNAL.md) is the engineering log: decisions, numbers before and
-after, and the mistakes. The documentation under `docs/` is in Spanish; code, identifiers,
-logs and error messages are in English.
+after, and the mistakes.
+
+`src/` is in English; the documentation under `docs/`, the scripts and the tests are in
+Spanish.
 
 ## License
 

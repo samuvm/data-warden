@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/samuvm/data-warden/docs/spec/rejection.schema.json",
   "title": "Mensaje de rechazo accionable",
-  "description": "Contrato propio del proyecto, invariante I-09 de docs/RULES.md. Un rechazo NO es un error: es una respuesta del sistema, y es la respuesta que más veces va a leer un modelo. Si no dice qué regla saltó, dónde, y qué hacer en su lugar, el ciclo de corrección de la fase 6 no puede funcionar y G-RECOVERY es inalcanzable por diseño y no por calidad del modelo. Dos prohibiciones duras: `suggestion` NO puede estar vacía, y NINGÚN campo puede contener un valor de celda ni el contenido de una columna sensible -- un mensaje de error que cita el IBAN que acaba de rechazar es una fuga con forma de diagnóstico.",
+  "description": "Contrato propio del proyecto, invariante I-09 de docs/RULES.md. Un rechazo NO es un error: es una respuesta del sistema, y es la respuesta que más veces va a leer un modelo. Si no dice qué regla saltó, dónde, y qué hacer en su lugar, el ciclo de corrección no puede funcionar y G-RECOVERY es inalcanzable por diseño y no por calidad del modelo. Dos prohibiciones duras: `suggestion` NO puede estar vacía, y NINGÚN campo puede contener un valor de celda ni el contenido de una columna sensible -- un mensaje de error que cita el IBAN que acaba de rechazar es una fuga con forma de diagnóstico.",
   "type": "object",
   "additionalProperties": false,
   "required": ["rule_id", "code", "message", "suggestion", "severity"],
@@ -13,7 +13,7 @@
       "pattern": "^(R[0-9]{3}|BUDGET|POLICY|INTERNAL)$"
     },
     "code": {
-      "description": "Identificador estable y legible por máquina de la FAMILIA del rechazo. Es lo que agrupa las métricas y lo que el bucle de la fase 6 usa para decidir si reintentar. Estable aunque el texto de `message` cambie.",
+      "description": "Identificador estable y legible por máquina de la FAMILIA del rechazo. Es lo que agrupa las métricas y lo que el bucle de corrección usa para decidir si reintentar. Estable aunque el texto de `message` cambie.",
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]{2,63}$"
     },
@@ -59,7 +59,7 @@
       "maxLength": 200
     },
     "alternative": {
-      "description": "La columna generalizada que la política publica como salida, si la hay: `dim_customer.age_band` para `birth_date`. Se separa de `suggestion` para que el bucle de la fase 6 pueda sustituirla sin parsear prosa.",
+      "description": "La columna generalizada que la política publica como salida, si la hay: `dim_customer.age_band` para `birth_date`. Se separa de `suggestion` para que el bucle de corrección pueda sustituirla sin parsear prosa.",
       "type": ["string", "null"],
       "maxLength": 200
     },

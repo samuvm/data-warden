@@ -84,7 +84,7 @@
         "deprecated": { "type": "boolean" },
         "deprecated_reason": { "type": "string" },
         "derives_from": {
-          "description": "Las `tabla_base.columna` de las que sale. Para una tabla base, ella misma. PARA UNA VISTA, TODAS SUS FUENTES, y ahí está el valor: `v_customer.full_name` es `concat_ws(' ', first_name, last_name_1, last_name_2)` sobre columnas protegidas, es decir, exactamente el ataque por expresión derivada que describe PROJECT.md, servido por el propio catálogo. Sin linaje, una política que casa por `tabla.columna` no lo ve.",
+          "description": "Las `tabla_base.columna` de las que sale. Para una tabla base, ella misma. PARA UNA VISTA, TODAS SUS FUENTES, y ahí está el valor: `v_customer.full_name` es `concat_ws(' ', first_name, last_name_1, last_name_2)` sobre columnas protegidas, es decir, exactamente el ataque por expresión derivada que describe docs/DESIGN.md, servido por el propio catálogo. Sin linaje, una política que casa por `tabla.columna` no lo ve.",
           "type": "array",
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.[a-zA-Z_][a-zA-Z0-9_]*$" },
           "minItems": 1,

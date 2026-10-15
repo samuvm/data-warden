@@ -1,14 +1,13 @@
 # CIERZO · generador de dataset sintético
 
-> **Esto no es el proyecto.** Es el generador de datos sobre el que el proyecto se
-> construirá. Vive en `datagen/`, fuera de `src/`, y **no toca `pyproject.toml`**:
-> se escribió antes de fijar las versiones del proyecto y de admitir en
-> `PROJECT.md` un dataset 100 % sintético, y así se mantiene aislado. Sus
-> dependencias están pinadas aparte en `datagen/requirements.txt` y se ejecutan con
-> `uv run --with-requirements`, que no escribe nada en el entorno del proyecto.
+> Es el generador del dataset sobre el que se mide Data Warden, no parte del
+> sistema. Vive en `datagen/`, fuera de `src/`, y **no toca `pyproject.toml`**:
+> sus dependencias están fijadas aparte en `datagen/requirements.txt` y se ejecutan
+> con `uv run --with-requirements`, que no escribe nada en el entorno del proyecto.
+> Se publican el generador y su semilla, nunca los datos.
 
 CIERZO es una pasarela de pagos europea que no existe: 12.400 comercios, 9,2 M de
-clientes y 68 M de intentos de autorización en dos años (2024-09-01 → 2026-08-31).
+clientes y 66,6 M de intentos de autorización en dos años (2024-09-01 → 2026-08-31).
 La empresa es inventada y las personas son sintéticas, pero el vocabulario es el
 real de la industria — MCC, códigos ISO 8583, exenciones SCA de PSD2, liquidación
 por lotes, contracargos por etapas — porque de ahí viene la credibilidad.
@@ -54,8 +53,8 @@ las cuatro es posible sobre un `glob`.
 catálogo del perfil completo pesa **1,4 MB para 7,46 GB de datos**, y contar los
 66,6 M de filas tarda 0,02 s porque lee el manifiesto en vez de escanear.
 
-**Spec v2, no v3, y no es un detalle.** `docs/STACK.md` lo dice: Athena no soporta
-v3, y el criterio de aceptación nº 5 del proyecto es que el mismo caso funcione en
+**Spec v2, no v3, y no es un detalle.** Athena no soporta v3 (`docs/STACK.md` §3), y
+el criterio de aceptación nº 5 de `docs/DESIGN.md` es que el mismo caso funcione en
 DuckDB **y** en Athena. Escribirlo en v3 haría fallar ese criterio por el formato
 en vez de por la abstracción de motor, que es justo lo que se quería demostrar. El
 script lo comprueba y aborta si no sale v2.
@@ -213,10 +212,10 @@ caducadas declarada al 2,2 % que se entregaba al 0,98 %.
 
 ## La auditoría adversarial
 
-El dataset pasó por seis revisores independientes con lentes distintas —pagos,
-estadística, modelado, fraude, privacidad y las necesidades del propio proyecto—
-consultando DuckDB de verdad, con cada hallazgo verificado después por un segundo
-agente cuyo trabajo era refutarlo. **22 hallazgos, 20 confirmados como «arreglar
+El dataset pasó por seis revisiones independientes con lentes distintas (pagos,
+estadística, modelado, fraude, privacidad y las necesidades del propio proyecto),
+hechas en sesiones de modelo separadas que consultaban DuckDB de verdad, con cada
+hallazgo verificado después por una segunda revisión cuyo objetivo era refutarlo. **22 hallazgos, 20 confirmados como «arreglar
 ya».** Los diez principales se comprobaron a mano antes de tocar nada: acertaron en
 los diez.
 
@@ -250,7 +249,7 @@ datagen/
 ├── requirements.txt        pines aislados del proyecto
 ├── run.sh                  build de extremo a extremo de un perfil
 ├── generate.py             orquestador: dimensiones + bucle de 730 días
-├── build_duckdb.py         catálogo, vistas derivadas y las 29 comprobaciones
+├── build_duckdb.py         catálogo, vistas derivadas y comprobaciones bloqueantes
 ├── build_derived.py        liquidación, pagos, devoluciones y disputas, en SQL
 ├── cierzo/
 │   ├── config.py           perfiles, semilla, objetivos declarados
